@@ -108,10 +108,7 @@
   <div class="grain"></div>
 
   <script>
-    // Column counts per phase — 8 small squares → 4 medium → 2 large
-    const PHASES = [8, 4, 2];
-
-    const SEEDS = [
+    const IMAGES = [
       'images/67-laughing-gas.jpg',
       'images/Screen-Shot-2020-07-29-at-10.00.32-PM.png',
       'images/Screen-Shot-2020-11-20-at-4.06.40-PM.png',
@@ -129,23 +126,21 @@
       'images/splitlip.png',
     ];
 
-    const GAP          = 3;    // px between cells
-    const HOLD_MS      = 3500; // how long each phase is fully visible
-    const STAGGER_MS   = 1400; // spread of random fade delays
-    const MIN_FADE_MS  = 300;  // fastest a single cell can fade
-    const MAX_FADE_MS  = 2200; // slowest a single cell can fade
-    const OVERLAP_MS   = 700;  // new grid starts fading in before old one finishes
+    // Base grid columns. All cell sizes are multiples of one base unit.
+    // Allowed cell sizes in base units: 1×1, 2×2, 4×4
+    const BASE_COLS    = 8;
+    const SIZES        = [4, 2, 1]; // tried largest-first per cell
+    const GAP          = 3;
+    const HOLD_MS      = 3500;
+    const STAGGER_MS   = 1400;
+    const MIN_FADE_MS  = 300;
+    const MAX_FADE_MS  = 2200;
+    const OVERLAP_MS   = 700;
 
     const stage = document.getElementById('stage');
 
-    function sleep(ms) {
-      return new Promise(r => setTimeout(r, ms));
-    }
-
-    function randFade() {
-      return MIN_FADE_MS + Math.random() * (MAX_FADE_MS - MIN_FADE_MS);
-    }
-
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function randFade() { return MIN_FADE_MS + Math.random() * (MAX_FADE_MS - MIN_FADE_MS); }
     function shuffle(arr) {
       const a = [...arr];
       for (let i = a.length - 1; i > 0; i--) {
@@ -155,29 +150,63 @@
       return a;
     }
 
-    function buildGrid(cols) {
+    function buildMosaic() {
       const W = stage.clientWidth;
       const H = stage.clientHeight;
+      const unit = (W - GAP * (BASE_COLS - 1)) / BASE_COLS; // one base unit in px
+      const BASE_ROWS = Math.ceil((H + GAP) / (unit + GAP));
 
-      const cellSize = (W - GAP * (cols - 1)) / cols;
-      const rows = Math.ceil((H + GAP) / (cellSize + GAP));
+      // Occupancy grid — tracks which base cells are taken
+      const taken = Array.from({ length: BASE_ROWS + 4 }, () => new Uint8Array(BASE_COLS));
 
-      const pool = shuffle(SEEDS);
+      function fits(r, c, s) {
+        if (c + s > BASE_COLS) return false;
+        for (let dr = 0; dr < s; dr++)
+          for (let dc = 0; dc < s; dc++)
+            if (taken[r + dr]?.[c + dc]) return false;
+        return true;
+      }
+
+      function occupy(r, c, s) {
+        for (let dr = 0; dr < s; dr++)
+          for (let dc = 0; dc < s; dc++)
+            if (taken[r + dr]) taken[r + dr][c + dc] = 1;
+      }
+
+      const pool = shuffle(IMAGES);
       const cells = [];
+      let imgIdx = 0;
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const seed = pool[(r * cols + c) % pool.length];
-          const px   = Math.round(cellSize);
+      for (let r = 0; r < BASE_ROWS; r++) {
+        for (let c = 0; c < BASE_COLS; c++) {
+          if (taken[r][c]) continue;
+
+          // Weighted random size pick: bias toward 1×1 but allow larger
+          const roll = Math.random();
+          const preferred = roll < 0.12 ? [4, 2, 1]
+                          : roll < 0.42 ? [2, 1, 4]
+                          :               [1, 2, 4];
+
+          let chosen = 1;
+          for (const s of preferred) {
+            if (fits(r, c, s)) { chosen = s; break; }
+          }
+
+          occupy(r, c, chosen);
+
+          // Pixel size: span chosen units + interior gaps
+          const px = chosen * unit + (chosen - 1) * GAP;
+          const x  = c * (unit + GAP);
+          const y  = r * (unit + GAP);
+          const src = pool[imgIdx++ % pool.length];
 
           const el = document.createElement('div');
           el.className = 'cell';
-          el.style.left   = `${c * (cellSize + GAP)}px`;
-          el.style.top    = `${r * (cellSize + GAP)}px`;
-          el.style.width  = `${cellSize}px`;
-          el.style.height = `${cellSize}px`;
-          el.style.backgroundImage = `url('${seed.replace(/ /g, '%20')}')`;
-
+          el.style.left   = `${x}px`;
+          el.style.top    = `${y}px`;
+          el.style.width  = `${px}px`;
+          el.style.height = `${px}px`;
+          el.style.backgroundImage = `url('${src}')`;
           stage.appendChild(el);
           cells.push(el);
         }
@@ -188,10 +217,8 @@
     async function fadeIn(cells) {
       await sleep(40);
       cells.forEach(cell => {
-        const dur   = randFade();
-        const delay = Math.random() * STAGGER_MS;
-        cell.style.transitionDuration = `${dur}ms`;
-        cell.style.transitionDelay    = `${delay}ms`;
+        cell.style.transitionDuration = `${randFade()}ms`;
+        cell.style.transitionDelay    = `${Math.random() * STAGGER_MS}ms`;
         cell.style.opacity = '1';
       });
       await sleep(STAGGER_MS + MAX_FADE_MS);
@@ -200,32 +227,21 @@
 
     function fadeOut(cells) {
       cells.forEach(cell => {
-        const dur   = randFade();
-        const delay = Math.random() * STAGGER_MS;
-        cell.style.transitionDuration = `${dur}ms`;
-        cell.style.transitionDelay    = `${delay}ms`;
+        cell.style.transitionDuration = `${randFade()}ms`;
+        cell.style.transitionDelay    = `${Math.random() * STAGGER_MS}ms`;
         cell.style.opacity = '0';
       });
-      // Remove from DOM once all could have finished
       setTimeout(() => cells.forEach(c => c.remove()), STAGGER_MS + MAX_FADE_MS);
     }
 
     async function run() {
-      let phase = 0;
-      let current = buildGrid(PHASES[phase]);
+      let current = buildMosaic();
       await fadeIn(current);
-
       while (true) {
         await sleep(HOLD_MS);
-
-        // Begin dissolving current grid
         fadeOut(current);
-
-        // Overlap: let new grid start appearing while old one still dissolves
         await sleep(OVERLAP_MS);
-
-        phase = (phase + 1) % PHASES.length;
-        current = buildGrid(PHASES[phase]);
+        current = buildMosaic();
         await fadeIn(current);
       }
     }
