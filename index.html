@@ -111,24 +111,39 @@
     // Column counts per phase — 8 small squares → 4 medium → 2 large
     const PHASES = [8, 4, 2];
 
-    // Picsum seeds — replace with your own image URLs by editing buildGrid()
     const SEEDS = [
-      'cuf1','cuf2','cuf3','cuf4','cuf5','cuf6','cuf7','cuf8','cuf9','cuf10',
-      'cuf11','cuf12','cuf13','cuf14','cuf15','cuf16','cuf17','cuf18','cuf19','cuf20',
-      'cuf21','cuf22','cuf23','cuf24','cuf25','cuf26','cuf27','cuf28','cuf29','cuf30',
-      'cuf31','cuf32','cuf33','cuf34','cuf35','cuf36','cuf37','cuf38','cuf39','cuf40',
-      'cuf41','cuf42','cuf43','cuf44','cuf45','cuf46','cuf47','cuf48','cuf49','cuf50'
+      'images/67 laughing gas.jpg',
+      'images/Screen Shot 2020-07-29 at 10.00.32 PM.png',
+      'images/Screen Shot 2020-11-20 at 4.06.40 PM.png',
+      'images/Screen Shot 2021-02-18 at 1.43.33 AM.png',
+      'images/Screen Shot 2021-08-11 at 3.12.55 AM.png',
+      'images/b.h. fish pic copy.JPG',
+      'images/ballet holo.png',
+      'images/bern.png',
+      'images/canvalley.png',
+      'images/femarmharm.png',
+      'images/leaflute.png',
+      'images/live@coney.png',
+      'images/showman shadow.png',
+      'images/skomorokh.png',
+      'images/splitlip.png',
     ];
 
-    const GAP        = 3;    // px between cells
-    const HOLD_MS    = 3200; // how long each phase is fully visible
-    const STAGGER_MS = 900;  // spread of random fade delays
-    const FADE_MS    = 700;  // individual cell transition duration
+    const GAP          = 3;    // px between cells
+    const HOLD_MS      = 3500; // how long each phase is fully visible
+    const STAGGER_MS   = 1400; // spread of random fade delays
+    const MIN_FADE_MS  = 300;  // fastest a single cell can fade
+    const MAX_FADE_MS  = 2200; // slowest a single cell can fade
+    const OVERLAP_MS   = 700;  // new grid starts fading in before old one finishes
 
     const stage = document.getElementById('stage');
 
     function sleep(ms) {
       return new Promise(r => setTimeout(r, ms));
+    }
+
+    function randFade() {
+      return MIN_FADE_MS + Math.random() * (MAX_FADE_MS - MIN_FADE_MS);
     }
 
     function shuffle(arr) {
@@ -144,11 +159,9 @@
       const W = stage.clientWidth;
       const H = stage.clientHeight;
 
-      // Cell size: equal squares that tile the width
       const cellSize = (W - GAP * (cols - 1)) / cols;
       const rows = Math.ceil((H + GAP) / (cellSize + GAP));
 
-      // Shuffle seeds so each phase shows a fresh arrangement
       const pool = shuffle(SEEDS);
       const cells = [];
 
@@ -163,8 +176,7 @@
           el.style.top    = `${r * (cellSize + GAP)}px`;
           el.style.width  = `${cellSize}px`;
           el.style.height = `${cellSize}px`;
-          el.style.backgroundImage = `url(https://picsum.photos/seed/${seed}/${px}/${px})`;
-          el.style.transitionDuration = `${FADE_MS}ms`;
+          el.style.backgroundImage = `url('${seed}')`;
           stage.appendChild(el);
           cells.push(el);
         }
@@ -173,36 +185,47 @@
     }
 
     async function fadeIn(cells) {
-      // Slight pause so browser has painted the cells at opacity:0 first
       await sleep(40);
       cells.forEach(cell => {
-        cell.style.transitionDelay = `${Math.random() * STAGGER_MS}ms`;
+        const dur   = randFade();
+        const delay = Math.random() * STAGGER_MS;
+        cell.style.transitionDuration = `${dur}ms`;
+        cell.style.transitionDelay    = `${delay}ms`;
         cell.style.opacity = '1';
       });
-      await sleep(STAGGER_MS + FADE_MS);
-      // Reset delay so fade-out also stagger freely
+      await sleep(STAGGER_MS + MAX_FADE_MS);
       cells.forEach(cell => { cell.style.transitionDelay = '0ms'; });
     }
 
-    async function fadeOut(cells) {
+    function fadeOut(cells) {
       cells.forEach(cell => {
-        cell.style.transitionDelay = `${Math.random() * STAGGER_MS}ms`;
+        const dur   = randFade();
+        const delay = Math.random() * STAGGER_MS;
+        cell.style.transitionDuration = `${dur}ms`;
+        cell.style.transitionDelay    = `${delay}ms`;
         cell.style.opacity = '0';
       });
-      await sleep(STAGGER_MS + FADE_MS);
-      cells.forEach(c => c.remove());
+      // Remove from DOM once all could have finished
+      setTimeout(() => cells.forEach(c => c.remove()), STAGGER_MS + MAX_FADE_MS);
     }
 
     async function run() {
       let phase = 0;
+      let current = buildGrid(PHASES[phase]);
+      await fadeIn(current);
+
       while (true) {
-        const cols  = PHASES[phase];
-        const cells = buildGrid(cols);
-        await fadeIn(cells);
         await sleep(HOLD_MS);
-        await fadeOut(cells);
-        await sleep(150);
+
+        // Begin dissolving current grid
+        fadeOut(current);
+
+        // Overlap: let new grid start appearing while old one still dissolves
+        await sleep(OVERLAP_MS);
+
         phase = (phase + 1) % PHASES.length;
+        current = buildGrid(PHASES[phase]);
+        await fadeIn(current);
       }
     }
 
