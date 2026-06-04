@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>closeupfarout</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:ital@0;1&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1008;
+      --paper: #f0ebe0;
+      --accent: #c94a2b;
+      --gap: 3px;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 52px;
+      background: var(--ink);
+    }
+
+    .nav-wordmark {
+      font-family: 'DM Serif Display', serif;
+      font-style: italic;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      color: var(--paper);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover { opacity: 1; }
+
+    /* ── STAGE ── */
+    #stage {
+      position: fixed;
+      top: 52px; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    /* ── CELLS ── */
+    .cell {
+      position: absolute;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition-property: opacity;
+      transition-timing-function: ease-in-out;
+    }
+
+    /* ── GRAIN ── */
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-wordmark" href="/">closeupfarout</a>
+    <ul class="nav-links">
+      <li><a href="/issue-01/">Issue 01 — Spring 2026</a></li>
+    </ul>
+  </nav>
+
+  <div id="stage"></div>
+
+  <div class="grain"></div>
+
+  <script>
+    // Column counts per phase — 8 small squares → 4 medium → 2 large
+    const PHASES = [8, 4, 2];
+
+    // Picsum seeds — replace with your own image URLs by editing buildGrid()
+    const SEEDS = [
+      'cuf1','cuf2','cuf3','cuf4','cuf5','cuf6','cuf7','cuf8',
+      'cuf9','cuf10','cuf11','cuf12','cuf13','cuf14','cuf15','cuf16'
+    ];
+
+    const GAP        = 3;    // px between cells
+    const HOLD_MS    = 3200; // how long each phase is fully visible
+    const STAGGER_MS = 900;  // spread of random fade delays
+    const FADE_MS    = 700;  // individual cell transition duration
+
+    const stage = document.getElementById('stage');
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildGrid(cols) {
+      const W = stage.clientWidth;
+      const H = stage.clientHeight;
+
+      // Cell size: equal squares that tile the width
+      const cellSize = (W - GAP * (cols - 1)) / cols;
+      const rows = Math.ceil((H + GAP) / (cellSize + GAP));
+
+      // Shuffle seeds so each phase shows a fresh arrangement
+      const pool = shuffle(SEEDS);
+      const cells = [];
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const seed = pool[(r * cols + c) % pool.length];
+          const px   = Math.round(cellSize);
+
+          const el = document.createElement('div');
+          el.className = 'cell';
+          el.style.left   = `${c * (cellSize + GAP)}px`;
+          el.style.top    = `${r * (cellSize + GAP)}px`;
+          el.style.width  = `${cellSize}px`;
+          el.style.height = `${cellSize}px`;
+          el.style.backgroundImage = `url(https://picsum.photos/seed/${seed}/${px}/${px})`;
+          el.style.transitionDuration = `${FADE_MS}ms`;
+          stage.appendChild(el);
+          cells.push(el);
+        }
+      }
+      return cells;
+    }
+
+    async function fadeIn(cells) {
+      // Slight pause so browser has painted the cells at opacity:0 first
+      await sleep(40);
+      cells.forEach(cell => {
+        cell.style.transitionDelay = `${Math.random() * STAGGER_MS}ms`;
+        cell.style.opacity = '1';
+      });
+      await sleep(STAGGER_MS + FADE_MS);
+      // Reset delay so fade-out also stagger freely
+      cells.forEach(cell => { cell.style.transitionDelay = '0ms'; });
+    }
+
+    async function fadeOut(cells) {
+      cells.forEach(cell => {
+        cell.style.transitionDelay = `${Math.random() * STAGGER_MS}ms`;
+        cell.style.opacity = '0';
+      });
+      await sleep(STAGGER_MS + FADE_MS);
+      cells.forEach(c => c.remove());
+    }
+
+    async function run() {
+      let phase = 0;
+      while (true) {
+        const cols  = PHASES[phase];
+        const cells = buildGrid(cols);
+        await fadeIn(cells);
+        await sleep(HOLD_MS);
+        await fadeOut(cells);
+        await sleep(150);
+        phase = (phase + 1) % PHASES.length;
+      }
+    }
+
+    run();
+  </script>
+
+</body>
+</html>
