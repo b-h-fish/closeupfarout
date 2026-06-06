@@ -74,7 +74,7 @@
     /* ── SPHERE SCENE ── */
     .scene {
       position: absolute;
-      left: 28%;
+      left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
       perspective: 900px;
@@ -84,12 +84,18 @@
       position: relative;
       width: 0; height: 0;
       transform-style: preserve-3d;
-      animation: rotateSphere 32s linear infinite;
+      animation: rotateSphere 32s linear infinite,
+                 breathe 6s ease-in-out infinite;
     }
 
     @keyframes rotateSphere {
       from { transform: rotateY(0deg) rotateX(12deg); }
       to   { transform: rotateY(360deg) rotateX(12deg); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { scale: 1; }
+      50%       { scale: 0.82; }
     }
 
     .tile {
@@ -98,26 +104,52 @@
       background-position: center;
       backface-visibility: visible;
       border: 2px solid rgba(255,255,255,0.6);
+      transition: opacity 1.8s ease;
     }
 
     /* ── COVER IMAGE ── */
-    .cover {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: auto;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 16vw;
-    }
+    .cover { display: none; }
 
-    .cover img {
-      height: 90%;
-      width: auto;
-      object-fit: contain;
-      display: block;
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 110px;
+        gap: 0.6rem;
+      }
+
+      .nav-links {
+        gap: 1.4rem;
+        justify-content: center;
+      }
+
+      .nav-links a {
+        font-size: 0.75rem;
+      }
+
+      #stage {
+        top: 110px;
+      }
+
+      .scene {
+        left: 50%;
+        top: 45%;
+      }
+
+      .sphere {
+        scale: 0.55;
+      }
+
+      .cover {
+        display: none;
+      }
+
+      @keyframes breathe {
+        0%, 100% { scale: 0.55; }
+        50%       { scale: 0.45; }
+      }
     }
 
     /* ── GRAIN ── */
@@ -180,6 +212,8 @@
       'images/sphere-img-03.jpg',
       'images/sphere-img-04.jpg',
       'images/sphere-img-05.jpg',
+      'images/sphere-img-06.jpg',
+      'images/sphere-img-07.jpg',
     ];
 
     const TILE_COUNT = 48;  // number of image tiles on the sphere
@@ -223,6 +257,24 @@
     }
 
     buildSphere();
+
+    // Staggered image cycling — each tile fades to a new image every 2–4s
+    function cycleTile(tile) {
+      const delay = 4000 + Math.random() * 4000;
+      setTimeout(() => {
+        tile.style.opacity = '0';
+        setTimeout(() => {
+          tile.style.backgroundImage = `url('${IMAGES[Math.floor(Math.random() * IMAGES.length)]}')`;
+          tile.style.opacity = '1';
+          cycleTile(tile);
+        }, 1800);
+      }, delay);
+    }
+
+    document.querySelectorAll('.tile').forEach(tile => {
+      // Random initial offset so they never all cycle together
+      setTimeout(() => cycleTile(tile), Math.random() * 4000);
+    });
   </script>
 
 </body>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio — closeupfarout</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;300&family=Space+Mono:ital@0;1&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1008;
+      --paper: #ffffff;
+      --rule: #d8d4cc;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--paper);
+      font-family: 'Space Mono', monospace;
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 80px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .nav-wordmark {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active { opacity: 1; }
+
+    /* ── SCROLL STAGE ── */
+    .stage {
+      position: fixed;
+      top: 80px; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 6vw;
+      gap: 3vw;
+      cursor: grab;
+    }
+
+    .stage:active { cursor: grabbing; }
+
+    /* Hide scrollbar but keep scroll */
+    .stage::-webkit-scrollbar { display: none; }
+    .stage { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── ALBUM CARD ── */
+    .album {
+      flex: 0 0 auto;
+      scroll-snap-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: clamp(200px, 28vh, 320px);
+      transition: transform 0.3s ease;
+    }
+
+    .album:hover { transform: translateY(-6px); }
+
+    .album-cover {
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--rule);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .album-cover span {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.3;
+    }
+
+    .album-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .album-title {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 300;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+    }
+
+    .album-meta {
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.35;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 110px;
+        gap: 0.6rem;
+      }
+
+      .nav-links {
+        gap: 1.4rem;
+        justify-content: center;
+      }
+
+      .nav-links a { font-size: 0.75rem; }
+
+      .stage {
+        top: 110px;
+        padding: 0 8vw;
+        gap: 6vw;
+      }
+
+      .album { width: 64vw; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-wordmark" href="/">closeupfarout</a>
+    <ul class="nav-links">
+      <li><a href="/weekly/">Weekly</a></li>
+      <li><a href="/quarterly/">Quarterly</a></li>
+      <li><a href="/audio/" class="active">Audio</a></li>
+    </ul>
+  </nav>
+
+  <div class="stage" id="stage">
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+    <div class="album">
+      <div class="album-cover"><span>Cover</span></div>
+      <div class="album-info">
+        <span class="album-title">Title Placeholder</span>
+        <span class="album-meta">Artist · 2026</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Allow click-drag scrolling on desktop
+    const stage = document.getElementById('stage');
+    let isDown = false, startX, scrollLeft;
+
+    stage.addEventListener('mousedown', e => {
+      isDown = true;
+      startX = e.pageX - stage.offsetLeft;
+      scrollLeft = stage.scrollLeft;
+    });
+    stage.addEventListener('mouseleave', () => isDown = false);
+    stage.addEventListener('mouseup', () => isDown = false);
+    stage.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - stage.offsetLeft;
+      stage.scrollLeft = scrollLeft - (x - startX) * 1.5;
+    });
+  </script>
+
+</body>
+</html>

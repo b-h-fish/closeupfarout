@@ -34,7 +34,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 2rem;
-      height: 52px;
+      height: 80px;
       background: var(--paper);
       border-bottom: 1px solid var(--rule);
     }
@@ -42,7 +42,7 @@
     .nav-wordmark {
       font-family: 'Josefin Sans', sans-serif;
       font-weight: 100;
-      font-size: 1.1rem;
+      font-size: 1.4rem;
       letter-spacing: 0.15em;
       text-transform: lowercase;
       color: var(--ink);
@@ -56,7 +56,7 @@
     }
 
     .nav-links a {
-      font-size: 0.65rem;
+      font-size: 0.85rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--ink);
@@ -70,7 +70,7 @@
 
     /* ── CABINET ── */
     .cabinet {
-      margin-top: 52px;
+      margin-top: 80px;
       width: 100%;
     }
 
@@ -159,6 +159,29 @@
       padding-left: 2rem;
       cursor: default;
     }
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 110px;
+        gap: 0.6rem;
+      }
+
+      .nav-links {
+        gap: 1.4rem;
+        justify-content: center;
+      }
+
+      .nav-links a {
+        font-size: 0.75rem;
+      }
+
+      .cabinet {
+        margin-top: 110px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -167,7 +190,8 @@
     <a class="nav-wordmark" href="/">closeupfarout</a>
     <ul class="nav-links">
       <li><a href="/weekly/" class="active">Weekly</a></li>
-      <li><a href="/issue-01/">Issue 01 — Summer 2026</a></li>
+      <li><a href="/quarterly/">Quarterly</a></li>
+      <li><a href="/audio/">Audio</a></li>
     </ul>
   </nav>
 
