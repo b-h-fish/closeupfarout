@@ -30,14 +30,14 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 2rem;
-      height: 52px;
+      height: 80px;
       background: var(--paper);
     }
 
     .nav-wordmark {
       font-family: 'Josefin Sans', sans-serif;
       font-weight: 100;
-      font-size: 1.1rem;
+      font-size: 1.4rem;
       letter-spacing: 0.15em;
       text-transform: lowercase;
       color: var(--ink);
@@ -47,11 +47,12 @@
     .nav-links {
       display: flex;
       list-style: none;
+      gap: 2rem;
     }
 
     .nav-links a {
       font-family: 'Space Mono', monospace;
-      font-size: 0.65rem;
+      font-size: 0.85rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--accent);
@@ -65,7 +66,7 @@
     /* ── STAGE ── */
     #stage {
       position: fixed;
-      top: 52px; left: 0; right: 0; bottom: 0;
+      top: 80px; left: 0; right: 0; bottom: 0;
       overflow: hidden;
       background: var(--paper);
     }
@@ -95,8 +96,28 @@
       position: absolute;
       background-size: cover;
       background-position: center;
-      backface-visibility: hidden;
+      backface-visibility: visible;
       border: 2px solid rgba(255,255,255,0.6);
+    }
+
+    /* ── COVER IMAGE ── */
+    .cover {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 16vw;
+    }
+
+    .cover img {
+      height: 90%;
+      width: auto;
+      object-fit: contain;
+      display: block;
     }
 
     /* ── GRAIN ── */
@@ -116,13 +137,18 @@
   <nav>
     <a class="nav-wordmark" href="/">closeupfarout</a>
     <ul class="nav-links">
-      <li><a href="/issue-01/">Issue 01 — Spring 2026</a></li>
+      <li><a href="/weekly/">Weekly</a></li>
+      <li><a href="/quarterly/">Quarterly</a></li>
+      <li><a href="/audio/">Audio</a></li>
     </ul>
   </nav>
 
   <div id="stage">
     <div class="scene">
       <div class="sphere" id="sphere"></div>
+    </div>
+    <div class="cover">
+      <img src="images/issue-01-placeholder.png" alt="Issue 01 — Summer 2026" />
     </div>
   </div>
 
@@ -148,8 +174,13 @@
     //   'images/splitlip.png',
     // ];
 
-    // Placeholder images for preview
-    const IMAGES = Array.from({ length: 50 }, (_, i) => `https://picsum.photos/seed/cuf${i+1}/300/300`);
+    const IMAGES = [
+      'images/sphere-img-01.jpg',
+      'images/sphere-img-02.jpg',
+      'images/sphere-img-03.jpg',
+      'images/sphere-img-04.jpg',
+      'images/sphere-img-05.jpg',
+    ];
 
     const TILE_COUNT = 48;  // number of image tiles on the sphere
     const RADIUS     = 260; // sphere radius in px

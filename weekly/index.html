@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly — closeupfarout</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;300&family=Space+Mono:ital@0;1&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:    #1a1008;
+      --paper:  #ffffff;
+      --rule:   #d8d4cc;
+      --tab:    #f0ebe0;
+      --hover:  #f7f4ef;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--paper);
+      font-family: 'Space Mono', monospace;
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 52px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .nav-wordmark {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active { opacity: 1; }
+
+    /* ── CABINET ── */
+    .cabinet {
+      margin-top: 52px;
+      width: 100%;
+    }
+
+    /* Section divider — the alphabet/month tab */
+    .cabinet-section {
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .section-tab {
+      display: flex;
+      align-items: center;
+      padding: 0 2rem;
+      height: 36px;
+      background: var(--tab);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .section-tab span {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--ink);
+      opacity: 0.7;
+    }
+
+    /* Each file row */
+    .file {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      align-items: center;
+      padding: 0 2rem;
+      height: 58px;
+      border-bottom: 1px solid var(--rule);
+      text-decoration: none;
+      color: var(--ink);
+      transition: background 0.15s, padding-left 0.15s;
+      cursor: pointer;
+    }
+
+    .file:hover {
+      background: var(--hover);
+      padding-left: 2.4rem;
+    }
+
+    .file-number {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      opacity: 0.6;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .file-title {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 300;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+    }
+
+    .file-date {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      opacity: 0.6;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .file-arrow {
+      margin-left: 1.5rem;
+      font-size: 0.7rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .file:hover .file-arrow { opacity: 0.5; }
+
+    /* Coming soon state */
+    .file.upcoming .file-title {
+      opacity: 0.3;
+    }
+    .file.upcoming .file-date {
+      font-style: italic;
+    }
+    .file.upcoming:hover {
+      background: none;
+      padding-left: 2rem;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-wordmark" href="/">closeupfarout</a>
+    <ul class="nav-links">
+      <li><a href="/weekly/" class="active">Weekly</a></li>
+      <li><a href="/issue-01/">Issue 01 — Summer 2026</a></li>
+    </ul>
+  </nav>
+
+  <div class="cabinet">
+
+    <div class="cabinet-section">
+      <div class="section-tab"><span>June 2026</span></div>
+
+      <a class="file" href="/weekly/03/">
+        <span class="file-number">W — 03</span>
+        <span class="file-title"></span>
+        <span class="file-date">June 24, 2026 <span class="file-arrow">→</span></span>
+      </a>
+
+      <a class="file" href="/weekly/02/">
+        <span class="file-number">W — 02</span>
+        <span class="file-title"></span>
+        <span class="file-date">June 17, 2026 <span class="file-arrow">→</span></span>
+      </a>
+
+      <a class="file" href="/weekly/01/">
+        <span class="file-number">W — 01</span>
+        <span class="file-title"></span>
+        <span class="file-date">June 10, 2026 <span class="file-arrow">→</span></span>
+      </a>
+    </div>
+
+  </div>
+
+</body>
+</html>
