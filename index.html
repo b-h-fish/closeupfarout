@@ -13,12 +13,10 @@
       --ink: #1a1008;
       --paper: #ffffff;
       --accent: #1a1008;
-      --gap: 3px;
     }
 
     html, body {
       width: 100%; height: 100%;
-      max-height: 100%;
       overflow: hidden;
       background: var(--paper);
     }
@@ -72,14 +70,33 @@
       background: var(--paper);
     }
 
-    /* ── CELLS ── */
-    .cell {
+    /* ── SPHERE SCENE ── */
+    .scene {
+      position: absolute;
+      left: 28%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      perspective: 900px;
+    }
+
+    .sphere {
+      position: relative;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      animation: rotateSphere 32s linear infinite;
+    }
+
+    @keyframes rotateSphere {
+      from { transform: rotateY(0deg) rotateX(12deg); }
+      to   { transform: rotateY(360deg) rotateX(12deg); }
+    }
+
+    .tile {
       position: absolute;
       background-size: cover;
       background-position: center;
-      opacity: 0;
-      transition-property: opacity;
-      transition-timing-function: ease-in-out;
+      backface-visibility: hidden;
+      border: 2px solid rgba(255,255,255,0.6);
     }
 
     /* ── GRAIN ── */
@@ -103,49 +120,41 @@
     </ul>
   </nav>
 
-  <div id="stage"></div>
+  <div id="stage">
+    <div class="scene">
+      <div class="sphere" id="sphere"></div>
+    </div>
+  </div>
 
   <div class="grain"></div>
 
   <script>
-    const IMAGES = [
-      'images/67-laughing-gas.jpg',
-      'images/Screen-Shot-2020-07-29-at-10.00.32-PM.png',
-      'images/Screen-Shot-2020-11-20-at-4.06.40-PM.png',
-      'images/Screen-Shot-2021-02-18-at-1.43.33-AM.png',
-      'images/Screen-Shot-2021-08-11-at-3.12.55-AM.png',
-      'images/b.h.-fish-pic-copy.JPG',
-      'images/ballet-holo.png',
-      'images/bern.png',
-      'images/canvalley.png',
-      'images/femarmharm.png',
-      'images/leaflute.png',
-      'images/live-coney.png',
-      'images/showman-shadow.png',
-      'images/skomorokh.png',
-      'images/splitlip.png',
-    ];
+    // Local images (used on Vercel / localhost:8080)
+    // const IMAGES = [
+    //   'images/67-laughing-gas.jpg',
+    //   'images/Screen-Shot-2020-07-29-at-10.00.32-PM.png',
+    //   'images/Screen-Shot-2020-11-20-at-4.06.40-PM.png',
+    //   'images/Screen-Shot-2021-02-18-at-1.43.33-AM.png',
+    //   'images/Screen-Shot-2021-08-11-at-3.12.55-AM.png',
+    //   'images/b.h.-fish-pic-copy.JPG',
+    //   'images/ballet-holo.png',
+    //   'images/bern.png',
+    //   'images/canvalley.png',
+    //   'images/femarmharm.png',
+    //   'images/leaflute.png',
+    //   'images/live-coney.png',
+    //   'images/showman-shadow.png',
+    //   'images/skomorokh.png',
+    //   'images/splitlip.png',
+    // ];
 
-    // Macro panel grid layout
-    const PANEL_COLS  = 4;
-    const PANEL_ROWS  = 2;
-    const PANEL_GAP   = 10; // gap between panels
-    const STAGE_PAD   = 16; // padding around the whole grid
+    // Placeholder images for preview
+    const IMAGES = Array.from({ length: 50 }, (_, i) => `https://picsum.photos/seed/cuf${i+1}/300/300`);
 
-    // Micro mosaic inside each panel
-    const BASE_COLS   = 4;  // base grid units per panel
-    const CELL_GAP    = 2;
-    const HOLD_MS     = 3500;
-    const STAGGER_MS  = 1200;
-    const MIN_FADE_MS = 300;
-    const MAX_FADE_MS = 2200;
-    const OVERLAP_MS  = 600;
+    const TILE_COUNT = 48;  // number of image tiles on the sphere
+    const RADIUS     = 260; // sphere radius in px
+    const TILE_SIZE  = 90;  // each tile is a square
 
-    const stage = document.getElementById('stage');
-
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-    function randFade() { return MIN_FADE_MS + Math.random() * (MAX_FADE_MS - MIN_FADE_MS); }
-    function randHold() { return HOLD_MS + Math.random() * 2000; }
     function shuffle(arr) {
       const a = [...arr];
       for (let i = a.length - 1; i > 0; i--) {
@@ -155,140 +164,34 @@
       return a;
     }
 
-    // Build a mosaic inside a given container of known pixel size
-    function buildMosaic(container, size) {
-      const unit = (size - CELL_GAP * (BASE_COLS - 1)) / BASE_COLS;
-      const rows = Math.ceil((size + CELL_GAP) / (unit + CELL_GAP));
-      const taken = Array.from({ length: rows + 4 }, () => new Uint8Array(BASE_COLS));
+    function buildSphere() {
+      const sphere = document.getElementById('sphere');
+      const pool   = shuffle(IMAGES);
+      const golden = Math.PI * (3 - Math.sqrt(5)); // golden angle
 
-      function fits(r, c, s) {
-        if (c + s > BASE_COLS) return false;
-        for (let dr = 0; dr < s; dr++)
-          for (let dc = 0; dc < s; dc++)
-            if (taken[r + dr]?.[c + dc]) return false;
-        return true;
-      }
-      function occupy(r, c, s) {
-        for (let dr = 0; dr < s; dr++)
-          for (let dc = 0; dc < s; dc++)
-            if (taken[r + dr]) taken[r + dr][c + dc] = 1;
-      }
+      for (let i = 0; i < TILE_COUNT; i++) {
+        // Fibonacci sphere distribution — evenly spaces points on a sphere
+        const y     = 1 - (i / (TILE_COUNT - 1)) * 2;       // -1 to 1
+        const r     = Math.sqrt(1 - y * y);
+        const theta = golden * i;
 
-      const pool = shuffle(IMAGES);
-      const cells = [];
-      let idx = 0;
+        const lat = Math.asin(y)     * (180 / Math.PI); // latitude  -90..90
+        const lon = (theta * 180 / Math.PI) % 360;      // longitude 0..360
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < BASE_COLS; c++) {
-          if (taken[r][c]) continue;
-
-          const roll = Math.random();
-          const preferred = roll < 0.12 ? [4, 2, 1]
-                          : roll < 0.42 ? [2, 1, 4]
-                          :               [1, 2, 4];
-
-          let chosen = 1;
-          for (const s of preferred) {
-            if (fits(r, c, s)) { chosen = s; break; }
-          }
-          occupy(r, c, chosen);
-
-          const px  = chosen * unit + (chosen - 1) * CELL_GAP;
-          const x   = c * (unit + CELL_GAP);
-          const y   = r * (unit + CELL_GAP);
-          const src = pool[idx++ % pool.length];
-
-          const el = document.createElement('div');
-          el.className = 'cell';
-          el.style.cssText = `
-            position: absolute;
-            left: ${x}px; top: ${y}px;
-            width: ${px}px; height: ${px}px;
-            background-image: url('${src}');
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            transition-property: opacity;
-            transition-timing-function: ease-in-out;
-          `;
-          container.appendChild(el);
-          cells.push(el);
-        }
-      }
-      return cells;
-    }
-
-    async function fadeIn(cells) {
-      await sleep(40);
-      cells.forEach(cell => {
-        cell.style.transitionDuration = `${randFade()}ms`;
-        cell.style.transitionDelay    = `${Math.random() * STAGGER_MS}ms`;
-        cell.style.opacity = '1';
-      });
-      await sleep(STAGGER_MS + MAX_FADE_MS);
-      cells.forEach(cell => { cell.style.transitionDelay = '0ms'; });
-    }
-
-    function fadeOut(cells) {
-      cells.forEach(cell => {
-        cell.style.transitionDuration = `${randFade()}ms`;
-        cell.style.transitionDelay    = `${Math.random() * STAGGER_MS}ms`;
-        cell.style.opacity = '0';
-      });
-      setTimeout(() => cells.forEach(c => c.remove()), STAGGER_MS + MAX_FADE_MS);
-    }
-
-    // Each panel runs its own independent loop
-    async function runPanel(container, size, startDelay) {
-      await sleep(startDelay);
-      let current = buildMosaic(container, size);
-      await fadeIn(current);
-      while (true) {
-        await sleep(randHold());
-        fadeOut(current);
-        await sleep(OVERLAP_MS);
-        current = buildMosaic(container, size);
-        await fadeIn(current);
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.style.width           = TILE_SIZE + 'px';
+        tile.style.height          = TILE_SIZE + 'px';
+        tile.style.marginLeft      = -TILE_SIZE / 2 + 'px';
+        tile.style.marginTop       = -TILE_SIZE / 2 + 'px';
+        tile.style.backgroundImage = `url('${pool[i % pool.length]}')`;
+        // Place tile on sphere surface: rotate to longitude, tilt to latitude, push out
+        tile.style.transform = `rotateY(${lon}deg) rotateX(${-lat}deg) translateZ(${RADIUS}px)`;
+        sphere.appendChild(tile);
       }
     }
 
-    function init() {
-      const W = stage.clientWidth;
-      const H = stage.clientHeight;
-
-      // Fit panels to both dimensions: find size that fills height with whole rows
-      const maxByWidth = Math.floor((W - STAGE_PAD * 2 - PANEL_GAP * (PANEL_COLS - 1)) / PANEL_COLS);
-      const targetRows = Math.round((H - STAGE_PAD * 2 + PANEL_GAP) / (maxByWidth + PANEL_GAP));
-      const panelSize  = Math.min(maxByWidth, Math.floor((H - STAGE_PAD * 2 - PANEL_GAP * (targetRows - 1)) / targetRows));
-      const panelRows  = targetRows;
-
-      const gridW = PANEL_COLS * panelSize + PANEL_GAP * (PANEL_COLS - 1);
-
-      const grid = document.createElement('div');
-      grid.style.cssText = `
-        position: absolute;
-        left: ${Math.round((W - gridW) / 2)}px;
-        top: ${STAGE_PAD}px;
-        display: grid;
-        grid-template-columns: repeat(${PANEL_COLS}, ${panelSize}px);
-        gap: ${PANEL_GAP}px;
-      `;
-      stage.appendChild(grid);
-
-      for (let i = 0; i < PANEL_COLS * panelRows; i++) {
-        const panel = document.createElement('div');
-        panel.style.cssText = `
-          position: relative;
-          width: ${panelSize}px;
-          height: ${panelSize}px;
-          overflow: hidden;
-        `;
-        grid.appendChild(panel);
-        runPanel(panel, panelSize, Math.random() * 5000);
-      }
-    }
-
-    init();
+    buildSphere();
   </script>
 
 </body>
