@@ -85,7 +85,17 @@
       width: 0; height: 0;
       transform-style: preserve-3d;
       animation: rotateSphere 32s linear infinite,
-                 breathe 6s ease-in-out infinite;
+                 breathe 8s ease-in-out infinite;
+    }
+
+    #fade-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.55s ease-in-out;
+      z-index: 5;
     }
 
     @keyframes rotateSphere {
@@ -95,7 +105,7 @@
 
     @keyframes breathe {
       0%, 100% { scale: 1; }
-      50%       { scale: 0.82; }
+      50%       { scale: 0.88; }
     }
 
     .tile {
@@ -103,7 +113,8 @@
       background-size: cover;
       background-position: center;
       backface-visibility: visible;
-      border: 2px solid rgba(255,255,255,0.6);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+      will-change: transform;
     }
 
     /* ── COVER IMAGE ── */
@@ -147,7 +158,7 @@
 
       @keyframes breathe {
         0%, 100% { scale: 0.55; }
-        50%       { scale: 0.45; }
+        50%       { scale: 0.48; }
       }
     }
 
@@ -175,6 +186,7 @@
   </nav>
 
   <div id="stage">
+    <div id="fade-overlay"></div>
     <div class="scene">
       <div class="sphere" id="sphere"></div>
     </div>
@@ -186,25 +198,6 @@
   <div class="grain"></div>
 
   <script>
-    // Local images (used on Vercel / localhost:8080)
-    // const IMAGES = [
-    //   'images/67-laughing-gas.jpg',
-    //   'images/Screen-Shot-2020-07-29-at-10.00.32-PM.png',
-    //   'images/Screen-Shot-2020-11-20-at-4.06.40-PM.png',
-    //   'images/Screen-Shot-2021-02-18-at-1.43.33-AM.png',
-    //   'images/Screen-Shot-2021-08-11-at-3.12.55-AM.png',
-    //   'images/b.h.-fish-pic-copy.JPG',
-    //   'images/ballet-holo.png',
-    //   'images/bern.png',
-    //   'images/canvalley.png',
-    //   'images/femarmharm.png',
-    //   'images/leaflute.png',
-    //   'images/live-coney.png',
-    //   'images/showman-shadow.png',
-    //   'images/skomorokh.png',
-    //   'images/splitlip.png',
-    // ];
-
     const IMAGES = [
       'images/sphere-img-01.jpg',
       'images/sphere-img-02.jpg',
@@ -215,9 +208,15 @@
       'images/sphere-img-07.jpg',
     ];
 
-    const TILE_COUNT = 48;  // number of image tiles on the sphere
-    const RADIUS     = 260; // sphere radius in px
-    const TILE_SIZE  = 90;  // each tile is a square
+    const TILE_COUNT = 54;
+    const RADIUS     = 260;
+    const TILE_SIZE  = 88;
+
+    // All transforms use the same 5-function structure so CSS can interpolate smoothly:
+    // rotateY(rY) rotateX(rX) translateZ(tZ) translateX(tX) translateY(tY)
+    function tf(rY, rX, tZ, tX, tY) {
+      return `rotateY(${rY}deg) rotateX(${rX}deg) translateZ(${tZ}px) translateX(${tX}px) translateY(${tY}px)`;
+    }
 
     function shuffle(arr) {
       const a = [...arr];
@@ -228,34 +227,165 @@
       return a;
     }
 
-    function buildSphere() {
+    // ── SPHERE: 60 tiles via Fibonacci distribution ──────────────────────────
+    function spherePositions() {
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      return Array.from({ length: TILE_COUNT }, (_, i) => {
+        const y     = 1 - (i / (TILE_COUNT - 1)) * 2;
+        const theta = golden * i;
+        const lat   = Math.asin(y) * (180 / Math.PI);
+        const lon   = (theta * 180 / Math.PI) % 360;
+        return { rY: lon, rX: -lat, tZ: RADIUS, tX: 0, tY: 0 };
+      });
+    }
+
+    // ── CUBE: 6 faces × 9 tiles (3×3 grid) = 54 — perfect cube ─────────────
+    function cubePositions() {
+      const S = RADIUS * 0.46; // face half-extent — ~8px gap between tiles
+      const FACES = [
+        [0,    0],   // front  (+Z)
+        [-90,  0],   // right  (+X)
+        [180,  0],   // back   (-Z)
+        [90,   0],   // left   (-X)
+        [0,  -90],   // top    (+Y)
+        [0,   90],   // bottom (-Y)
+      ];
+      const COLS = 3, ROWS = 3; // perfect 3×3 grid per face
+      const out = [];
+      FACES.forEach(([rY, rX]) => {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const tX = S * (-1 + (c / (COLS - 1)) * 2);
+            const tY = S * (-1 + (r / (ROWS - 1)) * 2);
+            out.push({ rY, rX, tZ: S + TILE_SIZE / 2 + 18, tX, tY });
+          }
+        }
+      });
+      return out; // 54 positions
+    }
+
+    // ── CONE: 5 lateral rings + circular base = 54 ──────────────────────────
+    // Ring sizes obey 2π·r / count ≥ TILE_SIZE so tiles never overlap within a ring.
+    // tZ = √(r²+Y²), rX = atan2(-Y,r) places each ring at world pos (r·sinφ, Y, r·cosφ)
+    function conePositions() {
+      const out = [];
+
+      // Lateral rings — count and radius chosen so spacing ≥ 88px per tile
+      // Surface dist between adjacent rings = √(Δr²+ΔY²) ≥ 88px
+      const rings = [
+        { count:  3, r:  65, Y: -155 }, // apex      — 2π·65/3   = 136px ✓
+        { count:  5, r: 110, Y: -100 }, //            2π·110/5   = 138px ✓
+        { count:  8, r: 175, Y:  -35 }, // surf→ring2 = 92px ✓   2π·175/8  = 137px ✓
+        { count: 11, r: 230, Y:  +40 }, // surf→ring3 = 93px ✓   2π·230/11 = 131px ✓
+        { count: 12, r: 265, Y: +125 }, // surf→ring4 = 92px ✓   2π·265/12 = 139px ✓
+      ]; // 39 tiles
+
+      rings.forEach(({ count, r, Y }) => {
+        const tZ = Math.sqrt(r * r + Y * Y);
+        const rX = Math.atan2(-Y, r) * (180 / Math.PI);
+        for (let i = 0; i < count; i++) {
+          const rY = (i / count) * 360;
+          out.push({ rY, rX, tZ, tX: 0, tY: 0 });
+        }
+      });
+
+      // Flat base: 15 tiles lying horizontal (rX=-90), each rotated to its own
+      // angle (rY=a) so tiles are consistently oriented radially around the disk.
+      // Ring radii spaced 90px apart so tiles don't overlap between rings.
+      const tZ_base = 165;
+      [{ count: 3, r: 75 }, { count: 5, r: 165 }, { count: 7, r: 253 }]
+        .forEach(({ count, r }) => {
+          for (let i = 0; i < count; i++) {
+            const a = (i / count) * 360; // degrees
+            out.push({ rY: a, rX: -90, tZ: tZ_base, tX: r, tY: 0 });
+          }
+        }); // 15 tiles
+
+      return out; // 54 positions
+    }
+
+    // ── TORUS: 5 θ-rings around the tube × φ tiles around the torus = 54 ────
+    // rX=0 for all; tZ = R + r·cos(θ) positions each ring's depth;
+    // tY = r·sin(θ) positions each ring vertically on the tube.
+    function torusPositions() {
+      const R = 175; // major radius (torus center to tube center)
+      const r =  76; // tube radius — sized so inner rings are ≥88px apart vertically
+      const out = [];
+
+      // Rings: θ evenly spaced, φ count chosen so 2π·(R+r·cosθ)/count ≥ 88px
+      const rings = [
+        { theta:   0, count: 14 }, // outer       — spacing 113px ✓
+        { theta:  72, count: 13 }, // upper-outer  — spacing  96px ✓
+        { theta: 144, count:  7 }, // upper-inner  — spacing 102px ✓
+        { theta: 216, count:  7 }, // lower-inner  — spacing 102px ✓
+        { theta: 288, count: 13 }, // lower-outer  — spacing  96px ✓
+      ]; // 54 total — inner rings 89.4px apart vertically ✓
+
+      rings.forEach(({ theta, count }) => {
+        const th = theta * Math.PI / 180;
+        const tZ = R + r * Math.cos(th);
+        const tY = r * Math.sin(th);
+        for (let i = 0; i < count; i++) {
+          const rY = (i / count) * 360;
+          out.push({ rY, rX: 0, tZ, tX: 0, tY });
+        }
+      });
+
+      return out; // 54 positions
+    }
+
+    // ── BUILD TILES ──────────────────────────────────────────────────────────
+    function buildTiles() {
       const sphere = document.getElementById('sphere');
       const pool   = shuffle(IMAGES);
-      const golden = Math.PI * (3 - Math.sqrt(5)); // golden angle
+      const pos    = torusPositions();
 
       for (let i = 0; i < TILE_COUNT; i++) {
-        // Fibonacci sphere distribution — evenly spaces points on a sphere
-        const y     = 1 - (i / (TILE_COUNT - 1)) * 2;       // -1 to 1
-        const r     = Math.sqrt(1 - y * y);
-        const theta = golden * i;
-
-        const lat = Math.asin(y)     * (180 / Math.PI); // latitude  -90..90
-        const lon = (theta * 180 / Math.PI) % 360;      // longitude 0..360
-
+        const p    = pos[i];
         const tile = document.createElement('div');
-        tile.className = 'tile';
-        tile.style.width           = TILE_SIZE + 'px';
-        tile.style.height          = TILE_SIZE + 'px';
-        tile.style.marginLeft      = -TILE_SIZE / 2 + 'px';
-        tile.style.marginTop       = -TILE_SIZE / 2 + 'px';
+        tile.className          = 'tile';
+        tile.style.width        = TILE_SIZE + 'px';
+        tile.style.height       = TILE_SIZE + 'px';
+        tile.style.marginLeft   = -TILE_SIZE / 2 + 'px';
+        tile.style.marginTop    = -TILE_SIZE / 2 + 'px';
         tile.style.backgroundImage = `url('${pool[i % pool.length]}')`;
-        // Place tile on sphere surface: rotate to longitude, tilt to latitude, push out
-        tile.style.transform = `rotateY(${lon}deg) rotateX(${-lat}deg) translateZ(${RADIUS}px)`;
+        tile.style.transform    = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
         sphere.appendChild(tile);
       }
     }
 
-    buildSphere();
+    // ── APPLY SHAPE ──────────────────────────────────────────────────────────
+    function applyShape(positions) {
+      document.querySelectorAll('.tile').forEach((tile, i) => {
+        const p = positions[i];
+        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
+      });
+    }
+
+    // ── MORPH CYCLE: fade out → snap to new shape → fade in ─────────────────
+    const SHAPES = [torusPositions, cubePositions, spherePositions];
+    let shapeIdx = 0; // start on torus; cycle goes → cube → sphere → torus …
+    const FADE_MS = 550; // must match CSS transition on .sphere
+
+    function cycleShape() {
+      shapeIdx = (shapeIdx + 1) % SHAPES.length;
+      const overlay = document.getElementById('fade-overlay');
+
+      // 1. Fade overlay in (covers the sphere)
+      overlay.style.opacity = '1';
+
+      setTimeout(() => {
+        // 2. Snap tiles instantly while hidden
+        applyShape(SHAPES[shapeIdx]());
+        // 3. Fade overlay back out (reveals new shape)
+        overlay.style.opacity = '0';
+      }, FADE_MS);
+
+      setTimeout(cycleShape, 11500);
+    }
+
+    buildTiles();
+    setTimeout(cycleShape, 11500); // first morph after 11.5s on sphere
 
   </script>
 
