@@ -92,7 +92,7 @@
       position: absolute;
       inset: 0;
       background: var(--paper);
-      opacity: 0;
+      opacity: 1;
       pointer-events: none;
       transition: opacity 0.55s ease-in-out;
       z-index: 5;
@@ -108,13 +108,25 @@
       50%       { scale: 0.88; }
     }
 
+
     .tile {
       position: absolute;
       background-size: cover;
       background-position: center;
       backface-visibility: visible;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
       will-change: transform;
+      overflow: hidden;
+    }
+
+    .tile-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      pointer-events: none;
     }
 
     /* ── COVER IMAGE ── */
@@ -198,15 +210,32 @@
   <div class="grain"></div>
 
   <script>
-    const IMAGES = [
-      'images/sphere-img-01.jpg',
-      'images/sphere-img-02.jpg',
-      'images/sphere-img-03.jpg',
-      'images/sphere-img-04.jpg',
-      'images/sphere-img-05.jpg',
-      'images/sphere-img-06.jpg',
-      'images/sphere-img-07.jpg',
-    ];
+    // Per-shape media pools — swapped during the fade alongside position snaps
+    const SHAPE_TYPES  = { torus: 'video', cube: 'video', sphere: 'image' };
+    const SHAPE_IMAGES = {
+      torus: [
+        'videos/torus/torus-vid-01.webm',
+        'videos/torus/torus-vid-02.webm',
+        'videos/torus/torus-vid-03.webm',
+        'videos/torus/torus-vid-04.webm',
+      ],
+      cube: [
+        'videos/cube/cube-vid-01.webm',
+        'videos/cube/cube-vid-02.webm',
+        'videos/cube/cube-vid-03.webm',
+        'videos/cube/cube-vid-04.webm',
+      ],
+      sphere: [
+        [
+          'images/sphere/sphere-new-01.png',
+          'images/sphere/sphere-new-02.png',
+        ],
+        [
+          'images/sphere/sphere-second-color-01.png',
+          'images/sphere/sphere-second-color-02.png',
+        ],
+      ],
+    };
 
     const TILE_COUNT = 54;
     const RADIUS     = 260;
@@ -256,7 +285,7 @@
         for (let r = 0; r < ROWS; r++) {
           for (let c = 0; c < COLS; c++) {
             const tX = S * (-1 + (c / (COLS - 1)) * 2);
-            const tY = S * (-1 + (r / (ROWS - 1)) * 2);
+            const tY = S * (-1 + (r / (ROWS - 1)) * 2) - 20;
             out.push({ rY, rX, tZ: S + TILE_SIZE / 2 + 18, tX, tY });
           }
         }
@@ -334,22 +363,86 @@
       return out; // 54 positions
     }
 
+    // ── SWAP TILE MEDIA ──────────────────────────────────────────────────────
+    function applyImages(key, pool) {
+      const isVideo = SHAPE_TYPES[key] === 'video';
+      const tiles   = document.querySelectorAll('.tile');
+      if (isVideo) {
+        tiles.forEach((tile, i) => {
+          tile.style.backgroundImage = '';
+          const vid = tile.querySelector('.tile-video');
+          vid.src = pool[i % pool.length];
+          vid.style.display = 'block';
+          vid.play().catch(() => {});
+        });
+      } else {
+        const shuffled = shuffle(pool);
+        tiles.forEach((tile, i) => {
+          const vid = tile.querySelector('.tile-video');
+          vid.pause(); vid.src = ''; vid.style.display = 'none';
+          tile.style.backgroundImage = `url('${shuffled[i % shuffled.length]}')`;
+        });
+      }
+    }
+
+    // ── SWAP TILE SIZE ────────────────────────────────────────────────────────
+    function applyTileSize(size) {
+      document.querySelectorAll('.tile').forEach(tile => {
+        tile.style.width      = size + 'px';
+        tile.style.height     = size + 'px';
+        tile.style.marginLeft = -size / 2 + 'px';
+        tile.style.marginTop  = -size / 2 + 'px';
+      });
+    }
+
+    // ── PRELOAD ALL IMAGES ───────────────────────────────────────────────────
+    function preloadImages() {
+      const allPools = [
+        ...SHAPE_IMAGES.sphere.flat(),
+      ];
+      allPools.forEach(src => { const img = new Image(); img.src = src; });
+    }
+
+    function preloadVideos() {
+      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube];
+      allSrcs.forEach(src => {
+        const v = document.createElement('video');
+        v.src = src;
+        v.preload = 'auto';
+        v.muted = true;
+        v.playsInline = true;
+        v.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+        document.body.appendChild(v);
+      });
+    }
+
     // ── BUILD TILES ──────────────────────────────────────────────────────────
     function buildTiles() {
       const sphere = document.getElementById('sphere');
-      const pool   = shuffle(IMAGES);
+      const pool   = SHAPE_IMAGES.torus; // starts on torus (video)
       const pos    = torusPositions();
 
       for (let i = 0; i < TILE_COUNT; i++) {
         const p    = pos[i];
         const tile = document.createElement('div');
-        tile.className          = 'tile';
-        tile.style.width        = TILE_SIZE + 'px';
-        tile.style.height       = TILE_SIZE + 'px';
-        tile.style.marginLeft   = -TILE_SIZE / 2 + 'px';
-        tile.style.marginTop    = -TILE_SIZE / 2 + 'px';
-        tile.style.backgroundImage = `url('${pool[i % pool.length]}')`;
-        tile.style.transform    = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
+        tile.className        = 'tile';
+        tile.style.width      = TILE_SIZE + 'px';
+        tile.style.height     = TILE_SIZE + 'px';
+        tile.style.marginLeft = -TILE_SIZE / 2 + 'px';
+        tile.style.marginTop  = -TILE_SIZE / 2 + 'px';
+
+        // Video element — used for video-based shapes (torus)
+        const vid = document.createElement('video');
+        vid.className   = 'tile-video';
+        vid.autoplay    = true;
+        vid.muted       = true;
+        vid.loop        = true;
+        vid.playsInline = true;
+        vid.src         = SHAPE_IMAGES.torus[i % SHAPE_IMAGES.torus.length];
+        vid.style.display = 'block'; // torus is first shape
+        tile.appendChild(vid);
+
+        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
         sphere.appendChild(tile);
       }
     }
@@ -362,30 +455,51 @@
       });
     }
 
-    // ── MORPH CYCLE: fade out → snap to new shape → fade in ─────────────────
-    const SHAPES = [torusPositions, cubePositions, spherePositions];
-    let shapeIdx = 0; // start on torus; cycle goes → cube → sphere → torus …
-    const FADE_MS = 550; // must match CSS transition on .sphere
+    // ── MORPH CYCLE: fade out → snap to new shape + images → fade in ─────────
+    const SHAPES      = [torusPositions,      cubePositions,      spherePositions];
+    const SHAPE_KEYS  = ['torus',             'cube',             'sphere'];
+    const SHAPE_SIZES = { torus: 88,          cube: 88,           sphere: 97 };
+    let shapeIdx   = 0; // start on torus; cycle goes → cube → sphere → torus …
+    let spherePass = 0; // increments each time sphere is shown, cycles through sets
+    const FADE_MS = 550; // must match CSS transition on #fade-overlay
 
     function cycleShape() {
       shapeIdx = (shapeIdx + 1) % SHAPES.length;
       const overlay = document.getElementById('fade-overlay');
 
-      // 1. Fade overlay in (covers the sphere)
+      // 1. Fade overlay in (covers everything)
       overlay.style.opacity = '1';
 
       setTimeout(() => {
-        // 2. Snap tiles instantly while hidden
+        // 2. Snap positions, swap images, and resize tiles while hidden
+        const key = SHAPE_KEYS[shapeIdx];
+        let pool = SHAPE_IMAGES[key];
+        if (key === 'sphere') {
+          pool = pool[spherePass % pool.length];
+          spherePass++;
+        }
         applyShape(SHAPES[shapeIdx]());
-        // 3. Fade overlay back out (reveals new shape)
+        applyImages(key, pool);
+        applyTileSize(SHAPE_SIZES[key]);
+        // 3. Fade overlay back out (reveals new shape with new images)
         overlay.style.opacity = '0';
       }, FADE_MS);
 
-      setTimeout(cycleShape, 11500);
+      setTimeout(cycleShape, 10500);
     }
 
     buildTiles();
-    setTimeout(cycleShape, 11500); // first morph after 11.5s on sphere
+    preloadImages();
+
+    // Wait 1s, then snap fade in
+    const overlay = document.getElementById('fade-overlay');
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 0.2s ease-in-out';
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.style.transition = '', 200);
+    }, 1000);
+
+    setTimeout(cycleShape, 10500);
 
   </script>
 
