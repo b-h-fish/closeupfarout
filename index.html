@@ -499,13 +499,13 @@
     preloadImages();
     preloadVideos();
 
-    // Wait 1s, then snap fade in
+    // Wait for videos to buffer, then snap fade in (longer on mobile)
     const overlay = document.getElementById('fade-overlay');
     setTimeout(() => {
       overlay.style.transition = 'opacity 0.2s ease-in-out';
       overlay.style.opacity = '0';
       setTimeout(() => overlay.style.transition = '', 200);
-    }, 1000);
+    }, isMobile ? 1500 : 1000);
 
     setTimeout(cycleShape, 10500);
 
