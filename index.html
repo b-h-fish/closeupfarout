@@ -104,8 +104,8 @@
     }
 
     @keyframes breathe {
-      0%, 100% { scale: 1; }
-      50%       { scale: 0.88; }
+      0%, 100% { scale: 0.92; }
+      50%       { scale: 0.82; }
     }
 
 
@@ -127,6 +127,7 @@
       object-fit: cover;
       display: none;
       pointer-events: none;
+      background: transparent;
     }
 
     /* ── COVER IMAGE ── */
@@ -191,7 +192,6 @@
   <nav>
     <a class="nav-wordmark" href="/">closeupfarout</a>
     <ul class="nav-links">
-      <li><a href="/weekly/">Weekly</a></li>
       <li><a href="/quarterly/">Quarterly</a></li>
       <li><a href="/audio/">Audio</a></li>
     </ul>
@@ -211,7 +211,7 @@
 
   <script>
     // Per-shape media pools — swapped during the fade alongside position snaps
-    const SHAPE_TYPES  = { torus: 'video', cube: 'video', sphere: 'image' };
+    const SHAPE_TYPES  = { torus: 'video', cube: 'video', sphere: 'video' };
     const SHAPE_IMAGES = {
       torus: [
         'videos/torus/torus-vid-01.webm',
@@ -226,14 +226,7 @@
         'videos/cube/cube-vid-04.webm',
       ],
       sphere: [
-        [
-          'images/sphere/sphere-new-01.png',
-          'images/sphere/sphere-new-02.png',
-        ],
-        [
-          'images/sphere/sphere-second-color-01.png',
-          'images/sphere/sphere-second-color-02.png',
-        ],
+        'videos/sphere/sphere-vid-new.webm',
       ],
     };
 
@@ -367,9 +360,12 @@
     function applyImages(key, pool) {
       const isVideo = SHAPE_TYPES[key] === 'video';
       const tiles   = document.querySelectorAll('.tile');
+      // Hide box-shadow on sphere (circular tiles — square shadow is visible)
+      const shadow = key === 'sphere' ? 'none' : 'inset 0 0 0 1px rgba(0,0,0,0.03)';
       if (isVideo) {
         tiles.forEach((tile, i) => {
           tile.style.backgroundImage = '';
+          tile.style.boxShadow = shadow;
           const vid = tile.querySelector('.tile-video');
           vid.src = pool[i % pool.length];
           vid.style.display = 'block';
@@ -404,7 +400,7 @@
     }
 
     function preloadVideos() {
-      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube];
+      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube, ...SHAPE_IMAGES.sphere];
       allSrcs.forEach(src => {
         const v = document.createElement('video');
         v.src = src;
@@ -473,11 +469,7 @@
       setTimeout(() => {
         // 2. Snap positions, swap images, and resize tiles while hidden
         const key = SHAPE_KEYS[shapeIdx];
-        let pool = SHAPE_IMAGES[key];
-        if (key === 'sphere') {
-          pool = pool[spherePass % pool.length];
-          spherePass++;
-        }
+        const pool = SHAPE_IMAGES[key];
         applyShape(SHAPES[shapeIdx]());
         applyImages(key, pool);
         applyTileSize(SHAPE_SIZES[key]);
@@ -490,6 +482,7 @@
 
     buildTiles();
     preloadImages();
+    preloadVideos();
 
     // Wait 1s, then snap fade in
     const overlay = document.getElementById('fade-overlay');
