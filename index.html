@@ -212,20 +212,33 @@
   <script>
     // Per-shape media pools — swapped during the fade alongside position snaps
     const SHAPE_TYPES  = { torus: 'video', cube: 'video', sphere: 'video' };
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
     const SHAPE_IMAGES = {
-      torus: [
+      torus: isMobile ? [
+        'videos/torus/torus-vid-01-mobile.webm',
+        'videos/torus/torus-vid-02-mobile.webm',
+        'videos/torus/torus-vid-03-mobile.webm',
+        'videos/torus/torus-vid-04-mobile.webm',
+      ] : [
         'videos/torus/torus-vid-01.webm',
         'videos/torus/torus-vid-02.webm',
         'videos/torus/torus-vid-03.webm',
         'videos/torus/torus-vid-04.webm',
       ],
-      cube: [
+      cube: isMobile ? [
+        'videos/cube/cube-vid-01-mobile.webm',
+        'videos/cube/cube-vid-02-mobile.webm',
+        'videos/cube/cube-vid-03-mobile.webm',
+        'videos/cube/cube-vid-04-mobile.webm',
+      ] : [
         'videos/cube/cube-vid-01.webm',
         'videos/cube/cube-vid-02.webm',
         'videos/cube/cube-vid-03.webm',
         'videos/cube/cube-vid-04.webm',
       ],
-      sphere: [
+      sphere: isMobile ? [
+        'videos/sphere/sphere-vid-new-mobile.webm',
+      ] : [
         'videos/sphere/sphere-vid-new.webm',
       ],
     };
@@ -362,10 +375,12 @@
       const tiles   = document.querySelectorAll('.tile');
       // Hide box-shadow on sphere (circular tiles — square shadow is visible)
       const shadow = key === 'sphere' ? 'none' : 'inset 0 0 0 1px rgba(0,0,0,0.03)';
+      const radius = key === 'sphere' ? '50%' : '';
       if (isVideo) {
         tiles.forEach((tile, i) => {
           tile.style.backgroundImage = '';
           tile.style.boxShadow = shadow;
+          tile.style.borderRadius = radius;
           const vid = tile.querySelector('.tile-video');
           vid.src = pool[i % pool.length];
           vid.style.display = 'block';
@@ -473,8 +488,8 @@
         applyShape(SHAPES[shapeIdx]());
         applyImages(key, pool);
         applyTileSize(SHAPE_SIZES[key]);
-        // 3. Fade overlay back out (reveals new shape with new images)
-        overlay.style.opacity = '0';
+        // 3. On mobile give decoders extra time to spin up before revealing
+        setTimeout(() => { overlay.style.opacity = '0'; }, isMobile ? 1200 : 0);
       }, FADE_MS);
 
       setTimeout(cycleShape, 10500);
