@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>closeupfarout</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Orbitron:wght@600&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -96,6 +96,34 @@
       pointer-events: none;
       transition: opacity 0.55s ease-in-out;
       z-index: 5;
+    }
+
+    #poster-text {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.55s ease-in-out;
+      z-index: 4;
+      gap: 1rem;
+    }
+
+    #poster-text span {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 600;
+      font-size: clamp(30px, 6vw, 90px);
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--paper);
+      text-align: center;
     }
 
     @keyframes rotateSphere {
@@ -199,6 +227,10 @@
 
   <div id="stage">
     <div id="fade-overlay"></div>
+    <div id="poster-text">
+      <span>Issue 01</span>
+      <span>Summer 2026</span>
+    </div>
     <div class="scene">
       <div class="sphere" id="sphere"></div>
     </div>
@@ -211,7 +243,7 @@
 
   <script>
     // Per-shape media pools — swapped during the fade alongside position snaps
-    const SHAPE_TYPES  = { torus: 'video', cube: 'video', sphere: 'video' };
+    const SHAPE_TYPES  = { torus: 'video', cube: 'video', poster: 'video' };
     const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
     const SHAPE_IMAGES = {
       torus: isMobile ? [
@@ -236,10 +268,10 @@
         'videos/cube/cube-vid-03.webm',
         'videos/cube/cube-vid-04.webm',
       ],
-      sphere: isMobile ? [
-        'videos/sphere/sphere-vid-new-mobile.webm',
-      ] : [
-        'videos/sphere/sphere-vid-new.webm',
+      poster: [
+        'videos/poster/poster-vid-01.webm',
+        'videos/poster/poster-vid-02.webm',
+        'videos/poster/poster-vid-03.webm',
       ],
     };
 
@@ -271,6 +303,19 @@
         const lat   = Math.asin(y) * (180 / Math.PI);
         const lon   = (theta * 180 / Math.PI) % 360;
         return { rY: lon, rX: -lat, tZ: RADIUS, tX: 0, tY: 0 };
+      });
+    }
+
+    // ── POSTER: 9×6 flat grid of video panels with subtle Z separation ────────
+    function posterPositions() {
+      const COLS = 9, ROWS = 6, GAP = 5, SIZE = 88;
+      const totalW = COLS * SIZE + (COLS - 1) * GAP;
+      const totalH = ROWS * SIZE + (ROWS - 1) * GAP;
+      return Array.from({ length: 54 }, (_, i) => {
+        const c  = i % COLS, r = Math.floor(i / COLS);
+        const tX = -totalW / 2 + c * (SIZE + GAP) + SIZE / 2;
+        const tY = -totalH / 2 + r * (SIZE + GAP) + SIZE / 2;
+        return { rY: 0, rX: 0, tZ: 0, tX, tY };
       });
     }
 
@@ -373,14 +418,9 @@
     function applyImages(key, pool) {
       const isVideo = SHAPE_TYPES[key] === 'video';
       const tiles   = document.querySelectorAll('.tile');
-      // Hide box-shadow on sphere (circular tiles — square shadow is visible)
-      const shadow = key === 'sphere' ? 'none' : 'inset 0 0 0 1px rgba(0,0,0,0.03)';
-      const radius = key === 'sphere' ? '50%' : '';
       if (isVideo) {
         tiles.forEach((tile, i) => {
           tile.style.backgroundImage = '';
-          tile.style.boxShadow = shadow;
-          tile.style.borderRadius = radius;
           const vid = tile.querySelector('.tile-video');
           vid.src = pool[i % pool.length];
           vid.style.display = 'block';
@@ -408,14 +448,11 @@
 
     // ── PRELOAD ALL IMAGES ───────────────────────────────────────────────────
     function preloadImages() {
-      const allPools = [
-        ...SHAPE_IMAGES.sphere.flat(),
-      ];
-      allPools.forEach(src => { const img = new Image(); img.src = src; });
+      // no image-based shapes currently
     }
 
     function preloadVideos() {
-      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube, ...SHAPE_IMAGES.sphere];
+      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube, ...SHAPE_IMAGES.poster];
       allSrcs.forEach(src => {
         const v = document.createElement('video');
         v.src = src;
@@ -467,19 +504,21 @@
     }
 
     // ── MORPH CYCLE: fade out → snap to new shape + images → fade in ─────────
-    const SHAPES      = [torusPositions,      cubePositions,      spherePositions];
-    const SHAPE_KEYS  = ['torus',             'cube',             'sphere'];
-    const SHAPE_SIZES = { torus: 88,          cube: 88,           sphere: 97 };
-    let shapeIdx   = 0; // start on torus; cycle goes → cube → sphere → torus …
-    let spherePass = 0; // increments each time sphere is shown, cycles through sets
+    const SHAPES      = [torusPositions, cubePositions, posterPositions];
+    const SHAPE_KEYS  = ['torus',        'cube',        'poster'];
+    const SHAPE_SIZES = { torus: 88,     cube: 88,      poster: 88 };
+    let shapeIdx = 0;
     const FADE_MS = 550; // must match CSS transition on #fade-overlay
 
     function cycleShape() {
       shapeIdx = (shapeIdx + 1) % SHAPES.length;
       const overlay = document.getElementById('fade-overlay');
 
-      // 1. Fade overlay in (covers everything)
+      const posterText = document.getElementById('poster-text');
+
+      // 1. Fade overlay in — also immediately hide poster text so it's gone before reveal
       overlay.style.opacity = '1';
+      posterText.style.opacity = '0';
 
       setTimeout(() => {
         // 2. Snap positions, swap images, and resize tiles while hidden
@@ -488,6 +527,18 @@
         applyShape(SHAPES[shapeIdx]());
         applyImages(key, pool);
         applyTileSize(SHAPE_SIZES[key]);
+        // Pause rotation + breathe for poster; restore for all other shapes
+        const container = document.querySelector('.sphere');
+        if (key === 'poster') {
+          container.style.animation = 'none';
+          container.style.transform = 'none';
+          container.style.scale = '1';
+          posterText.style.opacity = '1';
+        } else {
+          container.style.animation = '';
+          container.style.transform = '';
+          container.style.scale = '';
+        }
         // 3. On mobile give decoders extra time to spin up before revealing
         setTimeout(() => { overlay.style.opacity = '0'; }, isMobile ? 1200 : 0);
       }, FADE_MS);
