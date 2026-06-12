@@ -508,10 +508,12 @@
     const SHAPE_KEYS  = ['torus',        'cube',        'poster'];
     const SHAPE_SIZES = { torus: 88,     cube: 88,      poster: 88 };
     let shapeIdx = 0;
+    let roundIdx = 0;
     const FADE_MS = 550; // must match CSS transition on #fade-overlay
 
     function cycleShape() {
       shapeIdx = (shapeIdx + 1) % SHAPES.length;
+      if (shapeIdx === 0) roundIdx = (roundIdx + 1) % 3;
       const overlay = document.getElementById('fade-overlay');
 
       const posterText = document.getElementById('poster-text');
@@ -523,7 +525,9 @@
       setTimeout(() => {
         // 2. Snap positions, swap images, and resize tiles while hidden
         const key = SHAPE_KEYS[shapeIdx];
-        const pool = SHAPE_IMAGES[key];
+        // Rotate video pools each round: round 0 = own pool, round 1 = shifted by 1, etc.
+        const poolKey = SHAPE_KEYS[(shapeIdx + roundIdx) % SHAPE_KEYS.length];
+        const pool = SHAPE_IMAGES[poolKey];
         applyShape(SHAPES[shapeIdx]());
         applyImages(key, pool);
         applyTileSize(SHAPE_SIZES[key]);
