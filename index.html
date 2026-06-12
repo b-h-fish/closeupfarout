@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>closeupfarout</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Orbitron:wght@600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Chakra+Petch:wght@600&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -116,13 +116,13 @@
     }
 
     #poster-text span {
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Chakra Petch', sans-serif;
       font-weight: 600;
-      font-size: clamp(24px, 4.5vw, 70px);
+      font-size: clamp(32px, 6vw, 90px);
       line-height: 1;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--paper);
+      color: rgba(255, 255, 255, 0.90);
       text-align: center;
     }
 
@@ -145,6 +145,10 @@
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
       will-change: transform;
       overflow: hidden;
+    }
+
+    [data-pool="torus"] .tile-video {
+      filter: brightness(1.15);
     }
 
     .tile-video {
@@ -225,7 +229,7 @@
     </ul>
   </nav>
 
-  <div id="stage">
+  <div id="stage" data-pool="torus">
     <div id="fade-overlay"></div>
     <div id="poster-text">
       <span>Issue 01</span>
@@ -308,13 +312,16 @@
 
     // ── POSTER: 9×6 flat grid of video panels with subtle Z separation ────────
     function posterPositions() {
-      const COLS = 9, ROWS = 6, GAP = 5, SIZE = 88;
-      const totalW = COLS * SIZE + (COLS - 1) * GAP;
-      const totalH = ROWS * SIZE + (ROWS - 1) * GAP;
+      const COLS = 9, ROWS = 6, GAP = 5;
+      const navH = isMobile ? 110 : 80;
+      const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
+      const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
+      const totalW = COLS * tileW + (COLS - 1) * GAP;
+      const totalH = ROWS * tileH + (ROWS - 1) * GAP;
       return Array.from({ length: 54 }, (_, i) => {
         const c  = i % COLS, r = Math.floor(i / COLS);
-        const tX = -totalW / 2 + c * (SIZE + GAP) + SIZE / 2;
-        const tY = -totalH / 2 + r * (SIZE + GAP) + SIZE / 2;
+        const tX = -totalW / 2 + c * (tileW + GAP) + tileW / 2;
+        const tY = -totalH / 2 + r * (tileH + GAP) + tileH / 2;
         return { rY: 0, rX: 0, tZ: 0, tX, tY };
       });
     }
@@ -437,12 +444,13 @@
     }
 
     // ── SWAP TILE SIZE ────────────────────────────────────────────────────────
-    function applyTileSize(size) {
+    function applyTileSize(w, h) {
+      if (h === undefined) h = w;
       document.querySelectorAll('.tile').forEach(tile => {
-        tile.style.width      = size + 'px';
-        tile.style.height     = size + 'px';
-        tile.style.marginLeft = -size / 2 + 'px';
-        tile.style.marginTop  = -size / 2 + 'px';
+        tile.style.width      = w + 'px';
+        tile.style.height     = h + 'px';
+        tile.style.marginLeft = -w / 2 + 'px';
+        tile.style.marginTop  = -h / 2 + 'px';
       });
     }
 
@@ -515,7 +523,6 @@
       shapeIdx = (shapeIdx + 1) % SHAPES.length;
       if (shapeIdx === 0) roundIdx = (roundIdx + 1) % 3;
       const overlay = document.getElementById('fade-overlay');
-
       const posterText = document.getElementById('poster-text');
 
       // 1. Fade overlay in — also immediately hide poster text so it's gone before reveal
@@ -528,20 +535,29 @@
         // Rotate video pools each round: round 0 = own pool, round 1 = shifted by 1, etc.
         const poolKey = SHAPE_KEYS[(shapeIdx + roundIdx) % SHAPE_KEYS.length];
         const pool = SHAPE_IMAGES[poolKey];
+        document.getElementById('stage').dataset.pool = poolKey;
         applyShape(SHAPES[shapeIdx]());
         applyImages(key, pool);
-        applyTileSize(SHAPE_SIZES[key]);
         // Pause rotation + breathe for poster; restore for all other shapes
         const container = document.querySelector('.sphere');
+        const scene = document.querySelector('.scene');
         if (key === 'poster') {
+          const COLS = 9, ROWS = 6, GAP = 5;
+          const navH = isMobile ? 110 : 80;
+          const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
+          const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
+          applyTileSize(tileW, tileH);
           container.style.animation = 'none';
           container.style.transform = 'none';
           container.style.scale = '1';
+          scene.style.top = '50%';
           posterText.style.opacity = '1';
         } else {
+          applyTileSize(SHAPE_SIZES[key]);
           container.style.animation = '';
           container.style.transform = '';
           container.style.scale = '';
+          scene.style.top = '';
         }
         // 3. On mobile give decoders extra time to spin up before revealing
         setTimeout(() => { overlay.style.opacity = '0'; }, isMobile ? 1200 : 0);
