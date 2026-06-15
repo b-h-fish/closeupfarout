@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Romero vs. Costa — closeupfarout</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1008;
+      --paper: #ffffff;
+      --rule: #d8d4cc;
+      --gold: #b5890a;
+      --nav-h: 80px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--paper);
+      font-family: 'Cormorant Garamond', serif;
+      color: var(--ink);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: var(--nav-h);
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .nav-wordmark {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover { opacity: 1; }
+
+    /* ── PAGE WRAP ── */
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      padding-top: var(--nav-h);
+    }
+
+    /* ── CENTERED COLUMN (header + trailing body) ── */
+    .center-col {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── ISSUE HEADER ── */
+    .issue-header {
+      text-align: center;
+      padding: 4.5rem 0 2.5rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .issue-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      color: var(--ink);
+      opacity: 0.4;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+
+    .section-announcement {
+      display: inline-block;
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+      font-weight: 400;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--ink);
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      padding: 0.45em 1.2em;
+      margin-bottom: 2rem;
+      opacity: 0.5;
+    }
+
+    .piece-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.8rem, 4vw, 2.9rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 1rem;
+    }
+
+    .piece-subtitle {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.95rem, 1.6vw, 1.2rem);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+      opacity: 0.5;
+      margin-bottom: 1rem;
+    }
+
+    .piece-byline {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--ink);
+      opacity: 0.55;
+      letter-spacing: 0.07em;
+    }
+
+    /* ── 3D VIEWER (fixed background layer) ── */
+    #glb-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.28;
+      pointer-events: none;
+    }
+
+    /* ── BODY TEXT ── */
+    .body-text p {
+      font-size: 1.13rem;
+      line-height: 1.9;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+      text-align: justify;
+      hyphens: auto;
+    }
+
+    .body-text p:last-child { margin-bottom: 0; }
+
+    .section-break {
+      text-align: center;
+      margin: 3rem 0;
+      color: var(--ink);
+      font-size: 0.85rem;
+      letter-spacing: 0.8em;
+      opacity: 0.35;
+    }
+
+    /* ── MANUSCRIPT BODY (sections after the split) ── */
+    .manuscript-body {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 2rem 8rem;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      :root { --nav-h: 110px; }
+
+      nav {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 110px;
+        gap: 0.6rem;
+      }
+      .nav-links { gap: 1.4rem; justify-content: center; }
+      .nav-links a { font-size: 0.75rem; }
+
+      .viewer-section { height: 50vw; }
+      .manuscript-body { padding: 0 1.2rem 5rem; }
+
+      .drop-cap::first-letter { font-size: 4.5rem; }
+      .section-open::first-letter { font-size: 2.8rem; }
+      .body-text p { font-size: 1.05rem; line-height: 1.82; text-align: left; hyphens: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="glb-canvas"></canvas>
+
+  <nav>
+    <a class="nav-wordmark" href="/">closeupfarout</a>
+    <ul class="nav-links">
+      <li><a href="/quarterly/">Quarterly</a></li>
+      <li><a href="/audio/">Audio</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-wrap">
+  <section class="article-section" data-model="/issue-01/models/yoel-costa.glb">
+
+    <!-- Centered header -->
+    <div class="center-col">
+      <header class="issue-header">
+        <div class="issue-label">closeupfarout &nbsp;·&nbsp; Issue 01 &nbsp;·&nbsp; Summer 2026</div>
+        <div class="section-announcement">Dust Settled</div>
+        <h1 class="piece-title">Romero vs. Costa</h1>
+<div class="piece-byline">Hudson Marjane</div>
+      </header>
+    </div>
+
+    <!-- First three paragraphs -->
+    <div class="manuscript-body body-text" style="padding-bottom:0">
+      <p>An action-packed montage starts off the show, knockout vignettes and training footage, the usual hype-up fodder. The music swells, muscles ripple. Beyond the occasional slo-mo shot, cuts pile up hard and fast. Those in attendance hoot in appreciation, but it isn't until the music kicks in that the hysteria truly starts. Costa is the first to make his walk. Caressed by Aerosmith's "Dream On", he takes a slow stroll down the aisle before peeling off his shirt and revealing a beach bod worthy of a mid-2000s Hollister ad. It is undeniable that the UFC has perfected the sex appeal of combat sports. Tight compression shorts reign supreme, the high waisted satin shorts of boxing long gone. The sponsors are foreign alcohol brands or protein snacks, there are no insurance ads. Costa sarcastically rocks his hands in the air to the song, beaming like a cocky jackass. He merrily daps up his corner before Vaseline application. Costa holds a cheerful and unwrinkled disposition, with a soft face reminiscent of samba great Baden Powell. An eminent youthfulness spreads from cheek to cheek. He steps in the octagon and raises both hands: "The Eraser". His cockiness is admirable, fun even. The slight disapproval of the crowd upon his arrival has shifted into amused appreciation as they lay witness to a 12-0 fighter with superstar potential.</p>
+
+      <p>Romero enters the arena to a raucous Afro-Cuban beat, the applause roaring in approval. The audience accepts him as an obvious favorite, his blood presumably more precious. Perhaps it is the proximity of Cuba to the US, or, his mysterious backstory and finishing potential. Romero is a freakish specimen, a full-chested rock golem with speed bump abs and pebbled intercostals. Romero holds, what seems to me, to be the most well-rounded physique of any fighter on the UFC roster, even next to the chiseled Brazilian model. Alongside a lanky jiu-jitsu specialist or a buffet plate heavyweight, the one-time Olympic wrestler looks like a lab-tested assassin, bouldered deltoids emerging into a trapezius bent on swallowing his neck. High cheekbones, a cold expression interrupted by an occasional sickly smile; I can't imagine him ever having sported hair. He kisses his trainer and salutes to the crowd before entering the octagon, the "Soldier of God" has arrived.</p>
+
+      <p>As Bruce Buffer introduces the fighters, now standing 10 feet from each other, I can't help but entertain the popular fan notion that both of these fighters are on juice. Toned to the T, the prospect of a cut to 185 seems wholly unreal for either of these competitors. And yet, how could I possibly care? Both on paper and visually, this matchup seems eerily fair, the 14 year age gap the only concern. Buffer shouts out the Brazilian first, who now holds a more serious look. He sends out kisses as his name echoes, lays his arms horizontal (as if holding the burden of his untarnished record), and embraces the vigor of the Coliseum. If Romero is the "Soldier of God", then Costa must at least qualify for "God's Favorite Nephew." MMA remains a mature activity, evidenced by the headlining bout between a 36 year old Stipe Miocic and a 40 year old Daniel Cormier, but for a 28 year old with a creed evinced by many other young undefeated fighters, Costa's MO seems to be unbridled by any whimsy or pretension: he is the best, and if they don't know it yet, they will understand in 15 minutes or less. The audience still wants Romero though, the energy swelling as his height and weight are listed. He stretches along a length of fence before placing his hand over his heart and quietly walking. Upon final introduction, the Olympian doubles down on his salute with another lovingly servile display, bowing to each cardinal direction as he takes center stage.</p>
+    </div>
+
+    <!-- Remaining sections, centered -->
+    <div class="manuscript-body body-text">
+
+      <div class="section-break">✦ &nbsp; ✦ &nbsp; ✦</div>
+
+      <p>The cameras clear out, referee Jason Herzog inquires about individual readiness. A quick hand clap and we're off. Costa brings immediate pressure, starting off with a mid-body kick dodged by Romero. This opening move brings difficulties for Romero though, pushing him back near the cage and allotting Costa arena control. The two fighters size each other up briefly, before repeating the initial exchange, this time the dodge from Romero allowing him to glide back toward the center of the mat. A right kick attempt from Yoel is followed by a monstrous missed left hook, containing so much latent energy that Costa still staggers. The Brazilian casts a devilish smile at the prospect of his opponent's power. This rush of amusement seems to foreshadow the inevitability of the matchup: a strike-first, bleed-later contest. A few more missed strikes follow, but suddenly, Romero takes advantage and decides to takedown Costa. After tumbling onto the floor, no clear leverage for either, the middleweights bound up immediately, uninterested in submission; a true Stand-and-Bang awaits.</p>
+
+      <p>Now on his feet, Romero jacks Costa with a left uppercut, dealing the first serious blow of the fight. Costa stumbles back a bit. Having now registered Romero's power, he subsides the pressure for a few moments. Biding time pays off: seconds away from receiving a huge left hook, Costa clips Romero with a left of his own. Romero's knees give way and he drops! Another quick rise to his feet and Romero points — literally, points with his finger — to an arbitrary spot behind Costa's right side, prompting room for a quick flurry off such a silly misdirection. The 1 misses, but the 2 knocks Costa square in the chin, dropping him just as quickly as he had been dropped himself! Back to the floor in a frenzied wrestle, back up again just as quickly. Costa is smiling again, he loves it. Seeker of golden brawls, The Eraser, at 12-0, must be bored of cleaning house. Here, in front of him, lies a ball of anabolic potentiality giving him the fight he deserves. The rest of the first round follows a similar frenetic pattern, Costa's constant pressure, Romero's cage-side counter-striking. With two minutes left to spare, a notable flying knee rocks Costa, sending him back toward the perimeter. Arms tangle for wrist control in the clinch, Costa launching knees to the body all-the-while. Before long an accidental groin strike fells Romero, prompting an official respite from the referee.</p>
+
+      <p>The "Soldier of God" rolls around on the floor for a good while, cradling his jewels with a complimentary wince. He crawls over to the cage and grabs the metal links for support while a doctor questions his testicular status. Costa seems neither apologetic nor antagonistic; Romero doesn't seem so upset himself. Clearly a regular aspect of male combat sports, and though one combatant writhes in temporary pain, they each seem to relish the short break. The two middleweights seem relaxed and focused as the round is restarted, the slapdash pace of the previous three minutes behind them. Romero quickly misses a left kick and slips wildly onto the mat, Costa's cue to push forward and pressure him up onto the cage. We are right back where we started. Romero strikes a low posture to threaten a takedown, which pauses Costa for a brief moment. Costa ultimately decides on a right inner leg kick, a wise change of pace against the prospect of going to the ground. The kick creates space and allows a positional reset: a quick detour to the center of the octagon before resigning back to the cage. A blocked high kick from "The Eraser", two checked leg kicks thrown by the "Soldier of God". The pause of heavy pressure suggests a return to the ground and Romero attempts exactly that, grabbing onto Costa's thighs, but soon finding himself on the ground instead receiving a bounty of head strikes. After absorbing a couple knocks, Romero, fairly unfazed, scrambles up and lands a fat right and slight left onto a retreating Costa. As the first round nears the final minute, it is already clear that a KO is unlikely this fight. Shots will be traded and pressure will be maintained, but there will be a counter waiting, and a chin waiting for the counter. Bludgeons continue to be traded, each fighter often eating blows as they throw out their own. With 10 seconds remaining Costa attempts a spinning high kick that misses Romero's head by mere inches. The crowd anxiously roars, mourning the near-miss of a high velocity beheading. Three claps from wood block, a few more feinted shuffles, and we are off to the corner for a short break.</p>
+
+    </div>
+
+  </section>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // ── ONE SHARED RENDERER / SCENE / CAMERA ─────────────────────────────────
+    const canvas   = document.getElementById('glb-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 200);
+
+    // ── SHARED LIGHTING ───────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0xfff5e6, 1.1));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(3, 5, 4);
+    scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0xe8d5b0, 0.6);
+    fillLight.position.set(-3, 2, -2);
+    scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0xb5890a, 0.4);
+    rimLight.position.set(0, -2, -4);
+    scene.add(rimLight);
+
+    // ── CONSTANTS ─────────────────────────────────────────────────────────────
+    const SWIVEL_START = 0;
+    const SWIVEL_END   = Math.PI * 2;
+    const ANIM_SPEED   = 0.35;
+
+    // ── STATE ─────────────────────────────────────────────────────────────────
+    // modelCache: path → { model, mixer, action, clipDuration, center, orbitRadius, orbitHeight }
+    const modelCache        = new Map();
+    const intersecting      = new Set(); // sections currently in viewport
+    const loader            = new GLTFLoader();
+    let   activeSection     = null;
+    let   activeEntry       = null;
+    let   needsRender       = true;
+
+    // ── RESIZE ────────────────────────────────────────────────────────────────
+    function resize() {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (renderer.domElement.width === w && renderer.domElement.height === h) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      needsRender = true;
+    }
+
+    // ── RENDER LOOP ───────────────────────────────────────────────────────────
+    (function loop() {
+      requestAnimationFrame(loop);
+      resize();
+      if (needsRender) {
+        renderer.render(scene, camera);
+        needsRender = false;
+      }
+    })();
+
+    // ── MODEL LOADING (lazy, cached) ──────────────────────────────────────────
+    function loadModel(path) {
+      if (modelCache.has(path)) return Promise.resolve(modelCache.get(path));
+
+      return new Promise((resolve, reject) => {
+        loader.load(path, (gltf) => {
+          const model = gltf.scene;
+          model.visible = false;
+          scene.add(model);
+
+          const box    = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size   = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+
+          let mixer = null, action = null, clipDuration = 0;
+          if (gltf.animations.length > 0) {
+            mixer        = new THREE.AnimationMixer(model);
+            action       = mixer.clipAction(gltf.animations[0]);
+            clipDuration = gltf.animations[0].duration;
+            action.play();
+            action.paused = true;
+          }
+
+          const entry = { model, mixer, action, clipDuration,
+                          center: center.clone(),
+                          orbitRadius: maxDim * 2.0,
+                          orbitHeight: center.y + size.y * 0.05 };
+          modelCache.set(path, entry);
+          resolve(entry);
+        }, undefined, reject);
+      });
+    }
+
+    // ── ACTIVATE A MODEL (swap out the previous one) ──────────────────────────
+    function activateEntry(entry) {
+      if (activeEntry === entry) return;
+      if (activeEntry) activeEntry.model.visible = false;
+      activeEntry = entry;
+      entry.model.visible = true;
+      needsRender = true;
+    }
+
+    // ── PER-SECTION SCROLL PROGRESS ───────────────────────────────────────────
+    function sectionProgress(el) {
+      const rect  = el.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      return Math.max(0, Math.min(1, (viewH - rect.top) / (rect.height + viewH)));
+    }
+
+    // ── DRIVE CAMERA & ANIMATION FROM PROGRESS ────────────────────────────────
+    function driveModel(entry, progress) {
+      const angle = SWIVEL_START + (SWIVEL_END - SWIVEL_START) * progress;
+      camera.position.set(
+        entry.center.x + Math.sin(angle) * entry.orbitRadius,
+        entry.orbitHeight,
+        entry.center.z + Math.cos(angle) * entry.orbitRadius
+      );
+      camera.lookAt(entry.center);
+
+      if (entry.mixer && entry.action) {
+        entry.action.paused = true;
+        entry.action.time   = progress * entry.clipDuration * ANIM_SPEED;
+        entry.mixer.update(0);
+      }
+      needsRender = true;
+    }
+
+    // ── PICK MOST-CENTERED VISIBLE SECTION ────────────────────────────────────
+    function pickActiveSection() {
+      if (intersecting.size === 0) return;
+      const mid = window.innerHeight / 2;
+      let best = null, bestDist = Infinity;
+      intersecting.forEach(el => {
+        const r    = el.getBoundingClientRect();
+        const dist = Math.abs(r.top + r.height / 2 - mid);
+        if (dist < bestDist) { bestDist = dist; best = el; }
+      });
+      if (!best || best === activeSection) return;
+
+      const path = best.dataset.model;
+      if (!path) return;
+      activeSection = best;
+      loadModel(path).then(entry => {
+        activateEntry(entry);
+        driveModel(entry, sectionProgress(best));
+      });
+    }
+
+    // ── SCROLL: drive the active model every frame ────────────────────────────
+    window.addEventListener('scroll', () => {
+      if (activeSection && activeEntry) {
+        driveModel(activeEntry, sectionProgress(activeSection));
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', () => { needsRender = true; });
+
+    // ── INTERSECTION OBSERVER: track which sections are in view ───────────────
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => e.isIntersecting
+        ? intersecting.add(e.target)
+        : intersecting.delete(e.target));
+      pickActiveSection();
+    }, { threshold: 0.05 });
+
+    document.querySelectorAll('.article-section[data-model]').forEach(el => {
+      // Preload the model as soon as the section is close to the viewport
+      new IntersectionObserver(([e]) => {
+        if (e.isIntersecting) loadModel(el.dataset.model);
+      }, { rootMargin: '400px' }).observe(el);
+
+      observer.observe(el);
+    });
+  </script>
+
+</body>
+</html>
