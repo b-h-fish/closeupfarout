@@ -277,6 +277,177 @@
 
     .parallax-hint.hidden { opacity: 0; }
 
+
+    /* ── BOWLING GAME ─────────────────────────────────────────────────── */
+    .bowling-game {
+      display: flex;
+      align-items: stretch;
+      background: #111009;
+      min-height: 72vh;
+      position: relative;
+    }
+
+    .bg-lane-col {
+      width: 33.333%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      position: sticky;
+      top: var(--nav-h);
+      align-self: flex-start;
+      height: calc(100vh - var(--nav-h));
+    }
+
+    .bg-lane-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: #c8bea8;
+      margin-bottom: 18px;
+    }
+
+    .bg-canvas {
+      display: block;
+      width: 200px;
+      height: 310px;
+      border: 1px solid #2a2620;
+    }
+
+    .bg-ball-result {
+      margin-top: 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: #6a6050;
+      text-align: center;
+      min-height: 1.4em;
+    }
+
+    .bg-center {
+      width: 33.333%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 32px;
+      min-height: 72vh;
+      border-left: 1px solid #2a2620;
+      border-right: 1px solid #2a2620;
+    }
+
+    .bg-frame-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #b5890a;
+      margin-bottom: 20px;
+    }
+
+    .bg-text {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.05rem;
+      line-height: 1.85;
+      color: #c8bea8;
+      text-align: center;
+      margin-bottom: 52px;
+      min-height: 5em;
+    }
+
+    .bg-nav {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .bg-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      background: none;
+      border: 1px solid #3a3628;
+      color: #c8bea8;
+      cursor: pointer;
+      padding: 10px 20px;
+      transition: border-color 0.2s, color 0.2s;
+      letter-spacing: 0.05em;
+    }
+
+    .bg-btn:hover:not(:disabled) { border-color: #b5890a; color: #b5890a; }
+    .bg-btn:disabled { opacity: 0.2; cursor: default; }
+
+    .bg-step-counter {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: #4a4438;
+    }
+
+    /* Scoreboard */
+    .bg-scoreboard {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0d0c09;
+      border: 1px solid #2a2620;
+      border-bottom: none;
+      padding: 10px 16px 8px;
+      z-index: 500;
+      border-radius: 4px 4px 0 0;
+      display: none;
+    }
+
+    .bg-scoreboard.visible { display: block; }
+
+    .bg-sb-table {
+      border-collapse: collapse;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.03em;
+      color: #c8bea8;
+    }
+
+    .bg-sb-name {
+      padding: 2px 10px 2px 0;
+      color: #6a6050;
+      white-space: nowrap;
+    }
+
+    .bg-sb-frame {
+      border: 1px solid #2a2620;
+      text-align: center;
+      padding: 3px 6px;
+      min-width: 36px;
+    }
+
+    .bg-sb-frame.active { border-color: #b5890a; color: #b5890a; }
+
+    .bg-sb-marks { font-size: 0.6rem; letter-spacing: 0.05em; }
+
+    .bg-sb-cum {
+      font-size: 0.5rem;
+      color: #4a4438;
+      margin-top: 2px;
+    }
+
+    .bg-sb-frame.active .bg-sb-cum { color: #b5890a; }
+
+    .bg-sb-total {
+      padding: 2px 0 2px 10px;
+      font-size: 0.65rem;
+      color: #b5890a;
+    }
+
+    @media (max-width: 768px) {
+      .bowling-game { flex-direction: column; }
+      .bg-lane-col { width: 100%; position: static; height: auto; padding: 32px 20px; }
+      .bg-center { width: 100%; min-height: auto; padding: 40px 24px; border: none; border-top: 1px solid #2a2620; }
+      .bg-scoreboard { min-width: 0; width: 96vw; }
+    }
+
     /* ── MOBILE ── */
     @media (max-width: 768px) {
       :root { --nav-h: 110px; }
@@ -358,40 +529,49 @@
 
   </section>
 
-  <!-- ── SECTION 2: DUST SETTLED ── -->
-  <section class="article-section" data-model="/issue-01/models/yoel-costa.glb">
+  <!-- ── SECTION 2: BOWLING ── -->
+  <section class="article-section">
 
     <!-- Centered header -->
     <div class="center-col">
       <header class="issue-header">
-        <div class="issue-label">closeupfarout &nbsp;·&nbsp; Issue 01 &nbsp;·&nbsp; Summer 2026</div>
-        <div class="section-announcement">Dust Settled</div>
-        <h1 class="piece-title">Romero vs. Costa</h1>
-<div class="piece-byline">Hudson Marjane</div>
+        <h1 class="piece-title">299-100</h1>
+        <div class="piece-subtitle">Koivuniemi vs. Daugherty &nbsp;|&nbsp; January 22, 2011</div>
       </header>
     </div>
 
-    <!-- First three paragraphs -->
-    <div class="manuscript-body body-text" style="padding-bottom:0">
-      <p>An action-packed montage starts off the show, knockout vignettes and training footage, the usual hype-up fodder. The music swells, muscles ripple. Beyond the occasional slo-mo shot, cuts pile up hard and fast. Those in attendance hoot in appreciation, but it isn't until the music kicks in that the hysteria truly starts. Costa is the first to make his walk. Caressed by Aerosmith's "Dream On", he takes a slow stroll down the aisle before peeling off his shirt and revealing a beach bod worthy of a mid-2000s Hollister ad. It is undeniable that the UFC has perfected the sex appeal of combat sports. Tight compression shorts reign supreme, the high waisted satin shorts of boxing long gone. The sponsors are foreign alcohol brands or protein snacks, there are no insurance ads. Costa sarcastically rocks his hands in the air to the song, beaming like a cocky jackass. He merrily daps up his corner before Vaseline application. Costa holds a cheerful and unwrinkled disposition, with a soft face reminiscent of samba great Baden Powell. An eminent youthfulness spreads from cheek to cheek. He steps in the octagon and raises both hands: "The Eraser". His cockiness is admirable, fun even. The slight disapproval of the crowd upon his arrival has shifted into amused appreciation as they lay witness to a 12-0 fighter with superstar potential.</p>
+    <!-- ── BOWLING INTERACTIVE ── -->
+    <div class="bowling-game" id="bowlingGame">
 
-      <p>Romero enters the arena to a raucous Afro-Cuban beat, the applause roaring in approval. The audience accepts him as an obvious favorite, his blood presumably more precious. Perhaps it is the proximity of Cuba to the US, or, his mysterious backstory and finishing potential. Romero is a freakish specimen, a full-chested rock golem with speed bump abs and pebbled intercostals. Romero holds, what seems to me, to be the most well-rounded physique of any fighter on the UFC roster, even next to the chiseled Brazilian model. Alongside a lanky jiu-jitsu specialist or a buffet plate heavyweight, the one-time Olympic wrestler looks like a lab-tested assassin, bouldered deltoids emerging into a trapezius bent on swallowing his neck. High cheekbones, a cold expression interrupted by an occasional sickly smile; I can't imagine him ever having sported hair. He kisses his trainer and salutes to the crowd before entering the octagon, the "Soldier of God" has arrived.</p>
+      <!-- Left lane: Koivuniemi -->
+      <div class="bg-lane-col" id="laneColK">
+        <div class="bg-lane-name">Koivuniemi</div>
+        <canvas class="bg-canvas" id="laneK" width="200" height="310"></canvas>
+        <div class="bg-ball-result" id="resultK"></div>
+      </div>
 
-      <p>As Bruce Buffer introduces the fighters, now standing 10 feet from each other, I can't help but entertain the popular fan notion that both of these fighters are on juice. Toned to the T, the prospect of a cut to 185 seems wholly unreal for either of these competitors. And yet, how could I possibly care? Both on paper and visually, this matchup seems eerily fair, the 14 year age gap the only concern. Buffer shouts out the Brazilian first, who now holds a more serious look. He sends out kisses as his name echoes, lays his arms horizontal (as if holding the burden of his untarnished record), and embraces the vigor of the Coliseum. If Romero is the "Soldier of God", then Costa must at least qualify for "God's Favorite Nephew." MMA remains a mature activity, evidenced by the headlining bout between a 36 year old Stipe Miocic and a 40 year old Daniel Cormier, but for a 28 year old with a creed evinced by many other young undefeated fighters, Costa's MO seems to be unbridled by any whimsy or pretension: he is the best, and if they don't know it yet, they will understand in 15 minutes or less. The audience still wants Romero though, the energy swelling as his height and weight are listed. He stretches along a length of fence before placing his hand over his heart and quietly walking. Upon final introduction, the Olympian doubles down on his salute with another lovingly servile display, bowing to each cardinal direction as he takes center stage.</p>
+      <!-- Center: text + navigation -->
+      <div class="bg-center">
+        <div class="bg-frame-badge" id="bgBadge">Frame 1 &nbsp;·&nbsp; Koivuniemi &nbsp;·&nbsp; Ball 1</div>
+        <p class="bg-text" id="bgText"></p>
+        <div class="bg-nav">
+          <button class="bg-btn" id="bgPrev">&#8592;</button>
+          <span class="bg-step-counter" id="bgCounter">1 / 30</span>
+          <button class="bg-btn" id="bgNext">&#8594;</button>
+        </div>
+      </div>
+
+      <!-- Right lane: Daugherty -->
+      <div class="bg-lane-col" id="laneColD">
+        <div class="bg-lane-name">Daugherty</div>
+        <canvas class="bg-canvas" id="laneD" width="200" height="310"></canvas>
+        <div class="bg-ball-result" id="resultD"></div>
+      </div>
+
     </div>
 
-    <!-- Remaining sections, centered -->
-    <div class="manuscript-body body-text">
-
-      <div class="section-break">✦ &nbsp; ✦ &nbsp; ✦</div>
-
-      <p>The cameras clear out, referee Jason Herzog inquires about individual readiness. A quick hand clap and we're off. Costa brings immediate pressure, starting off with a mid-body kick dodged by Romero. This opening move brings difficulties for Romero though, pushing him back near the cage and allotting Costa arena control. The two fighters size each other up briefly, before repeating the initial exchange, this time the dodge from Romero allowing him to glide back toward the center of the mat. A right kick attempt from Yoel is followed by a monstrous missed left hook, containing so much latent energy that Costa still staggers. The Brazilian casts a devilish smile at the prospect of his opponent's power. This rush of amusement seems to foreshadow the inevitability of the matchup: a strike-first, bleed-later contest. A few more missed strikes follow, but suddenly, Romero takes advantage and decides to takedown Costa. After tumbling onto the floor, no clear leverage for either, the middleweights bound up immediately, uninterested in submission; a true Stand-and-Bang awaits.</p>
-
-      <p>Now on his feet, Romero jacks Costa with a left uppercut, dealing the first serious blow of the fight. Costa stumbles back a bit. Having now registered Romero's power, he subsides the pressure for a few moments. Biding time pays off: seconds away from receiving a huge left hook, Costa clips Romero with a left of his own. Romero's knees give way and he drops! Another quick rise to his feet and Romero points — literally, points with his finger — to an arbitrary spot behind Costa's right side, prompting room for a quick flurry off such a silly misdirection. The 1 misses, but the 2 knocks Costa square in the chin, dropping him just as quickly as he had been dropped himself! Back to the floor in a frenzied wrestle, back up again just as quickly. Costa is smiling again, he loves it. Seeker of golden brawls, The Eraser, at 12-0, must be bored of cleaning house. Here, in front of him, lies a ball of anabolic potentiality giving him the fight he deserves. The rest of the first round follows a similar frenetic pattern, Costa's constant pressure, Romero's cage-side counter-striking. With two minutes left to spare, a notable flying knee rocks Costa, sending him back toward the perimeter. Arms tangle for wrist control in the clinch, Costa launching knees to the body all-the-while. Before long an accidental groin strike fells Romero, prompting an official respite from the referee.</p>
-
-      <p>The "Soldier of God" rolls around on the floor for a good while, cradling his jewels with a complimentary wince. He crawls over to the cage and grabs the metal links for support while a doctor questions his testicular status. Costa seems neither apologetic nor antagonistic; Romero doesn't seem so upset himself. Clearly a regular aspect of male combat sports, and though one combatant writhes in temporary pain, they each seem to relish the short break. The two middleweights seem relaxed and focused as the round is restarted, the slapdash pace of the previous three minutes behind them. Romero quickly misses a left kick and slips wildly onto the mat, Costa's cue to push forward and pressure him up onto the cage. We are right back where we started. Romero strikes a low posture to threaten a takedown, which pauses Costa for a brief moment. Costa ultimately decides on a right inner leg kick, a wise change of pace against the prospect of going to the ground. The kick creates space and allows a positional reset: a quick detour to the center of the octagon before resigning back to the cage. A blocked high kick from "The Eraser", two checked leg kicks thrown by the "Soldier of God". The pause of heavy pressure suggests a return to the ground and Romero attempts exactly that, grabbing onto Costa's thighs, but soon finding himself on the ground instead receiving a bounty of head strikes. After absorbing a couple knocks, Romero, fairly unfazed, scrambles up and lands a fat right and slight left onto a retreating Costa. As the first round nears the final minute, it is already clear that a KO is unlikely this fight. Shots will be traded and pressure will be maintained, but there will be a counter waiting, and a chin waiting for the counter. Bludgeons continue to be traded, each fighter often eating blows as they throw out their own. With 10 seconds remaining Costa attempts a spinning high kick that misses Romero's head by mere inches. The crowd anxiously roars, mourning the near-miss of a high velocity beheading. Three claps from wood block, a few more feinted shuffles, and we are off to the corner for a short break.</p>
-
-    </div>
+    <!-- Fixed scoreboard — shown only when bowling section is in view -->
+    <div class="bg-scoreboard" id="bgScoreboard"></div>
 
   </section>
   </div>
@@ -710,6 +890,393 @@
       gl.uniform2f(uMouse, mx, my);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
+  })();
+  </script>
+
+
+  <!-- ── BOWLING GAME ENGINE ──────────────────────────────────────── -->
+  <script>
+  (function () {
+    // ── CANVAS GEOMETRY ────────────────────────────────────────────────
+    const CW = 200, CH = 310, CX = 100;
+
+    // Standard bowling pin layout (top-down, ball rolls up from bottom)
+    // Pin 1 = head pin (closest to bowler), 10 = back-right corner
+    const PIN_POS = {
+       1: [CX,       238],
+       2: [CX - 13,  215],
+       3: [CX + 13,  215],
+       4: [CX - 26,  192],
+       5: [CX,       192],
+       6: [CX + 26,  192],
+       7: [CX - 39,  169],
+       8: [CX - 13,  169],
+       9: [CX + 13,  169],
+      10: [CX + 39,  169],
+    };
+
+    const BALL_START = [CX, 296];
+    const BALL_END   = [CX, 240];
+    const BALL_R = 13, PIN_R = 8;
+
+    // ── GAME DATA ──────────────────────────────────────────────────────
+    const STEPS = [
+      // Frame 1
+      { frame:1, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 1. Mika Koivuniemi steps to the approach. The ball rolls clean down the lane, finds the pocket — and they all go down. Strike." },
+      { frame:1, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,3,4,5,6,7,9], mark:'7',
+        text:"Daugherty's first delivery knocks seven. The 2, 8, and 10 pins remain standing — a difficult spread." },
+      { frame:1, player:'D', ball:2, up:[2,8,10], knocked:[2,8], mark:'2',
+        text:"He picks off two, but the 10 pin holds in the corner. An open frame. Daugherty: 9." },
+
+      // Frame 2
+      { frame:2, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 2. Daugherty steps in first and delivers his only strike of the match — a clean pocket shot." },
+      { frame:2, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Koivuniemi responds. Two strikes." },
+
+      // Frame 3
+      { frame:3, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 3. Three in a row. Koivuniemi's delivery is metronomic — same release, same trajectory, same result." },
+      { frame:3, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,5,8,9], mark:'6',
+        text:"Daugherty clips the pocket light — six fall. Four remain: the 4, 6, 7, and 10 — a wide, nearly unconvertible leave." },
+      { frame:3, player:'D', ball:2, up:[4,6,7,10], knocked:[6,10], mark:'2',
+        text:"He converts two of the four but the 4 and 7 stand. Frame 3 — Daugherty: 8." },
+
+      // Frame 4
+      { frame:4, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,4,5,7,8,9,10], mark:'8',
+        text:"Frame 4. Daugherty puts up 8, leaving the 3 and 6 — a pair that sits flush against each other on the right side of the deck." },
+      { frame:4, player:'D', ball:2, up:[3,6], knocked:[3], mark:'1',
+        text:"He takes the 3, but the 6 pin refuses. Frame 4 — Daugherty: 9." },
+      { frame:4, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Koivuniemi. Strike. Four consecutive. The gap between these two men is beginning to widen." },
+
+      // Frame 5
+      { frame:5, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 5. The fifth strike. Koivuniemi's ball is reading the lane perfectly." },
+      { frame:5, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,5,8], mark:'5',
+        text:"Daugherty scatters five — a thin hit. Five pins remain: 4, 6, 7, 9, and 10." },
+      { frame:5, player:'D', ball:2, up:[4,6,7,9,10], knocked:[10], mark:'1',
+        text:"He picks just the 10. Four pins left standing. Frame 5 — Daugherty: 6." },
+
+      // Frame 6
+      { frame:6, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,5,7,8,9], mark:'7',
+        text:"Frame 6. Seven for Daugherty. The 4, 6, and 10 remain in a triangle — tough to cover in one shot." },
+      { frame:6, player:'D', ball:2, up:[4,6,10], knocked:[6,10], mark:'2',
+        text:"He sweeps the 6 and 10 off the right side but the 4 pin holds. Frame 6 — Daugherty: 9." },
+      { frame:6, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Koivuniemi. Strike six. He walks back to the settee without looking at the pins." },
+
+      // Frame 7
+      { frame:7, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 7. Seven strikes. The broadcast commentators have stopped discussing anything else." },
+      { frame:7, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Daugherty answers with his second strike of the match — perhaps energized by the occasion, or just executing." },
+
+      // Frame 8
+      { frame:8, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,5,8,9], mark:'5',
+        text:"Frame 8. Five for Daugherty. The 3, 4, 6, 7, and 10 remain — a wide spread across the deck." },
+      { frame:8, player:'D', ball:2, up:[3,4,6,7,10], knocked:[6,10], mark:'2',
+        text:"He manages two more from the right side. The 3, 4, and 7 stand. Frame 8 — Daugherty: 7." },
+      { frame:8, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Koivuniemi. Strike. Eight. He is one frame away from entering the 10th with a perfect game on the line." },
+
+      // Frame 9
+      { frame:9, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Frame 9. Nine strikes. The arena is on its feet. Koivuniemi steps into the final frame needing three consecutive strikes for 300." },
+      { frame:9, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,5,6,7,8,9], mark:'8',
+        text:"Daugherty responds with 8, leaving the 4 and 10 corners — a split with no realistic conversion." },
+      { frame:9, player:'D', ball:2, up:[4,10], knocked:[4], mark:'1',
+        text:"He picks off the 4. The 10 pin stays in its corner. Frame 9 — Daugherty finishes at 92 running." },
+
+      // Frame 10
+      { frame:10, player:'D', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,5,8,9], mark:'6',
+        text:"Final frame. Daugherty leads off. Six down, four standing — the 4, 6, 7, and 10." },
+      { frame:10, player:'D', ball:2, up:[4,6,7,10], knocked:[6,10], mark:'2',
+        text:"He converts two more. The 4 and 7 survive. Daugherty closes at 100 — a respectable total against anyone else." },
+      { frame:10, player:'K', ball:1, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Koivuniemi steps to the line for the 10th. First of three needed. The ball vanishes into the rack — strike." },
+      { frame:10, player:'K', ball:2, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9,10], mark:'X',
+        text:"Second strike. One ball left between Mika Koivuniemi and a 300 game. The room goes quiet." },
+      { frame:10, player:'K', ball:3, up:[1,2,3,4,5,6,7,8,9,10], knocked:[1,2,3,4,5,6,7,8,9], mark:'9',
+        text:"The ball rolls true — nine pins explode off the deck. The 10 pin rocks, wobbles, and stops. Mika Koivuniemi: 299." },
+    ];
+
+    // Scorecard (marks + cumulative per frame)
+    const SCORECARD = {
+      K: [
+        { m:['X'],       cum:30  }, { m:['X'],       cum:60  },
+        { m:['X'],       cum:90  }, { m:['X'],       cum:120 },
+        { m:['X'],       cum:150 }, { m:['X'],       cum:180 },
+        { m:['X'],       cum:210 }, { m:['X'],       cum:240 },
+        { m:['X'],       cum:270 }, { m:['X','X','9'], cum:299 },
+      ],
+      D: [
+        { m:['7','2'],   cum:9   }, { m:['X'],       cum:27  },
+        { m:['6','2'],   cum:35  }, { m:['8','1'],   cum:44  },
+        { m:['5','1'],   cum:50  }, { m:['7','2'],   cum:59  },
+        { m:['X'],       cum:76  }, { m:['5','2'],   cum:83  },
+        { m:['8','1'],   cum:92  }, { m:['6','2'],   cum:100 },
+      ],
+    };
+
+    // ── LANE STATE ─────────────────────────────────────────────────────
+    function makeLaneState() {
+      const pins = {};
+      for (let i = 1; i <= 10; i++) {
+        pins[i] = { x: PIN_POS[i][0], y: PIN_POS[i][1], standing: false, vx:0, vy:0, alpha:0 };
+      }
+      return { pins, ball: { x:BALL_START[0], y:BALL_START[1], visible:false, alpha:1 }, raf:null };
+    }
+
+    const laneState = { K: makeLaneState(), D: makeLaneState() };
+    const ctxs = {
+      K: document.getElementById('laneK').getContext('2d'),
+      D: document.getElementById('laneD').getContext('2d'),
+    };
+
+    // ── DRAW ───────────────────────────────────────────────────────────
+    function drawLane(player) {
+      const ctx = ctxs[player];
+      const st  = laneState[player];
+
+      ctx.clearRect(0, 0, CW, CH);
+
+      // Lane background (dark wood)
+      ctx.fillStyle = '#18160f';
+      ctx.fillRect(0, 0, CW, CH);
+
+      // Board lines
+      ctx.strokeStyle = '#201e14';
+      ctx.lineWidth = 0.8;
+      for (let x = 0; x <= CW; x += 10) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CH); ctx.stroke();
+      }
+
+      // Pin deck highlight
+      ctx.fillStyle = '#1e1c12';
+      ctx.fillRect(0, 152, CW, 100);
+
+      // Foul line
+      ctx.strokeStyle = '#2e2a1c';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, 270); ctx.lineTo(CW, 270); ctx.stroke();
+
+      // Arrows (aiming markers)
+      const arrowY = 252;
+      [CX-30, CX-18, CX, CX+18, CX+30].forEach((ax, i) => {
+        if (i === 2) return; // skip center
+        ctx.fillStyle = '#2e2a1c';
+        ctx.beginPath();
+        ctx.moveTo(ax, arrowY - 5);
+        ctx.lineTo(ax - 4, arrowY + 4);
+        ctx.lineTo(ax + 4, arrowY + 4);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      // Pins
+      for (let i = 1; i <= 10; i++) {
+        const p = st.pins[i];
+        if (p.alpha <= 0) continue;
+        ctx.globalAlpha = p.alpha;
+
+        if (p.standing) {
+          // Standing: filled circle
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, PIN_R, 0, Math.PI*2);
+          ctx.fillStyle = '#e8e0cc';
+          ctx.fill();
+          // inner dot
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2);
+          ctx.fillStyle = '#1a1810';
+          ctx.fill();
+        } else {
+          // Knocked: expanding ring fading out
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, PIN_R * (1 + (1 - p.alpha) * 1.2), 0, Math.PI*2);
+          ctx.strokeStyle = '#e8e0cc';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // Ball
+      if (st.ball.visible) {
+        ctx.globalAlpha = st.ball.alpha;
+        ctx.beginPath();
+        ctx.arc(st.ball.x, st.ball.y, BALL_R, 0, Math.PI*2);
+        ctx.fillStyle = '#1a1008';
+        ctx.strokeStyle = '#e8e0cc';
+        ctx.lineWidth = 1.5;
+        ctx.fill();
+        ctx.stroke();
+        // shine
+        ctx.beginPath();
+        ctx.arc(st.ball.x - 4, st.ball.y - 4, 4, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(232,224,204,0.18)';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // ── ANIMATE THROW ──────────────────────────────────────────────────
+    function animateThrow(player, upPins, knockedPins, frameNum) {
+      const st = laneState[player];
+      if (st.raf) cancelAnimationFrame(st.raf);
+
+      // Drama: increases each frame for Koivuniemi
+      const drama = player === 'K' ? 1 + (frameNum - 1) * 0.12 : 1;
+      const rollFrames = Math.round(38 / drama);
+      const scatterFrames = 32;
+
+      // Init pins
+      for (let i = 1; i <= 10; i++) {
+        st.pins[i].standing = upPins.includes(i);
+        st.pins[i].x = PIN_POS[i][0];
+        st.pins[i].y = PIN_POS[i][1];
+        st.pins[i].alpha = upPins.includes(i) ? 1 : 0;
+        st.pins[i].vx = 0;
+        st.pins[i].vy = 0;
+      }
+
+      st.ball.x = BALL_START[0];
+      st.ball.y = BALL_START[1];
+      st.ball.visible = true;
+      st.ball.alpha = 1;
+
+      // Pre-compute scatter velocities
+      const power = (3.2 + drama * 1.1);
+      const vels = {};
+      knockedPins.forEach(id => {
+        const dx = PIN_POS[id][0] - BALL_END[0];
+        const dy = PIN_POS[id][1] - BALL_END[1];
+        const d  = Math.sqrt(dx*dx + dy*dy) || 1;
+        vels[id] = {
+          vx: (dx/d) * power * (0.65 + Math.random()*0.7),
+          vy: (dy/d) * power * (0.65 + Math.random()*0.7) - 0.8,
+        };
+      });
+
+      let t = 0, phase = 'roll';
+
+      function tick() {
+        if (phase === 'roll') {
+          t++;
+          const p = Math.min(t / rollFrames, 1);
+          const ease = p < 0.5 ? 2*p*p : -1+(4-2*p)*p;
+          st.ball.x = BALL_START[0] + (BALL_END[0] - BALL_START[0]) * ease;
+          st.ball.y = BALL_START[1] + (BALL_END[1] - BALL_START[1]) * ease;
+          if (p >= 1) { phase = 'scatter'; t = 0;
+            knockedPins.forEach(id => {
+              st.pins[id].standing = false;
+              st.pins[id].vx = vels[id].vx;
+              st.pins[id].vy = vels[id].vy;
+            });
+          }
+        } else {
+          t++;
+          st.ball.alpha = Math.max(0, 1 - t / 12);
+          knockedPins.forEach(id => {
+            const p = st.pins[id];
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= 0.86; p.vy *= 0.86;
+            p.alpha = Math.max(0, 1 - t / scatterFrames);
+          });
+          if (t >= scatterFrames) { st.ball.visible = false; drawLane(player); return; }
+        }
+        drawLane(player);
+        st.raf = requestAnimationFrame(tick);
+      }
+      st.raf = requestAnimationFrame(tick);
+    }
+
+    // ── SCOREBOARD ─────────────────────────────────────────────────────
+    function buildScoreboard(activeFrame) {
+      const sb = document.getElementById('bgScoreboard');
+      if (!sb) return;
+      const rows = ['K','D'];
+      const names = { K:'Koivuniemi', D:'Daugherty' };
+      const totals = { K:299, D:100 };
+      let h = '<table class="bg-sb-table"><tbody>';
+      rows.forEach(pl => {
+        h += `<tr><td class="bg-sb-name">${names[pl]}</td>`;
+        SCORECARD[pl].forEach((f, i) => {
+          const fn = i + 1;
+          const cls = fn === activeFrame ? 'bg-sb-frame active' : 'bg-sb-frame';
+          const marks = f.m.join(' ');
+          h += `<td class="${cls}"><div class="bg-sb-marks">${marks}</div><div class="bg-sb-cum">${f.cum}</div></td>`;
+        });
+        h += `<td class="bg-sb-total">${totals[pl]}</td></tr>`;
+      });
+      h += '</tbody></table>';
+      sb.innerHTML = h;
+    }
+
+    // ── NAVIGATION ─────────────────────────────────────────────────────
+    let currentStep = 0;
+
+    function goToStep(idx) {
+      if (idx < 0 || idx >= STEPS.length) return;
+      currentStep = idx;
+      const step = STEPS[idx];
+
+      const playerName = step.player === 'K' ? 'Koivuniemi' : 'Daugherty';
+      document.getElementById('bgBadge').textContent =
+        `Frame ${step.frame}  ·  ${playerName}  ·  Ball ${step.ball}`;
+      document.getElementById('bgText').textContent = step.text;
+      document.getElementById('bgCounter').textContent = `${idx+1} / ${STEPS.length}`;
+
+      // Result labels
+      const labelK = document.getElementById('resultK');
+      const labelD = document.getElementById('resultD');
+      if (step.player === 'K') {
+        labelK.textContent = step.mark === 'X' ? 'STRIKE' : `${step.mark} pins`;
+        labelD.textContent = '';
+      } else {
+        labelD.textContent = step.mark === 'X' ? 'STRIKE' : `${step.mark} pins`;
+        labelK.textContent = '';
+      }
+
+      document.getElementById('bgPrev').disabled = idx === 0;
+      document.getElementById('bgNext').disabled = idx === STEPS.length - 1;
+
+      buildScoreboard(step.frame);
+      animateThrow(step.player, step.up, step.knocked, step.frame);
+    }
+
+    // ── SCOREBOARD VISIBILITY ──────────────────────────────────────────
+    const scoreboardEl = document.getElementById('bgScoreboard');
+    const gameEl       = document.getElementById('bowlingGame');
+    new IntersectionObserver(([e]) => {
+      scoreboardEl.classList.toggle('visible', e.isIntersecting);
+    }, { threshold: 0.1 }).observe(gameEl);
+
+    // ── INIT ───────────────────────────────────────────────────────────
+    // Draw empty lanes
+    ['K','D'].forEach(pl => {
+      const st = laneState[pl];
+      for (let i = 1; i <= 10; i++) {
+        st.pins[i].standing = true;
+        st.pins[i].x = PIN_POS[i][0];
+        st.pins[i].y = PIN_POS[i][1];
+        st.pins[i].alpha = 1;
+      }
+      st.ball.visible = false;
+      drawLane(pl);
+    });
+
+    document.getElementById('bgPrev').addEventListener('click', () => goToStep(currentStep - 1));
+    document.getElementById('bgNext').addEventListener('click', () => goToStep(currentStep + 1));
+    document.addEventListener('keydown', e => {
+      if (!scoreboardEl.classList.contains('visible')) return;
+      if (e.key === 'ArrowRight') goToStep(currentStep + 1);
+      if (e.key === 'ArrowLeft')  goToStep(currentStep - 1);
+    });
+
+    goToStep(0);
   })();
   </script>
 
