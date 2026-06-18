@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Issue 01 — closeupfarout</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;700&family=Chakra+Petch:wght@600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;700&family=Chakra+Petch:wght@600;700&family=Caveat:wght@400;600&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -261,6 +261,63 @@
       color: #ffffff;
       line-height: 1;
       user-select: none;
+    }
+
+    /* ── LETTER FROM THE EDITOR ── */
+    .letter-section {
+      background: #080808;
+      display: flex;
+      justify-content: center;
+      padding-top: var(--nav-h);
+    }
+
+    .letter-scroll {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      scrollbar-width: none;
+      display: flex;
+      justify-content: center;
+      padding: 52px 5vw 80px;
+      box-sizing: border-box;
+    }
+
+    .letter-scroll::-webkit-scrollbar { display: none; }
+
+    .letter-content-wrap {
+      max-width: 560px;
+      width: 100%;
+      font-family: 'Caveat', cursive;
+      color: rgba(255, 255, 255, 0.92);
+      position: relative;
+    }
+
+    .letter-type-heading {
+      font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+      font-weight: 600;
+      margin: 0 0 2.2rem;
+      line-height: 1.15;
+      color: #fff;
+    }
+
+    .letter-type-para {
+      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+      line-height: 1.75;
+      margin: 0 0 1.5em;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .letter-cursor {
+      display: inline;
+      color: rgba(255, 255, 255, 0.6);
+      font-family: 'Caveat', cursive;
+      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+      animation: letter-blink 0.75s step-end infinite;
+    }
+
+    @keyframes letter-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     /* ── FEATURED REVIEW SECTION ── */
@@ -653,7 +710,16 @@
     </div>
   </section>
 
-  <!-- ── SECTION 1: FEATURED REVIEW ── -->
+  <!-- ── SECTION 1: LETTER FROM THE EDITOR ── -->
+  <section class="article-section letter-section" id="letterSection">
+    <div class="letter-scroll" id="letterScroll">
+      <div class="letter-content-wrap">
+        <div id="letterContent"></div><span class="letter-cursor" id="letterCursor">|</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 2: FEATURED REVIEW ── -->
   <section class="article-section featured-review">
     <div class="fr-layout">
 
@@ -1741,6 +1807,86 @@
     });
 
     goToStep(0);
+  })();
+  </script>
+
+  <!-- ── LETTER TYPEWRITER ── -->
+  <script>
+  (function () {
+    const PARAS = [
+      { tag: 'h2', cls: 'letter-type-heading', text: 'Letter from the Editor' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'By the time something receives a name, it has usually existed for months or years in another form: conversations, notes, folders, unfinished drafts, recommendations passed between friends, ideas mistaken for hobbies.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'This issue gathers a few of those fragments.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'Some are new. Others have been waiting patiently for an excuse to surface. None claim to be definitive. We are less interested in conclusions than in openings.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'closeupfarout exists as a place for careful attention. To art, music, literature, landscapes, objects, histories, and the strange connections that form between them. We believe curiosity remains one of the more useful ways to move through the world.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'The pieces collected here share no single argument. They are linked instead by a common inclination: to look a little closer, and a little farther.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'What follows is not a manifesto. It is a signal flare. A field note. A first transmission.' },
+      { tag: 'p',  cls: 'letter-type-para',    text: 'Thank you for finding it.' },
+    ];
+
+    const scrollEl  = document.getElementById('letterScroll');
+    const contentEl = document.getElementById('letterContent');
+    const cursorEl  = document.getElementById('letterCursor');
+
+    let timer = null;
+    let running = false;
+
+    function reset() {
+      clearTimeout(timer);
+      running = false;
+      contentEl.innerHTML = '';
+      cursorEl.style.display = 'inline';
+    }
+
+    function startTyping() {
+      reset();
+      running = true;
+
+      let pIdx = 0, cIdx = 0, currentEl = null;
+
+      function step() {
+        if (!running) return;
+
+        if (pIdx >= PARAS.length) {
+          cursorEl.style.display = 'none';
+          return;
+        }
+
+        if (!currentEl) {
+          const { tag, cls } = PARAS[pIdx];
+          currentEl = document.createElement(tag);
+          currentEl.className = cls;
+          contentEl.appendChild(currentEl);
+        }
+
+        const text = PARAS[pIdx].text;
+        cIdx++;
+        currentEl.textContent = text.substring(0, cIdx);
+        scrollEl.scrollTop = scrollEl.scrollHeight;
+
+        if (cIdx >= text.length) {
+          pIdx++;
+          cIdx = 0;
+          currentEl = null;
+          const pause = pIdx === 1 ? 480 : 160;
+          timer = setTimeout(step, pause);
+        } else {
+          const jitter = Math.random() * 18;
+          timer = setTimeout(step, 24 + jitter);
+        }
+      }
+
+      timer = setTimeout(step, 600);
+    }
+
+    const section = document.getElementById('letterSection');
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+        startTyping();
+      } else if (!e.isIntersecting) {
+        reset();
+      }
+    }, { threshold: 0.5 }).observe(section);
   })();
   </script>
 
