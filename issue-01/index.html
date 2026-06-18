@@ -286,23 +286,23 @@
     .letter-content-wrap {
       max-width: 560px;
       width: 100%;
-      font-family: 'Caveat', cursive;
+      font-family: 'Cormorant Garamond', serif;
       color: rgba(255, 255, 255, 0.92);
       position: relative;
     }
 
     .letter-type-heading {
-      font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+      font-size: clamp(1.5rem, 2.8vw, 1.9rem);
       font-weight: 600;
-      margin: 0 0 2.2rem;
+      margin: 0 0 1.6rem;
       line-height: 1.15;
       color: #fff;
     }
 
     .letter-type-para {
-      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
-      line-height: 1.75;
-      margin: 0 0 1.5em;
+      font-size: clamp(1.05rem, 1.9vw, 1.28rem);
+      line-height: 1.7;
+      margin: 0 0 1em;
       color: rgba(255, 255, 255, 0.88);
     }
 
@@ -372,17 +372,33 @@
       z-index: 1;
     }
 
+    .twofer-logo {
+      position: absolute;
+      top: 4%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(180px, 28vw, 360px);
+      z-index: 5;
+      filter: invert(1);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      user-select: none;
+    }
+
     .twofer-overlay {
       position: absolute;
       inset: 0;
       z-index: 10;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      overflow-y: auto;
       background: rgba(9, 9, 9, 0.95);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.7s ease;
+      padding: 5vh 5vw 4vh;
+      box-sizing: border-box;
     }
 
     .twofer-overlay.visible {
@@ -393,46 +409,43 @@
     .twofer-poem-box {
       max-width: 500px;
       width: 100%;
-      padding: 0 5vw;
-      text-align: center;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 2.8rem;
+      align-items: flex-start;
     }
 
-    .twofer-poem-eyebrow {
+    .twofer-poem-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+      font-style: italic;
+      font-weight: 500;
+      color: rgba(245, 242, 236, 0.9);
+      margin: 0 0 0.2rem;
+    }
+
+    .twofer-poem-author {
       font-family: 'Space Mono', monospace;
-      font-size: 0.58rem;
-      letter-spacing: 0.3em;
+      font-size: clamp(0.55rem, 1vw, 0.7rem);
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(245, 242, 236, 0.38);
-      margin: 0;
+      color: rgba(245, 242, 236, 0.4);
+      margin: 0 0 1.6rem;
     }
 
     .twofer-poem-stanza {
       font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(1.25rem, 2.8vw, 1.7rem);
+      font-size: clamp(1.05rem, 2vw, 1.32rem);
       font-style: italic;
-      line-height: 2;
+      line-height: 1.82;
       color: rgba(245, 242, 236, 0.9);
-      transition: opacity 0.25s ease;
     }
 
-    .twofer-poem-stanza.fading { opacity: 0; }
+    .twofer-poem-stanza p {
+      margin: 0 0 1.1em;
+    }
 
     .twofer-poem-footer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.6rem;
-    }
-
-    .twofer-poem-progress {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.5rem;
-      letter-spacing: 0.2em;
-      color: rgba(245, 242, 236, 0.22);
+      margin-top: 1.4rem;
     }
 
     .twofer-poem-btn {
@@ -442,13 +455,40 @@
       text-transform: uppercase;
       background: none;
       border: none;
-      color: rgba(245, 242, 236, 0.45);
+      color: rgba(245, 242, 236, 0.38);
       cursor: pointer;
       padding: 6px 0;
       transition: color 0.2s;
     }
 
     .twofer-poem-btn:hover { color: rgba(245, 242, 236, 0.9); }
+
+    /* ── PAGE NAV BUTTONS ── */
+    #pageNav {
+      position: fixed;
+      bottom: 1.4rem;
+      right: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      z-index: 100;
+    }
+
+    #pageNav button {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.28);
+      font-size: 1.3rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s;
+      display: block;
+    }
+
+    #pageNav button:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
 
     /* ── FEATURED REVIEW SECTION ── */
     .featured-review {
@@ -954,13 +994,14 @@
   <section class="article-section twofer-section" id="twoferSection">
     <div id="twoferRenderer"></div>
     <canvas id="twoferCanvas"></canvas>
+    <img src="../images/2fer-logo.png" class="twofer-logo" alt="2fer">
     <div class="twofer-overlay" id="twoferOverlay">
       <div class="twofer-poem-box">
-        <p class="twofer-poem-eyebrow" id="twoferEyebrow"></p>
+        <p class="twofer-poem-title" id="twoferTitle"></p>
+        <p class="twofer-poem-author" id="twoferAuthor"></p>
         <div class="twofer-poem-stanza" id="twoferStanza"></div>
         <div class="twofer-poem-footer">
-          <span class="twofer-poem-progress" id="twoferProgress"></span>
-          <button class="twofer-poem-btn" id="twoferBtn">continue →</button>
+          <button class="twofer-poem-btn" id="twoferBtn">close</button>
         </div>
       </div>
     </div>
@@ -1274,6 +1315,7 @@
 
     // Wheel — accumulate delta for resistance
     window.addEventListener('wheel', e => {
+      if (document.querySelector('.twofer-overlay.visible')) return;
       e.preventDefault();
       if (locked) return;
       const scale = e.deltaMode === 1 ? 30 : e.deltaMode === 2 ? 300 : 1;
@@ -1289,6 +1331,7 @@
     let touchY = 0;
     window.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
     window.addEventListener('touchend', e => {
+      if (document.querySelector('.twofer-overlay.visible')) return;
       const dy = touchY - e.changedTouches[0].clientY;
       if (Math.abs(dy) >= 60) goToSection(currentIdx + (dy > 0 ? 1 : -1));
     }, { passive: true });
@@ -1296,9 +1339,14 @@
     // Arrow keys (capture phase so child handlers don't block)
     document.addEventListener('keydown', e => {
       if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (document.querySelector('.twofer-overlay.visible')) return;
       e.preventDefault();
       goToSection(currentIdx + (e.key === 'ArrowDown' ? 1 : -1));
     }, true);
+
+    // Page nav buttons
+    document.getElementById('pageNavUp').addEventListener('click', () => goToSection(currentIdx - 1));
+    document.getElementById('pageNavDown').addEventListener('click', () => goToSection(currentIdx + 1));
   })();
   </script>
 
@@ -1984,16 +2032,25 @@
 
     let timer = null;
     let running = false;
+    let hasTyped = false;
 
-    function reset() {
+    function showFull() {
       clearTimeout(timer);
       running = false;
       contentEl.innerHTML = '';
+      PARAS.forEach(({ tag, cls, text }) => {
+        const el = document.createElement(tag);
+        el.className = cls;
+        el.textContent = text;
+        contentEl.appendChild(el);
+      });
+      hasTyped = true;
     }
 
     function startTyping() {
-      reset();
+      clearTimeout(timer);
       running = true;
+      contentEl.innerHTML = '';
 
       let pIdx = 0, cIdx = 0, currentEl = null;
 
@@ -2001,6 +2058,7 @@
         if (!running) return;
 
         if (pIdx >= PARAS.length) {
+          hasTyped = true;
           return;
         }
 
@@ -2034,9 +2092,8 @@
     const section = document.getElementById('letterSection');
     new IntersectionObserver(([e]) => {
       if (e.isIntersecting && e.intersectionRatio >= 0.5) {
-        startTyping();
-      } else if (!e.isIntersecting) {
-        reset();
+        if (hasTyped) showFull();
+        else startTyping();
       }
     }, { threshold: 0.5 }).observe(section);
   })();
@@ -2051,10 +2108,10 @@
   const canvas   = document.getElementById('twoferCanvas');
   const ctx      = canvas.getContext('2d');
   const overlay  = document.getElementById('twoferOverlay');
-  const eyebrowEl  = document.getElementById('twoferEyebrow');
-  const stanzaEl   = document.getElementById('twoferStanza');
-  const progressEl = document.getElementById('twoferProgress');
-  const btnEl      = document.getElementById('twoferBtn');
+  const titleEl  = document.getElementById('twoferTitle');
+  const authorEl = document.getElementById('twoferAuthor');
+  const stanzaEl  = document.getElementById('twoferStanza');
+  const btnEl     = document.getElementById('twoferBtn');
 
   // ── Three.js renderer ───────────────────────────────────────
   const renderer3d = new THREE.WebGLRenderer({ antialias: true });
@@ -2096,22 +2153,24 @@
     modelLoaded = true;
   });
 
-  // ── Poems (placeholder) ─────────────────────────────────────
+  // ── Poems ────────────────────────────────────────────────────
   const POEMS = [
     {
-      label: 'Door I · 2fer · Issue 01',
+      title: 'Fourteen', author: 'by Jeremy Danger',
       stanzas: [
-        ['Placeholder line one,', 'placeholder line two,', 'placeholder line three.'],
-        ['Placeholder line four.', 'Placeholder line five,', 'placeholder line six.'],
-        ['— end —'],
+        ['We both had gunk between ', 'our braces’ wires and our teeth.', 'Polyester hardly covered ', 'our Kala Namak skin. '],
+        ['Sunburnt mirth in the bathroom ', 'at the beach, and it smelled of chlorine.', 'Mangroves were circuit wire poking thru ', 'jalousie windows. Our hands, small machines.'],
+        ['Then on sticky table in ice-cream parlor', 'beside sugar I poured from packets', 'sat the sundae you wouldn’t eat.'],
+        ['You asked the waitress to speak ', 'of her tsuris like you were fifty', 'and I was careful – only taking a bite.'],
       ]
     },
     {
-      label: 'Door II · 2fer · Issue 01',
+      title: 'Gulfport', author: 'by Jeremy Danger',
       stanzas: [
-        ['Placeholder line one,', 'placeholder line two,', 'placeholder line three.'],
-        ['Placeholder line four.', 'Placeholder line five,', 'placeholder line six.'],
-        ['— end —'],
+        ['My neighbors sell meth. ', 'Every night they cavort ’neath moon’s shine ', 'over Slayer and cigarettes, ', 'stray cats, boxed wine.'],
+        ['Their bonfire whines despite August,', 'excessive heat warnings on the weather app, and slime ', 'oozing from forearms the moment I enter the car.'],
+        ['Once one stopped me. I was taking out trash. ', 'He told me about Boone, NC, where he was from—', 'how it rocks and it gleams with its rocks and its streams. ', 'He would not shut up, even when I walked away. '],
+        ['But tonight as I am sitting in bed, watching cartoons, ', 'I hear their decaying porch organ and long for a teenth ', 'to be smoked between gray soapberry trees.'],
       ]
     },
   ];
@@ -2123,11 +2182,10 @@
   let doors = [];
   let active = false;
   let activeDoor = null;
-  let stanzaIdx = 0;
   const keys = {};
 
   // Trigger zone positions — adjust these to match door positions in model
-  const DOOR_FRAC = [0.18, 0.82];
+  const DOOR_FRAC = [0.336, 0.664];
 
   function resize() {
     W = section.clientWidth;
@@ -2150,8 +2208,8 @@
     fig.dir = 1;
     fig.walkPhase = 0;
     doors = [
-      { x: Math.round(W * DOOR_FRAC[0]), poemIdx: 0, entered: false, glow: 0 },
-      { x: Math.round(W * DOOR_FRAC[1]), poemIdx: 1, entered: false, glow: 0 },
+      { x: Math.round(W * DOOR_FRAC[0]), poemIdx: 0, glow: 0 },
+      { x: Math.round(W * DOOR_FRAC[1]), poemIdx: 1, glow: 0 },
     ];
     gameState = 'free';
     activeDoor = null;
@@ -2159,56 +2217,33 @@
   }
 
   function nearDoor() {
-    return doors.find(d => !d.entered && Math.abs(fig.x - d.x) < 90) || null;
+    return doors.find(d => Math.abs(fig.x - d.x) < 90) || null;
   }
 
   function openDoor(door) {
-    door.entered = true;
     activeDoor = door;
-    stanzaIdx = 0;
     gameState = 'poem';
-    renderStanza(false);
+    const poem = POEMS[door.poemIdx];
+    titleEl.textContent  = poem.title;
+    authorEl.textContent = poem.author;
+    stanzaEl.innerHTML = poem.stanzas.map(s => `<p>${s.join('<br>')}</p>`).join('');
+    overlay.scrollTop = 0;
     overlay.classList.add('visible');
   }
 
-  function renderStanza(animate) {
-    const poem = POEMS[activeDoor.poemIdx];
-    const update = () => {
-      eyebrowEl.textContent = poem.label;
-      stanzaEl.innerHTML = poem.stanzas[stanzaIdx].join('<br>');
-      progressEl.textContent = (stanzaIdx + 1) + ' · ' + poem.stanzas.length;
-      btnEl.textContent = stanzaIdx >= poem.stanzas.length - 1 ? 'close' : 'continue →';
-      stanzaEl.classList.remove('fading');
-    };
-    if (animate) {
-      stanzaEl.classList.add('fading');
-      setTimeout(update, 260);
-    } else {
-      update();
-    }
-  }
-
-  function advancePoem() {
+  function closePoem() {
     if (gameState !== 'poem') return;
-    const poem = POEMS[activeDoor.poemIdx];
-    if (stanzaIdx < poem.stanzas.length - 1) {
-      stanzaIdx++;
-      renderStanza(true);
-    } else {
-      overlay.classList.remove('visible');
-      setTimeout(() => {
-        gameState = doors.every(d => d.entered) ? 'done' : 'free';
-      }, 720);
-    }
+    overlay.classList.remove('visible');
+    setTimeout(() => { gameState = 'free'; }, 720);
   }
 
-  btnEl.addEventListener('click', advancePoem);
-  overlay.addEventListener('click', e => { if (e.target !== btnEl) advancePoem(); });
+  btnEl.addEventListener('click', closePoem);
+  overlay.addEventListener('click', e => { if (e.target !== btnEl) closePoem(); });
 
   document.addEventListener('keydown', e => {
     if (!active) return;
     if (gameState === 'poem') {
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') advancePoem();
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') closePoem();
       return;
     }
     keys[e.key] = true;
@@ -2228,37 +2263,80 @@
       fig.walkPhase += 0.22;
     }
     for (const d of doors) {
-      const near = !d.entered && Math.abs(fig.x - d.x) < 90;
-      const target = d.entered ? 0 : near ? 1 : 0;
+      const near = Math.abs(fig.x - d.x) < 90;
+      const target = near ? 1 : 0;
       d.glow += (target - d.glow) * 0.08;
     }
   }
 
   function drawFigure() {
-    if (gameState === 'done') return;
-    const x = fig.x;
+    const P = 3;
     const walking = (keys['ArrowLeft'] || keys['ArrowRight']) && gameState === 'free';
-    const p = fig.walkPhase;
+    const step = walking ? (Math.floor(fig.walkPhase / 3) % 2) : 0;
+
     ctx.save();
-    ctx.strokeStyle = 'rgba(245,242,236,0.9)';
-    ctx.fillStyle   = 'rgba(245,242,236,0.9)';
-    ctx.lineWidth = 1.8;
-    ctx.lineCap   = 'round';
-    const headY    = GROUND - 80;
-    const shoulderY = GROUND - 62;
-    const hipY     = GROUND - 33;
-    ctx.beginPath(); ctx.arc(x, headY, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x, headY + 7); ctx.lineTo(x, hipY); ctx.stroke();
-    const arm = walking ? Math.sin(p) * 13 : 0;
-    ctx.beginPath();
-    ctx.moveTo(x, shoulderY); ctx.lineTo(x + arm, shoulderY + 18);
-    ctx.moveTo(x, shoulderY); ctx.lineTo(x - arm, shoulderY + 18);
-    ctx.stroke();
-    const leg = walking ? Math.sin(p) * 14 : 0;
-    ctx.beginPath();
-    ctx.moveTo(x, hipY); ctx.lineTo(x + leg, GROUND);
-    ctx.moveTo(x, hipY); ctx.lineTo(x - leg, GROUND);
-    ctx.stroke();
+    ctx.translate(Math.round(fig.x), GROUND);
+    if (fig.dir < 0) ctx.scale(-1, 1);
+
+    // r(gx, gy, gw, gh, color) — gx centered, gy rows above ground
+    function r(gx, gy, gw, gh, c) {
+      ctx.fillStyle = c;
+      ctx.fillRect(gx * P, -(gy + gh) * P, gw * P, gh * P);
+    }
+
+    const SK = '#f0b882';   // skin
+    const MH = '#ee2211';   // red mohawk
+    const JK = '#141414';   // jacket black
+    const ST = '#c0c0c0';   // silver studs
+    const PN = '#1c1c48';   // dark navy pants
+    const BT = '#0d0d0d';   // near-black boots
+    const BL = '#484848';   // belt
+    const MT = '#cc4422';   // mouth
+
+    // Thighs — fixed position
+    r(-3, 8, 2, 4, PN);
+    r( 1, 8, 2, 4, PN);
+
+    // Lower legs + boots — swing on walk step
+    const llx = step ? -2 : -3;
+    const rlx = step ?  0 :  1;
+    for (let y = 3; y <= 7; y++) { r(llx, y, 2, 1, PN); r(rlx, y, 2, 1, PN); }
+    r(llx, 0, 2, 3, BT);
+    r(rlx, 0, 2, 3, BT);
+
+    // Belt
+    r(-3, 12, 6, 1, BL);
+
+    // Jacket body
+    r(-3, 13, 6, 7, JK);
+    // Lapel edge
+    r(-1, 16, 1, 4, '#1e1e1e');
+    // Studs
+    r(-3, 19, 1, 1, ST); r(2, 19, 1, 1, ST);
+    r(-3, 16, 1, 1, ST); r(2, 16, 1, 1, ST);
+
+    // Arms — swing opposite to legs
+    const al = 1 - step;
+    r(-4, 13 + al,     1, 5, JK);
+    r( 3, 13 + (1-al), 1, 5, JK);
+    r(-4, 16 + al,     1, 1, ST);
+    r( 3, 16 + (1-al), 1, 1, ST);
+
+    // Neck
+    r(-1, 20, 2, 1, SK);
+
+    // Head
+    r(-2, 21, 4, 4, SK);
+    r(-1, 23, 1, 1, '#0a0a0a');  // left eye
+    r( 1, 23, 1, 1, '#0a0a0a');  // right eye
+    r( 0, 21, 2, 1, MT);         // smirk
+
+    // Mohawk
+    r(-1, 25, 4, 1, MH);   // base
+    r(-1, 26, 4, 1, MH);   // mid
+    r( 0, 27, 2, 1, MH);   // upper
+    r( 0, 28, 1, 1, MH);   // peak
+
     ctx.restore();
   }
 
@@ -2267,11 +2345,21 @@
 
     // "[ enter ]" prompt above each unvisited door when nearby
     for (const d of doors) {
-      if (!d.entered && d.glow > 0.4) {
-        ctx.fillStyle = 'rgba(245,242,236,' + Math.min(1, (d.glow - 0.4) * 1.7).toFixed(2) + ')';
-        ctx.font = '9px Space Mono, monospace';
+      if (d.glow > 0.4) {
+        const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.004);
+        const alpha = Math.min(1, (d.glow - 0.4) * 1.7) * pulse;
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 110, 10, 0.9)';
+        ctx.shadowBlur = 22;
+        ctx.fillStyle = `rgba(255, 115, 15, ${alpha.toFixed(2)})`;
+        ctx.font = 'bold 12px Space Mono, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('[ enter ]', d.x, GROUND - 110);
+        ctx.fillText('[ENTER]', d.x, GROUND - 110);
+        // second pass for extra glow
+        ctx.shadowBlur = 40;
+        ctx.fillStyle = `rgba(255, 80, 0, ${(alpha * 0.4).toFixed(2)})`;
+        ctx.fillText('[ENTER]', d.x, GROUND - 110);
+        ctx.restore();
       }
     }
 
@@ -2282,10 +2370,6 @@
     if (gameState === 'free') {
       ctx.fillStyle = 'rgba(245,242,236,0.2)';
       ctx.fillText('← → to walk  ·  enter to open', W / 2, H - 22);
-    }
-    if (gameState === 'done') {
-      ctx.fillStyle = 'rgba(245,242,236,0.3)';
-      ctx.fillText('both doors opened', W / 2, GROUND - 110);
     }
   }
 
@@ -2299,7 +2383,6 @@
   new IntersectionObserver(([e]) => {
     if (e.isIntersecting && e.intersectionRatio >= 0.5) {
       active = true;
-      if (gameState === 'done') init();
     } else {
       active = false;
     }
@@ -2310,5 +2393,9 @@
   loop();
   </script>
 
+  <div id="pageNav">
+    <button id="pageNavUp" aria-label="Previous section">&#8679;</button>
+    <button id="pageNavDown" aria-label="Next section">&#8681;</button>
+  </div>
 </body>
 </html>
