@@ -301,9 +301,9 @@
     }
 
     .bg-lane-name {
-      font-family: 'Cinzel', serif;
-      font-size: 0.65rem;
-      letter-spacing: 0.35em;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: #c8bea8;
       margin-bottom: 18px;
@@ -319,7 +319,7 @@
     .bg-ball-result {
       margin-top: 14px;
       font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
+      font-size: 0.8rem;
       letter-spacing: 0.2em;
       color: #6a6050;
       text-align: center;
@@ -340,8 +340,8 @@
 
     .bg-frame-badge {
       font-family: 'Space Mono', monospace;
-      font-size: 0.55rem;
-      letter-spacing: 0.3em;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: #b5890a;
       margin-bottom: 20px;
@@ -423,9 +423,9 @@
       min-width: 36px;
     }
 
-    .bg-sb-frame.active { border-color: #b5890a; color: #b5890a; }
+    .bg-sb-frame.active { border-color: #b5890a; color: #b5890a; box-shadow: inset 0 0 0 1px #b5890a; }
 
-    .bg-sb-marks { font-size: 0.6rem; letter-spacing: 0.05em; }
+    .bg-sb-marks { font-size: 0.6rem; letter-spacing: 0.05em; min-height: 1em; }
 
     .bg-sb-cum {
       font-size: 0.5rem;
@@ -438,7 +438,7 @@
     .bg-sb-total {
       padding: 2px 0 2px 10px;
       font-size: 0.65rem;
-      color: #b5890a;
+      color: #c8bea8;
     }
 
     @media (max-width: 768px) {
@@ -903,20 +903,20 @@
     // Standard bowling pin layout (top-down, ball rolls up from bottom)
     // Pin 1 = head pin (closest to bowler), 10 = back-right corner
     const PIN_POS = {
-       1: [CX,       238],
-       2: [CX - 13,  215],
-       3: [CX + 13,  215],
-       4: [CX - 26,  192],
-       5: [CX,       192],
-       6: [CX + 26,  192],
-       7: [CX - 39,  169],
-       8: [CX - 13,  169],
-       9: [CX + 13,  169],
-      10: [CX + 39,  169],
+       1: [CX,       118],
+       2: [CX - 13,   95],
+       3: [CX + 13,   95],
+       4: [CX - 26,   72],
+       5: [CX,        72],
+       6: [CX + 26,   72],
+       7: [CX - 39,   49],
+       8: [CX - 13,   49],
+       9: [CX + 13,   49],
+      10: [CX + 39,   49],
     };
 
     const BALL_START = [CX, 296];
-    const BALL_END   = [CX, 240];
+    const BALL_END   = [CX, 120];
     const BALL_R = 13, PIN_R = 8;
 
     // ── GAME DATA ──────────────────────────────────────────────────────
@@ -1043,30 +1043,30 @@
       ctx.clearRect(0, 0, CW, CH);
 
       // Lane background (dark wood)
-      ctx.fillStyle = '#18160f';
+      ctx.fillStyle = '#d4a85c';
       ctx.fillRect(0, 0, CW, CH);
 
       // Board lines
-      ctx.strokeStyle = '#201e14';
+      ctx.strokeStyle = '#be9040';
       ctx.lineWidth = 0.8;
       for (let x = 0; x <= CW; x += 10) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CH); ctx.stroke();
       }
 
       // Pin deck highlight
-      ctx.fillStyle = '#1e1c12';
-      ctx.fillRect(0, 152, CW, 100);
+      ctx.fillStyle = '#deba70';
+      ctx.fillRect(0, 32, CW, 100);
 
       // Foul line
-      ctx.strokeStyle = '#2e2a1c';
+      ctx.strokeStyle = '#3a1e04';
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(0, 270); ctx.lineTo(CW, 270); ctx.stroke();
 
       // Arrows (aiming markers)
-      const arrowY = 252;
+      const arrowY = 240;
       [CX-30, CX-18, CX, CX+18, CX+30].forEach((ax, i) => {
         if (i === 2) return; // skip center
-        ctx.fillStyle = '#2e2a1c';
+        ctx.fillStyle = '#8c6020';
         ctx.beginPath();
         ctx.moveTo(ax, arrowY - 5);
         ctx.lineTo(ax - 4, arrowY + 4);
@@ -1193,24 +1193,130 @@
       st.raf = requestAnimationFrame(tick);
     }
 
-    // ── SCOREBOARD ─────────────────────────────────────────────────────
-    function buildScoreboard(activeFrame) {
+    // ── PROGRESSIVE SCOREBOARD ────────────────────────────────────────
+    // Pre-build: which step index does each ball land?
+    const BALL_STEP = { K: {}, D: {} };
+    STEPS.forEach((s, idx) => {
+      if (!BALL_STEP[s.player][s.frame]) BALL_STEP[s.player][s.frame] = {};
+      BALL_STEP[s.player][s.frame][s.ball] = idx;
+    });
+
+    // Which cumulative frame scores are revealed after reaching each step?
+    // A frame's cumulative is locked once all its counting balls are thrown.
+    // Strikes need 2 bonus balls; spares need 1; open frames are immediate.
+    const CUM_REVEALS = [
+      // step 0  K-F1b1
+      { K:[], D:[] },
+      // step 1  D-F1b1
+      { K:[], D:[] },
+      // step 2  D-F1b2 → D-F1 done (open)
+      { K:[], D:[1] },
+      // step 3  D-F2b1
+      { K:[], D:[] },
+      // step 4  K-F2b1
+      { K:[], D:[] },
+      // step 5  K-F3b1 → K-F1 done (bonus: F2b1+F3b1)
+      { K:[1], D:[] },
+      // step 6  D-F3b1
+      { K:[], D:[] },
+      // step 7  D-F3b2 → D-F2 done (strike bonus: F3b1+F3b2), D-F3 done (open)
+      { K:[], D:[2,3] },
+      // step 8  D-F4b1
+      { K:[], D:[] },
+      // step 9  D-F4b2 → D-F4 done
+      { K:[], D:[4] },
+      // step 10 K-F4b1 → K-F2 done (bonus: F3b1+F4b1)
+      { K:[2], D:[] },
+      // step 11 K-F5b1 → K-F3 done (bonus: F4b1+F5b1)
+      { K:[3], D:[] },
+      // step 12 D-F5b1
+      { K:[], D:[] },
+      // step 13 D-F5b2 → D-F5 done
+      { K:[], D:[5] },
+      // step 14 D-F6b1
+      { K:[], D:[] },
+      // step 15 D-F6b2 → D-F6 done
+      { K:[], D:[6] },
+      // step 16 K-F6b1 → K-F4 done (bonus: F5b1+F6b1)
+      { K:[4], D:[] },
+      // step 17 K-F7b1 → K-F5 done (bonus: F6b1+F7b1)
+      { K:[5], D:[] },
+      // step 18 D-F7b1
+      { K:[], D:[] },
+      // step 19 D-F8b1
+      { K:[], D:[] },
+      // step 20 D-F8b2 → D-F7 done (bonus: F8b1+F8b2), D-F8 done
+      { K:[], D:[7,8] },
+      // step 21 K-F8b1 → K-F6 done (bonus: F7b1+F8b1)
+      { K:[6], D:[] },
+      // step 22 K-F9b1 → K-F7 done (bonus: F8b1+F9b1)
+      { K:[7], D:[] },
+      // step 23 D-F9b1
+      { K:[], D:[] },
+      // step 24 D-F9b2 → D-F9 done
+      { K:[], D:[9] },
+      // step 25 D-F10b1
+      { K:[], D:[] },
+      // step 26 D-F10b2 → D-F10 done
+      { K:[], D:[10] },
+      // step 27 K-F10b1 → K-F8 done (bonus: F9b1+F10b1)
+      { K:[8], D:[] },
+      // step 28 K-F10b2 → K-F9 done (bonus: F10b1+F10b2)
+      { K:[9], D:[] },
+      // step 29 K-F10b3 → K-F10 done
+      { K:[10], D:[] },
+    ];
+
+    function getRevealedCums(upToStep) {
+      const rK = new Set(), rD = new Set();
+      for (let s = 0; s <= upToStep; s++) {
+        CUM_REVEALS[s].K.forEach(f => rK.add(f));
+        CUM_REVEALS[s].D.forEach(f => rD.add(f));
+      }
+      return { K: rK, D: rD };
+    }
+
+    function ballThrown(player, frame, ball) {
+      const bs = BALL_STEP[player][frame];
+      return bs && bs[ball] !== undefined && bs[ball] <= currentStep;
+    }
+
+    function buildScoreboard() {
       const sb = document.getElementById('bgScoreboard');
       if (!sb) return;
-      const rows = ['K','D'];
-      const names = { K:'Koivuniemi', D:'Daugherty' };
-      const totals = { K:299, D:100 };
+      const step       = STEPS[currentStep];
+      const activeFrame = step.frame;
+      const revealed   = getRevealedCums(currentStep);
+      const names      = { K:'Koivuniemi', D:'Daugherty' };
+
       let h = '<table class="bg-sb-table"><tbody>';
-      rows.forEach(pl => {
+
+      ['K','D'].forEach(pl => {
         h += `<tr><td class="bg-sb-name">${names[pl]}</td>`;
         SCORECARD[pl].forEach((f, i) => {
-          const fn = i + 1;
+          const fn  = i + 1;
           const cls = fn === activeFrame ? 'bg-sb-frame active' : 'bg-sb-frame';
-          const marks = f.m.join(' ');
-          h += `<td class="${cls}"><div class="bg-sb-marks">${marks}</div><div class="bg-sb-cum">${f.cum}</div></td>`;
+
+          // Build marks string — only show balls already thrown
+          let marksHtml = '';
+          f.m.forEach((m, bi) => {
+            if (ballThrown(pl, fn, bi + 1)) marksHtml += m + ' ';
+          });
+          marksHtml = marksHtml.trim();
+
+          // Cumulative — only show once revealed
+          const cumHtml = revealed[pl].has(fn)
+            ? `<div class="bg-sb-cum">${f.cum}</div>`
+            : `<div class="bg-sb-cum" style="color:#2a2620">—</div>`;
+
+          h += `<td class="${cls}"><div class="bg-sb-marks">${marksHtml}</div>${cumHtml}</td>`;
         });
-        h += `<td class="bg-sb-total">${totals[pl]}</td></tr>`;
+
+        const showTotal = revealed[pl].has(10);
+        const total     = pl === 'K' ? 299 : 100;
+        h += `<td class="bg-sb-total">${showTotal ? total : ''}</td></tr>`;
       });
+
       h += '</tbody></table>';
       sb.innerHTML = h;
     }
@@ -1243,7 +1349,7 @@
       document.getElementById('bgPrev').disabled = idx === 0;
       document.getElementById('bgNext').disabled = idx === STEPS.length - 1;
 
-      buildScoreboard(step.frame);
+      buildScoreboard();
       animateThrow(step.player, step.up, step.knocked, step.frame);
     }
 
