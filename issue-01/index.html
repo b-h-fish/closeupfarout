@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Issue 01 — closeupfarout</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;700&family=Chakra+Petch:wght@600;700&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,7 +18,8 @@
     }
 
     html, body {
-      min-height: 100%;
+      height: 100%;
+      overflow: hidden;
       background: var(--paper);
       font-family: 'Cormorant Garamond', serif;
       color: var(--ink);
@@ -36,6 +37,22 @@
       height: var(--nav-h);
       background: var(--paper);
       border-bottom: 1px solid var(--rule);
+      transition: opacity 0.4s ease;
+    }
+
+    nav.nav-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #page-fade {
+      position: fixed;
+      inset: 0;
+      background: #f5f2ec;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+      transition: opacity 0.35s ease;
     }
 
     .nav-wordmark {
@@ -71,7 +88,11 @@
     .page-wrap {
       position: relative;
       z-index: 1;
-      padding-top: var(--nav-h);
+    }
+
+    .article-section {
+      height: 100vh;
+      overflow: hidden;
     }
 
     /* ── CENTERED COLUMN (header + trailing body) ── */
@@ -182,17 +203,108 @@
       padding: 0 2rem 8rem;
     }
 
+    /* ── POSTER SECTION ── */
+    .poster-section {
+      background: #0d0c09;
+      position: relative;
+    }
+
+    .poster-grid {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .poster-tile {
+      position: absolute;
+      overflow: hidden;
+    }
+
+    .poster-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .poster-ghost {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .poster-ghost {
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .poster-ghost-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(0.6rem, 1.2vw, 0.9rem);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.35em;
+      color: rgba(255, 255, 255, 0.75);
+      user-select: none;
+    }
+
+    .poster-ghost-text {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: clamp(3.5rem, 12vw, 10rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      line-height: 1;
+      user-select: none;
+    }
+
     /* ── FEATURED REVIEW SECTION ── */
     .featured-review {
       background: #f5f2ec;
       position: relative;
       z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--nav-h) 5vw 0;
+    }
+
+    .fr-layout {
+      display: flex;
+      height: 86%;
+      width: 100%;
+      max-width: 1000px;
+      border: 1px solid #ddd8d2;
+      border-radius: 3px;
+    }
+
+    .fr-image-col {
+      width: 40%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 28px;
+      border-right: 1px solid #ddd8d2;
+    }
+
+    .fr-text-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 36px 44px 28px;
+      overflow: hidden;
     }
 
     .fr-header {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 72px 24px 48px;
+      flex-shrink: 0;
+      margin-bottom: 28px;
     }
 
     .fr-eyebrow {
@@ -201,17 +313,17 @@
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: #888;
-      margin-bottom: 1rem;
+      margin-bottom: 0.9rem;
     }
 
     .fr-title {
       font-family: Georgia, 'Times New Roman', serif;
-      font-size: clamp(1.8rem, 5vw, 2.9rem);
+      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
       font-weight: normal;
       letter-spacing: -0.01em;
       line-height: 1.15;
       color: #1a1a1a;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.9rem;
     }
 
     .fr-byline {
@@ -221,28 +333,73 @@
       letter-spacing: 0.05em;
     }
 
-    .fr-body {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 0 24px 96px;
-      font-family: Georgia, 'Times New Roman', serif;
-      font-size: 1.1rem;
-      line-height: 1.75;
-      color: #1a1a1a;
+    .fr-body-row {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    .fr-body p { margin-bottom: 1.6em; }
+    .fr-pages {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      align-self: stretch;
+    }
 
-    .fr-body hr {
-      border: none;
-      border-top: 1px solid #d4cfca;
-      margin: 3rem 0;
+    .fr-page {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: #1a1a1a;
+      overflow-y: auto;
+    }
+
+    .fr-page.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fr-page p { margin-bottom: 1.4em; }
+    .fr-page p:last-child { margin-bottom: 0; }
+
+    .fr-btn {
+      flex-shrink: 0;
+      background: none;
+      border: 1px solid #c8c0b4;
+      color: #555;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .fr-btn:hover { border-color: #888; color: #1a1a1a; }
+    .fr-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .fr-counter {
+      display: block;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: #999;
+      letter-spacing: 0.1em;
+      padding-top: 14px;
+      flex-shrink: 0;
     }
 
     .venus-figure {
-      margin: 40px auto;
       position: relative;
-      max-width: 320px;
+      width: 100%;
     }
 
     .venus-figure canvas {
@@ -263,8 +420,8 @@
 
     .parallax-hint {
       position: absolute;
-      bottom: 36px;
-      right: 16px;
+      bottom: 24px;
+      right: 12px;
       background: rgba(0,0,0,0.45);
       color: rgba(255,255,255,0.75);
       font-family: 'Space Mono', monospace;
@@ -284,7 +441,7 @@
       display: flex;
       align-items: stretch;
       background: #111009;
-      min-height: 72vh;
+      height: 100%;
       position: relative;
     }
 
@@ -295,10 +452,6 @@
       align-items: center;
       justify-content: center;
       padding: 40px 20px;
-      position: sticky;
-      top: var(--nav-h);
-      align-self: flex-start;
-      height: calc(100vh - var(--nav-h));
     }
 
     .bg-lane-name {
@@ -333,8 +486,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 80px 32px;
-      min-height: 72vh;
+      padding: 40px 32px;
       border-left: 1px solid #2a2620;
       border-right: 1px solid #2a2620;
     }
@@ -488,58 +640,75 @@
     </ul>
   </nav>
 
+  <div id="page-fade"></div>
+
   <div class="page-wrap">
+
+  <!-- ── SECTION 0: POSTER ── -->
+  <section class="article-section poster-section">
+    <div class="poster-grid" id="posterGrid"></div>
+    <div class="poster-ghost">
+      <span class="poster-ghost-eyebrow">closeupfarout</span>
+      <span class="poster-ghost-text">Issue 01</span>
+    </div>
+  </section>
 
   <!-- ── SECTION 1: FEATURED REVIEW ── -->
   <section class="article-section featured-review">
+    <div class="fr-layout">
 
-    <header class="fr-header">
-      <p class="fr-eyebrow">Featured Review &nbsp;·&nbsp; Issue 01</p>
-      <h1 class="fr-title">Article Title Placeholder</h1>
-      <p class="fr-byline">By Author Name &nbsp;·&nbsp; Summer 2026</p>
-    </header>
+      <!-- Left: parallax image -->
+      <div class="fr-image-col">
+        <figure class="venus-figure" id="venusFigure">
+          <canvas id="venusCanvas"></canvas>
+          <div class="parallax-hint" id="hint">move cursor to explore depth</div>
+        </figure>
+      </div>
 
-    <main class="fr-body">
+      <!-- Right: header + paginated text + nav -->
+      <div class="fr-text-col">
+        <header class="fr-header">
+          <p class="fr-eyebrow">Featured Review &nbsp;·&nbsp; Issue 01</p>
+          <h1 class="fr-title">Article Title Placeholder</h1>
+          <p class="fr-byline">By Author Name &nbsp;·&nbsp; Summer 2026</p>
+        </header>
 
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+        <div class="fr-body-row">
+        <button class="fr-btn" id="frPrev" disabled>←</button>
+        <div class="fr-pages" id="frPages">
 
-      <p>Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales.</p>
+          <div class="fr-page active">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.</p>
+            <p>Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales.</p>
+          </div>
 
-      <p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit. Ut velit mauris, egestas sed, gravida nec, ornare ut, mi. Aenean ut orci vel massa suscipit pulvinar.</p>
+          <div class="fr-page">
+            <p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit. Ut velit mauris, egestas sed, gravida nec, ornare ut, mi. Aenean ut orci vel massa suscipit pulvinar.</p>
+            <p>Nulla sollicitudin. Fusce varius, ligula non tempus aliquam, nunc turpis ullamcorper nibh, in tempus sapien eros vitae ligula. Pellentesque rhoncus nunc et augue. Integer id felis. Curabitur aliquet pellentesque diam. Integer quis metus vitae elit lobortis egestas. Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</p>
+          </div>
 
-      <hr>
+          <div class="fr-page">
+            <p>Morbi vel erat non mauris convallis vehicula. Nulla et sapien. Integer tortor tellus, aliquam faucibus, convallis id, congue eu, quam. Mauris ullamcorper felis vitae erat. Proin feugiat, augue non elementum posuere, metus purus iaculis lectus, et tristique ligula justo vitae magna.</p>
+            <p>Aliquam convallis sollicitudin purus. Praesent aliquam, enim at fermentum mollis, ligula massa adipiscing nisl, ac euismod nibh nisl eu lectus. Fusce vulputate sem at sapien. Vivamus leo. Aliquam euismod libero eu enim. Nulla nec felis sed leo placerat imperdiet. Aenean suscipit nulla in justo.</p>
+          </div>
 
-      <!-- ── Parallax image — swap base64 strings when ready ── -->
-      <figure class="venus-figure" id="venusFigure">
-        <canvas id="venusCanvas"></canvas>
-        <div class="parallax-hint" id="hint">move cursor to explore depth</div>
-        <figcaption>Image caption placeholder — move cursor to reveal depth.</figcaption>
-      </figure>
+          <div class="fr-page">
+            <p>Suspendisse cursus rutrum augue. Nulla tincidunt tincidunt mi. Curabitur iaculis, lorem vel rhoncus faucibus, felis magna fermentum augue, et ultricies lacus lorem varius purus. Curabitur eu amet erat. Integer aliquet, massa id lobortis convallis, tortor risus dapibus augue, vel egestas velit erat vel nunc.</p>
+            <p>Sed placerat sapien vel purus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec id elit. Integer vitae libero ac risus egestas placerat. Vestibulum commodo felis quis tortor. Ut aliquam sollicitudin leo. Cras iaculis ultricies nulla. Donec quis dui at dolor tempor interdum. Mauris faucibus, elit ut dictum aliquet, felis nisl adipiscing sapien, sed malesuada diam lacus eget erat.</p>
+          </div>
 
-      <p>Nulla sollicitudin. Fusce varius, ligula non tempus aliquam, nunc turpis ullamcorper nibh, in tempus sapien eros vitae ligula. Pellentesque rhoncus nunc et augue. Integer id felis. Curabitur aliquet pellentesque diam. Integer quis metus vitae elit lobortis egestas. Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</p>
+        </div>
+        <button class="fr-btn" id="frNext">→</button>
+        </div>
 
-      <p>Morbi vel erat non mauris convallis vehicula. Nulla et sapien. Integer tortor tellus, aliquam faucibus, convallis id, congue eu, quam. Mauris ullamcorper felis vitae erat. Proin feugiat, augue non elementum posuere, metus purus iaculis lectus, et tristique ligula justo vitae magna.</p>
+        <span class="fr-counter" id="frCounter">1 / 4</span>
+      </div>
 
-      <p>Aliquam convallis sollicitudin purus. Praesent aliquam, enim at fermentum mollis, ligula massa adipiscing nisl, ac euismod nibh nisl eu lectus. Fusce vulputate sem at sapien. Vivamus leo. Aliquam euismod libero eu enim. Nulla nec felis sed leo placerat imperdiet. Aenean suscipit nulla in justo.</p>
-
-      <p>Suspendisse cursus rutrum augue. Nulla tincidunt tincidunt mi. Curabitur iaculis, lorem vel rhoncus faucibus, felis magna fermentum augue, et ultricies lacus lorem varius purus. Curabitur eu amet erat. Integer aliquet, massa id lobortis convallis, tortor risus dapibus augue, vel egestas velit erat vel nunc.</p>
-
-      <p>Sed placerat sapien vel purus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec id elit. Integer vitae libero ac risus egestas placerat. Vestibulum commodo felis quis tortor. Ut aliquam sollicitudin leo. Cras iaculis ultricies nulla. Donec quis dui at dolor tempor interdum. Mauris faucibus, elit ut dictum aliquet, felis nisl adipiscing sapien, sed malesuada diam lacus eget erat. Donec vitae arcu. Donec vel lorem ut augue convallis dignissim. In hac habitasse platea dictumst. Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh. Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra.</p>
-
-    </main>
-
+    </div>
   </section>
 
   <!-- ── SECTION 2: BOWLING ── -->
   <section class="article-section">
-
-    <!-- Centered header -->
-    <div class="center-col">
-      <header class="issue-header">
-        <h1 class="piece-title">299-100</h1>
-        <div class="piece-subtitle">Koivuniemi vs. Daugherty &nbsp;|&nbsp; January 22, 2011</div>
-      </header>
-    </div>
 
     <!-- ── BOWLING INTERACTIVE ── -->
     <div class="bowling-game" id="bowlingGame">
@@ -759,6 +928,185 @@
 
       observer.observe(el);
     });
+  </script>
+
+  <!-- ── POSTER GRID ──────────────────────────────────────────────────────── -->
+  <script>
+  (function () {
+    const isMobile = window.innerWidth < 768;
+    const pool = isMobile ? [
+      '../videos/cube/cube-vid-01-mobile.webm',
+      '../videos/cube/cube-vid-02-mobile.webm',
+      '../videos/cube/cube-vid-03-mobile.webm',
+      '../videos/cube/cube-vid-04-mobile.webm',
+      '../videos/torus/torus-vid-01-mobile.webm',
+      '../videos/torus/torus-vid-02-mobile.webm',
+      '../videos/torus/torus-vid-03-mobile.webm',
+      '../videos/torus/torus-vid-04-mobile.webm',
+      '../videos/poster/poster-vid-01.webm',
+      '../videos/poster/poster-vid-02.webm',
+      '../videos/poster/poster-vid-03.webm',
+    ] : [
+      '../videos/cube/cube-vid-01.webm',
+      '../videos/cube/cube-vid-02.webm',
+      '../videos/cube/cube-vid-03.webm',
+      '../videos/cube/cube-vid-04.webm',
+      '../videos/torus/torus-vid-01.webm',
+      '../videos/torus/torus-vid-02.webm',
+      '../videos/torus/torus-vid-03.webm',
+      '../videos/torus/torus-vid-04.webm',
+      '../videos/poster/poster-vid-01.webm',
+      '../videos/poster/poster-vid-02.webm',
+      '../videos/poster/poster-vid-03.webm',
+    ];
+
+    const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+
+    const grid  = document.getElementById('posterGrid');
+    const W     = window.innerWidth;
+    const H     = window.innerHeight;
+    const COLS  = isMobile ? 4 : 9;
+    const ROWS  = isMobile ? 8 : 7;
+    const GAP   = 4;
+    const tileW = W / COLS;
+    const tileH = H / ROWS;
+    let idx = 0;
+
+    for (let r = 0; r < ROWS; r++) {
+      const isOdd    = r % 2 === 1;
+      const colCount = isOdd ? COLS + 1 : COLS;
+      const xOffset  = isOdd ? -tileW / 2 : 0;
+
+      for (let c = 0; c < colCount; c++) {
+        const tile = document.createElement('div');
+        tile.className    = 'poster-tile';
+        tile.style.left   = (xOffset + c * tileW + GAP / 2) + 'px';
+        tile.style.top    = (r * tileH + GAP / 2) + 'px';
+        tile.style.width  = (tileW - GAP) + 'px';
+        tile.style.height = (tileH - GAP) + 'px';
+
+        const vid = document.createElement('video');
+        vid.autoplay    = true;
+        vid.muted       = true;
+        vid.loop        = true;
+        vid.playsInline = true;
+        vid.src = shuffled[idx % shuffled.length];
+        idx++;
+
+        tile.appendChild(vid);
+        grid.appendChild(tile);
+        vid.play().catch(() => {});
+      }
+    }
+  })();
+  </script>
+
+  <!-- ── SECTION NAVIGATION ────────────────────────────────────────────────── -->
+  <script>
+  (function () {
+    const sections = Array.from(document.querySelectorAll('.article-section'));
+    const nav = document.querySelector('nav');
+    let currentIdx = 0;
+    let locked = false;
+    let accumulated = 0;
+    let resetTimer = null;
+    const THRESHOLD = 100;
+    const COOLDOWN  = 800;
+
+    function updateNav(idx) {
+      nav.classList.toggle('nav-hidden', idx === 0);
+    }
+
+    const fade = document.getElementById('page-fade');
+
+    function goToSection(idx) {
+      idx = Math.max(0, Math.min(idx, sections.length - 1));
+      if (idx === currentIdx || locked) return;
+      locked = true;
+      const fromPoster = currentIdx === 0;
+      currentIdx = idx;
+      accumulated = 0;
+      clearTimeout(resetTimer);
+      updateNav(idx);
+
+      if (fromPoster) {
+        fade.style.opacity = '1';
+        setTimeout(() => {
+          sections[idx].scrollIntoView({ behavior: 'instant' });
+          setTimeout(() => {
+            fade.style.transition = 'opacity 0.55s ease';
+            fade.style.opacity = '0';
+            setTimeout(() => {
+              fade.style.transition = '';
+              locked = false;
+            }, 580);
+          }, 30);
+        }, 370);
+      } else {
+        sections[idx].scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => { locked = false; }, COOLDOWN);
+      }
+    }
+
+    // Hide nav on initial load (poster is first)
+    updateNav(0);
+
+    // Wheel — accumulate delta for resistance
+    window.addEventListener('wheel', e => {
+      e.preventDefault();
+      if (locked) return;
+      const scale = e.deltaMode === 1 ? 30 : e.deltaMode === 2 ? 300 : 1;
+      accumulated += e.deltaY * scale;
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { accumulated = 0; }, 250);
+      if (Math.abs(accumulated) >= THRESHOLD) {
+        goToSection(currentIdx + (accumulated > 0 ? 1 : -1));
+      }
+    }, { passive: false });
+
+    // Touch swipe
+    let touchY = 0;
+    window.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+    window.addEventListener('touchend', e => {
+      const dy = touchY - e.changedTouches[0].clientY;
+      if (Math.abs(dy) >= 60) goToSection(currentIdx + (dy > 0 ? 1 : -1));
+    }, { passive: true });
+
+    // Arrow keys (capture phase so child handlers don't block)
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      goToSection(currentIdx + (e.key === 'ArrowDown' ? 1 : -1));
+    }, true);
+  })();
+  </script>
+
+  <!-- ── FEATURED REVIEW PAGINATION ──────────────────────────────────────── -->
+  <script>
+  (function () {
+    const pages   = Array.from(document.querySelectorAll('.fr-page'));
+    const prev    = document.getElementById('frPrev');
+    const next    = document.getElementById('frNext');
+    const counter = document.getElementById('frCounter');
+    let current   = 0;
+
+    function goTo(n) {
+      pages[current].classList.remove('active');
+      current = Math.max(0, Math.min(n, pages.length - 1));
+      pages[current].classList.add('active');
+      counter.textContent = (current + 1) + ' / ' + pages.length;
+      prev.disabled = current === 0;
+      next.disabled = current === pages.length - 1;
+    }
+
+    prev.addEventListener('click', () => goTo(current - 1));
+    next.addEventListener('click', () => goTo(current + 1));
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') goTo(current + 1);
+      if (e.key === 'ArrowLeft')  goTo(current - 1);
+    });
+  })();
   </script>
 
   <!-- ── PARALLAX IMAGE EFFECT ─────────────────────────────────────────────── -->
@@ -1126,9 +1474,7 @@
       const st = laneState[player];
       if (st.raf) cancelAnimationFrame(st.raf);
 
-      // Drama: increases each frame for Koivuniemi
-      const drama = player === 'K' ? 1 + (frameNum - 1) * 0.12 : 1;
-      const rollFrames = Math.round(38 / drama);
+      const rollFrames = 48;
       const scatterFrames = 32;
 
       // Init pins
@@ -1147,7 +1493,7 @@
       st.ball.alpha = 1;
 
       // Pre-compute scatter velocities
-      const power = (3.2 + drama * 1.1);
+      const power = 4.2;
       const vels = {};
       knockedPins.forEach(id => {
         const dx = PIN_POS[id][0] - BALL_END[0];
@@ -1308,7 +1654,7 @@
             ? `<div class="bg-sb-cum">${f.cum}</div>`
             : `<div class="bg-sb-cum" style="color:#2a2620">—</div>`;
 
-          h += `<td class="${cls}"><div class="bg-sb-marks">${marksHtml}</div>${cumHtml}</td>`;
+          h += `<td class="${cls}"><div class="bg-sb-marks">${marksHtml || '&nbsp;'}</div>${cumHtml}</td>`;
         });
 
         const showTotal = revealed[pl].has(10);
@@ -1348,6 +1694,19 @@
       document.getElementById('bgPrev').disabled = idx === 0;
       document.getElementById('bgNext').disabled = idx === STEPS.length - 1;
 
+      // Once D is finished (K's 10th frame, steps 27–29), clear D's lane
+      if (idx >= 27) {
+        const dst = laneState['D'];
+        if (dst.raf) { cancelAnimationFrame(dst.raf); dst.raf = null; }
+        for (let i = 1; i <= 10; i++) {
+          dst.pins[i].standing = false;
+          dst.pins[i].alpha = 0;
+        }
+        dst.ball.visible = false;
+        drawLane('D');
+        document.getElementById('resultD').textContent = '';
+      }
+
       buildScoreboard();
       animateThrow(step.player, step.up, step.knocked, step.frame);
     }
@@ -1356,8 +1715,8 @@
     const scoreboardEl = document.getElementById('bgScoreboard');
     const gameEl       = document.getElementById('bowlingGame');
     new IntersectionObserver(([e]) => {
-      scoreboardEl.classList.toggle('visible', e.isIntersecting);
-    }, { threshold: 0.1 }).observe(gameEl);
+      scoreboardEl.classList.toggle('visible', e.intersectionRatio >= 0.95);
+    }, { threshold: [0.95] }).observe(gameEl);
 
     // ── INIT ───────────────────────────────────────────────────────────
     // Draw empty lanes
