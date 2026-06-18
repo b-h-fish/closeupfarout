@@ -244,7 +244,7 @@
 
     .poster-ghost-eyebrow {
       font-family: 'Space Mono', monospace;
-      font-size: clamp(0.6rem, 1.2vw, 0.9rem);
+      font-size: clamp(0.85rem, 1.8vw, 1.3rem);
       font-weight: 400;
       text-transform: uppercase;
       letter-spacing: 0.35em;
@@ -268,7 +268,6 @@
       background: #080808;
       display: flex;
       justify-content: center;
-      padding-top: var(--nav-h);
     }
 
     .letter-scroll {
@@ -307,18 +306,149 @@
       color: rgba(255, 255, 255, 0.88);
     }
 
-    .letter-cursor {
-      display: inline;
-      color: rgba(255, 255, 255, 0.6);
-      font-family: 'Caveat', cursive;
-      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
-      animation: letter-blink 0.75s step-end infinite;
+    .letter-cursor { display: none; }
+
+    /* ── FEATURED LITERATURE PLACEHOLDER ── */
+    .featured-literature {
+      background: #f5f2ec;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    @keyframes letter-blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+    .fl-placeholder {
+      text-align: center;
+      max-width: 600px;
+      padding: 0 5vw;
     }
+
+    .fl-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 1.2rem;
+    }
+
+    .fl-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 400;
+      color: #1a1a1a;
+      margin-bottom: 0.75rem;
+    }
+
+    .fl-byline {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: #999;
+    }
+
+    /* ── 2FER GAME ── */
+    .twofer-section {
+      background: #090909;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #twoferRenderer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    #twoferRenderer canvas {
+      display: block;
+    }
+
+    #twoferCanvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .twofer-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 9, 9, 0.95);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.7s ease;
+    }
+
+    .twofer-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .twofer-poem-box {
+      max-width: 500px;
+      width: 100%;
+      padding: 0 5vw;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.8rem;
+    }
+
+    .twofer-poem-eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(245, 242, 236, 0.38);
+      margin: 0;
+    }
+
+    .twofer-poem-stanza {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.25rem, 2.8vw, 1.7rem);
+      font-style: italic;
+      line-height: 2;
+      color: rgba(245, 242, 236, 0.9);
+      transition: opacity 0.25s ease;
+    }
+
+    .twofer-poem-stanza.fading { opacity: 0; }
+
+    .twofer-poem-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .twofer-poem-progress {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      color: rgba(245, 242, 236, 0.22);
+    }
+
+    .twofer-poem-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      color: rgba(245, 242, 236, 0.45);
+      cursor: pointer;
+      padding: 6px 0;
+      transition: color 0.2s;
+    }
+
+    .twofer-poem-btn:hover { color: rgba(245, 242, 236, 0.9); }
 
     /* ── FEATURED REVIEW SECTION ── */
     .featured-review {
@@ -328,7 +458,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: var(--nav-h) 5vw 0;
+      padding: 0 5vw;
     }
 
     .fr-layout {
@@ -706,7 +836,7 @@
     <div class="poster-grid" id="posterGrid"></div>
     <div class="poster-ghost">
       <span class="poster-ghost-eyebrow">closeupfarout</span>
-      <span class="poster-ghost-text">Issue 01</span>
+      <span class="poster-ghost-text">Issue-01</span>
     </div>
   </section>
 
@@ -714,12 +844,59 @@
   <section class="article-section letter-section" id="letterSection">
     <div class="letter-scroll" id="letterScroll">
       <div class="letter-content-wrap">
-        <div id="letterContent"></div><span class="letter-cursor" id="letterCursor">|</span>
+        <div id="letterContent"></div>
       </div>
     </div>
   </section>
 
-  <!-- ── SECTION 2: FEATURED REVIEW ── -->
+  <!-- ── SECTION 2: FEATURED LITERATURE ── -->
+  <section class="article-section featured-literature">
+    <div class="fl-placeholder">
+      <p class="fl-eyebrow">Featured Literature &nbsp;·&nbsp; Issue 01</p>
+      <h1 class="fl-title">Article Title Placeholder</h1>
+      <p class="fl-byline">By Author Name &nbsp;·&nbsp; Summer 2026</p>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3: BOWLING (DUST SETTLED) ── -->
+  <section class="article-section">
+
+    <!-- ── BOWLING INTERACTIVE ── -->
+    <div class="bowling-game" id="bowlingGame">
+
+      <!-- Left lane: Koivuniemi -->
+      <div class="bg-lane-col" id="laneColK">
+        <div class="bg-lane-name">Koivuniemi</div>
+        <canvas class="bg-canvas" id="laneK" width="200" height="310"></canvas>
+        <div class="bg-ball-result" id="resultK"></div>
+      </div>
+
+      <!-- Center: text + navigation -->
+      <div class="bg-center">
+        <div class="bg-frame-badge" id="bgBadge">Frame 1 &nbsp;·&nbsp; Koivuniemi &nbsp;·&nbsp; Ball 1</div>
+        <p class="bg-text" id="bgText"></p>
+        <div class="bg-nav">
+          <button class="bg-btn" id="bgPrev">&#8592;</button>
+          <span class="bg-step-counter" id="bgCounter">1 / 30</span>
+          <button class="bg-btn" id="bgNext">&#8594;</button>
+        </div>
+      </div>
+
+      <!-- Right lane: Daugherty -->
+      <div class="bg-lane-col" id="laneColD">
+        <div class="bg-lane-name">Daugherty</div>
+        <canvas class="bg-canvas" id="laneD" width="200" height="310"></canvas>
+        <div class="bg-ball-result" id="resultD"></div>
+      </div>
+
+    </div>
+
+    <!-- Fixed scoreboard — shown only when bowling section is in view -->
+    <div class="bg-scoreboard" id="bgScoreboard"></div>
+
+  </section>
+
+  <!-- ── SECTION 4: FEATURED REVIEW ── -->
   <section class="article-section featured-review">
     <div class="fr-layout">
 
@@ -773,42 +950,20 @@
     </div>
   </section>
 
-  <!-- ── SECTION 2: BOWLING ── -->
-  <section class="article-section">
-
-    <!-- ── BOWLING INTERACTIVE ── -->
-    <div class="bowling-game" id="bowlingGame">
-
-      <!-- Left lane: Koivuniemi -->
-      <div class="bg-lane-col" id="laneColK">
-        <div class="bg-lane-name">Koivuniemi</div>
-        <canvas class="bg-canvas" id="laneK" width="200" height="310"></canvas>
-        <div class="bg-ball-result" id="resultK"></div>
-      </div>
-
-      <!-- Center: text + navigation -->
-      <div class="bg-center">
-        <div class="bg-frame-badge" id="bgBadge">Frame 1 &nbsp;·&nbsp; Koivuniemi &nbsp;·&nbsp; Ball 1</div>
-        <p class="bg-text" id="bgText"></p>
-        <div class="bg-nav">
-          <button class="bg-btn" id="bgPrev">&#8592;</button>
-          <span class="bg-step-counter" id="bgCounter">1 / 30</span>
-          <button class="bg-btn" id="bgNext">&#8594;</button>
+  <!-- ── SECTION 5: 2FER ── -->
+  <section class="article-section twofer-section" id="twoferSection">
+    <div id="twoferRenderer"></div>
+    <canvas id="twoferCanvas"></canvas>
+    <div class="twofer-overlay" id="twoferOverlay">
+      <div class="twofer-poem-box">
+        <p class="twofer-poem-eyebrow" id="twoferEyebrow"></p>
+        <div class="twofer-poem-stanza" id="twoferStanza"></div>
+        <div class="twofer-poem-footer">
+          <span class="twofer-poem-progress" id="twoferProgress"></span>
+          <button class="twofer-poem-btn" id="twoferBtn">continue →</button>
         </div>
       </div>
-
-      <!-- Right lane: Daugherty -->
-      <div class="bg-lane-col" id="laneColD">
-        <div class="bg-lane-name">Daugherty</div>
-        <canvas class="bg-canvas" id="laneD" width="200" height="310"></canvas>
-        <div class="bg-ball-result" id="resultD"></div>
-      </div>
-
     </div>
-
-    <!-- Fixed scoreboard — shown only when bowling section is in view -->
-    <div class="bg-scoreboard" id="bgScoreboard"></div>
-
   </section>
   </div>
 
@@ -1080,7 +1235,7 @@
     const COOLDOWN  = 800;
 
     function updateNav(idx) {
-      nav.classList.toggle('nav-hidden', idx === 0);
+      nav.classList.add('nav-hidden');
     }
 
     const fade = document.getElementById('page-fade');
@@ -1826,7 +1981,6 @@
 
     const scrollEl  = document.getElementById('letterScroll');
     const contentEl = document.getElementById('letterContent');
-    const cursorEl  = document.getElementById('letterCursor');
 
     let timer = null;
     let running = false;
@@ -1835,7 +1989,6 @@
       clearTimeout(timer);
       running = false;
       contentEl.innerHTML = '';
-      cursorEl.style.display = 'inline';
     }
 
     function startTyping() {
@@ -1848,7 +2001,6 @@
         if (!running) return;
 
         if (pIdx >= PARAS.length) {
-          cursorEl.style.display = 'none';
           return;
         }
 
@@ -1888,6 +2040,274 @@
       }
     }, { threshold: 0.5 }).observe(section);
   })();
+  </script>
+
+  <!-- ── 2FER GAME ── -->
+  <script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+  const section  = document.getElementById('twoferSection');
+  const canvas   = document.getElementById('twoferCanvas');
+  const ctx      = canvas.getContext('2d');
+  const overlay  = document.getElementById('twoferOverlay');
+  const eyebrowEl  = document.getElementById('twoferEyebrow');
+  const stanzaEl   = document.getElementById('twoferStanza');
+  const progressEl = document.getElementById('twoferProgress');
+  const btnEl      = document.getElementById('twoferBtn');
+
+  // ── Three.js renderer ───────────────────────────────────────
+  const renderer3d = new THREE.WebGLRenderer({ antialias: true });
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer3d.shadowMap.enabled = true;
+  renderer3d.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer3d.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer3d.toneMappingExposure = 1.2;
+  document.getElementById('twoferRenderer').appendChild(renderer3d.domElement);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 1000);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  keyLight.position.set(3, 6, 4);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.setScalar(2048);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  fillLight.position.set(-3, 3, 2);
+  scene.add(fillLight);
+
+  let modelLoaded = false;
+
+  new GLTFLoader().load('../models/2fer-set.glb', (gltf) => {
+    gltf.scene.traverse(n => {
+      if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; }
+    });
+    scene.add(gltf.scene);
+
+    const box    = new THREE.Box3().setFromObject(gltf.scene);
+    const size   = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+
+    camera.position.set(center.x, center.y + size.y * 0.1, center.z + maxDim * 0.85);
+    camera.lookAt(center);
+    modelLoaded = true;
+  });
+
+  // ── Poems (placeholder) ─────────────────────────────────────
+  const POEMS = [
+    {
+      label: 'Door I · 2fer · Issue 01',
+      stanzas: [
+        ['Placeholder line one,', 'placeholder line two,', 'placeholder line three.'],
+        ['Placeholder line four.', 'Placeholder line five,', 'placeholder line six.'],
+        ['— end —'],
+      ]
+    },
+    {
+      label: 'Door II · 2fer · Issue 01',
+      stanzas: [
+        ['Placeholder line one,', 'placeholder line two,', 'placeholder line three.'],
+        ['Placeholder line four.', 'Placeholder line five,', 'placeholder line six.'],
+        ['— end —'],
+      ]
+    },
+  ];
+
+  // ── Game state ──────────────────────────────────────────────
+  let W, H, GROUND;
+  let gameState = 'free';
+  let fig = { x: 0, dir: 1, walkPhase: 0 };
+  let doors = [];
+  let active = false;
+  let activeDoor = null;
+  let stanzaIdx = 0;
+  const keys = {};
+
+  // Trigger zone positions — adjust these to match door positions in model
+  const DOOR_FRAC = [0.18, 0.82];
+
+  function resize() {
+    W = section.clientWidth;
+    H = section.clientHeight;
+    canvas.width  = W;
+    canvas.height = H;
+    GROUND = Math.round(H * 0.60);
+    renderer3d.setSize(W, H);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+    if (doors.length) {
+      doors[0].x = Math.round(W * DOOR_FRAC[0]);
+      doors[1].x = Math.round(W * DOOR_FRAC[1]);
+    }
+  }
+
+  function init() {
+    resize();
+    fig.x = W / 2;
+    fig.dir = 1;
+    fig.walkPhase = 0;
+    doors = [
+      { x: Math.round(W * DOOR_FRAC[0]), poemIdx: 0, entered: false, glow: 0 },
+      { x: Math.round(W * DOOR_FRAC[1]), poemIdx: 1, entered: false, glow: 0 },
+    ];
+    gameState = 'free';
+    activeDoor = null;
+    overlay.classList.remove('visible');
+  }
+
+  function nearDoor() {
+    return doors.find(d => !d.entered && Math.abs(fig.x - d.x) < 90) || null;
+  }
+
+  function openDoor(door) {
+    door.entered = true;
+    activeDoor = door;
+    stanzaIdx = 0;
+    gameState = 'poem';
+    renderStanza(false);
+    overlay.classList.add('visible');
+  }
+
+  function renderStanza(animate) {
+    const poem = POEMS[activeDoor.poemIdx];
+    const update = () => {
+      eyebrowEl.textContent = poem.label;
+      stanzaEl.innerHTML = poem.stanzas[stanzaIdx].join('<br>');
+      progressEl.textContent = (stanzaIdx + 1) + ' · ' + poem.stanzas.length;
+      btnEl.textContent = stanzaIdx >= poem.stanzas.length - 1 ? 'close' : 'continue →';
+      stanzaEl.classList.remove('fading');
+    };
+    if (animate) {
+      stanzaEl.classList.add('fading');
+      setTimeout(update, 260);
+    } else {
+      update();
+    }
+  }
+
+  function advancePoem() {
+    if (gameState !== 'poem') return;
+    const poem = POEMS[activeDoor.poemIdx];
+    if (stanzaIdx < poem.stanzas.length - 1) {
+      stanzaIdx++;
+      renderStanza(true);
+    } else {
+      overlay.classList.remove('visible');
+      setTimeout(() => {
+        gameState = doors.every(d => d.entered) ? 'done' : 'free';
+      }, 720);
+    }
+  }
+
+  btnEl.addEventListener('click', advancePoem);
+  overlay.addEventListener('click', e => { if (e.target !== btnEl) advancePoem(); });
+
+  document.addEventListener('keydown', e => {
+    if (!active) return;
+    if (gameState === 'poem') {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') advancePoem();
+      return;
+    }
+    keys[e.key] = true;
+    if (gameState === 'free' && (e.key === 'Enter' || e.key === ' ')) {
+      const d = nearDoor();
+      if (d) openDoor(d);
+    }
+  });
+  document.addEventListener('keyup', e => { delete keys[e.key]; });
+
+  function update() {
+    if (gameState !== 'free') return;
+    const mv = keys['ArrowLeft'] ? -1 : keys['ArrowRight'] ? 1 : 0;
+    if (mv !== 0) {
+      fig.x = Math.max(20, Math.min(W - 20, fig.x + mv * 6));
+      fig.dir = mv;
+      fig.walkPhase += 0.22;
+    }
+    for (const d of doors) {
+      const near = !d.entered && Math.abs(fig.x - d.x) < 90;
+      const target = d.entered ? 0 : near ? 1 : 0;
+      d.glow += (target - d.glow) * 0.08;
+    }
+  }
+
+  function drawFigure() {
+    if (gameState === 'done') return;
+    const x = fig.x;
+    const walking = (keys['ArrowLeft'] || keys['ArrowRight']) && gameState === 'free';
+    const p = fig.walkPhase;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(245,242,236,0.9)';
+    ctx.fillStyle   = 'rgba(245,242,236,0.9)';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap   = 'round';
+    const headY    = GROUND - 80;
+    const shoulderY = GROUND - 62;
+    const hipY     = GROUND - 33;
+    ctx.beginPath(); ctx.arc(x, headY, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x, headY + 7); ctx.lineTo(x, hipY); ctx.stroke();
+    const arm = walking ? Math.sin(p) * 13 : 0;
+    ctx.beginPath();
+    ctx.moveTo(x, shoulderY); ctx.lineTo(x + arm, shoulderY + 18);
+    ctx.moveTo(x, shoulderY); ctx.lineTo(x - arm, shoulderY + 18);
+    ctx.stroke();
+    const leg = walking ? Math.sin(p) * 14 : 0;
+    ctx.beginPath();
+    ctx.moveTo(x, hipY); ctx.lineTo(x + leg, GROUND);
+    ctx.moveTo(x, hipY); ctx.lineTo(x - leg, GROUND);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // "[ enter ]" prompt above each unvisited door when nearby
+    for (const d of doors) {
+      if (!d.entered && d.glow > 0.4) {
+        ctx.fillStyle = 'rgba(245,242,236,' + Math.min(1, (d.glow - 0.4) * 1.7).toFixed(2) + ')';
+        ctx.font = '9px Space Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[ enter ]', d.x, GROUND - 110);
+      }
+    }
+
+    drawFigure();
+
+    ctx.font = '9px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    if (gameState === 'free') {
+      ctx.fillStyle = 'rgba(245,242,236,0.2)';
+      ctx.fillText('← → to walk  ·  enter to open', W / 2, H - 22);
+    }
+    if (gameState === 'done') {
+      ctx.fillStyle = 'rgba(245,242,236,0.3)';
+      ctx.fillText('both doors opened', W / 2, GROUND - 110);
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    if (modelLoaded) renderer3d.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+      active = true;
+      if (gameState === 'done') init();
+    } else {
+      active = false;
+    }
+  }, { threshold: 0.5 }).observe(section);
+
+  window.addEventListener('resize', init);
+  init();
+  loop();
   </script>
 
 </body>
