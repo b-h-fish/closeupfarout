@@ -416,11 +416,15 @@
       document.getElementById('center').scrollTop = 0;
     }
 
-    // Split a run of prose into sentences. Keeps trailing quotes/brackets
-    // attached to the sentence they close, and captures a final unterminated
-    // fragment. Good enough for literary + encyclopedic prose.
+    // Split a run of prose into sentences. A terminator (.!?…) plus any closing
+    // quotes/brackets only ends a sentence when what follows begins a new one —
+    // whitespace then a capital, digit, or opening quote — or the text ends. A
+    // closing quote followed by a lowercase word is a dialogue tag
+    // (“There is!” roared Grampa…) and stays part of the same sentence. A final
+    // unterminated fragment is captured by the trailing alternative.
     function splitSentences(text) {
-      const matches = text.match(/[^.!?…]+[.!?…]+[”’"')\]]*|\S[^.!?…]*$/g);
+      const re = /[\s\S]+?[.!?…]+["”'’)\]]*(?=\s+["“'‘(]*[A-Z0-9]|\s*$)|[\s\S]+$/g;
+      const matches = text.match(re);
       return matches ? matches.map(s => s.trim()).filter(s => s.length > 0) : [];
     }
 
