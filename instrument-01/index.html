@@ -246,7 +246,7 @@
     <span id="instrument-label">Instrument 01</span>
 
     <div id="mode-toggle">
-      <button class="mode-btn active" data-mode="paragraphs">Paragraphs</button>
+      <button class="mode-btn active" data-mode="sentences">Sentences</button>
       <span class="mode-sep">·</span>
       <button class="mode-btn" data-mode="words">Words</button>
     </div>
@@ -297,7 +297,7 @@
     const NUMERALS = ['I','II','III','IV'];
 
     let voices  = [];
-    let mode    = 'paragraphs';
+    let mode    = 'sentences';
     let loading = false;
 
     // ── Helpers ────────────────────────────────────────────────
@@ -339,8 +339,8 @@
         return;
       }
 
-      if (mode === 'paragraphs') {
-        out.innerHTML = renderParas(active);
+      if (mode === 'sentences') {
+        out.innerHTML = renderSentences(active);
       } else {
         out.innerHTML = renderWords(active);
       }
@@ -348,19 +348,35 @@
       document.getElementById('center').scrollTop = 0;
     }
 
-    function renderParas(active) {
-      const maxLen = Math.max(...active.map(v => v.paragraphs.length));
-      const parts  = [];
+    // Split a run of prose into sentences. Keeps trailing quotes/brackets
+    // attached to the sentence they close, and captures a final unterminated
+    // fragment. Good enough for literary + encyclopedic prose.
+    function splitSentences(text) {
+      const matches = text.match(/[^.!?…]+[.!?…]+[”’"')\]]*|\S[^.!?…]*$/g);
+      return matches ? matches.map(s => s.trim()).filter(s => s.length > 0) : [];
+    }
 
+    function renderSentences(active) {
+      // Flatten each voice to sentences, capped to keep the weave readable
+      const sentsByVoice = active.map(v =>
+        splitSentences(v.paragraphs.join(' ')).slice(0, 40)
+      );
+
+      const maxLen = Math.max(...sentsByVoice.map(s => s.length));
+      const spans  = [];
+
+      // Round-robin one sentence per voice, flowing as continuous prose
       for (let i = 0; i < maxLen; i++) {
-        for (const v of active) {
-          if (i < v.paragraphs.length) {
-            parts.push(`<p style="color:${v.color}">${esc(v.paragraphs[i])}</p>`);
+        for (let j = 0; j < active.length; j++) {
+          if (i < sentsByVoice[j].length) {
+            spans.push(
+              `<span style="color:${active[j].color}">${esc(sentsByVoice[j][i])}</span>`
+            );
           }
         }
       }
 
-      return parts.join('');
+      return `<p class="sentences-block">${spans.join(' ')}</p>`;
     }
 
     function renderWords(active) {
