@@ -23,9 +23,11 @@ const GUT_UA  = 'closeupfarout.com/instrument-01 (hello@closeupfarout.com)';
 // 0.5–2 MB, so this preserves full-text access for essentially every real book.
 const MAX_BYTES = 4000000;
 
-// How many contiguous paragraphs one voice contributes.
+// How many contiguous paragraphs one voice contributes. Wikipedia's window is
+// small so its random start engages on most articles (which are short), letting
+// a voice begin deep in the article rather than always at the lead section.
 const GUT_WINDOW  = 50;
-const WIKI_WINDOW = 30;
+const WIKI_WINDOW = 8;
 
 // ── Wikipedia ──────────────────────────────────────────────────────────────
 
