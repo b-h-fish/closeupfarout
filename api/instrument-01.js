@@ -134,7 +134,10 @@ function cleanGutenberg(raw) {
   return text
     .split(/\n{2,}/)
     .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(p => p.length >= 120 && !isFrontMatter(p));
+    .filter(p => p.length >= 120 && !isFrontMatter(p))
+    // Gutenberg marks italics with _underscores_ (e.g. _the Pequod_). Strip the
+    // markers after the front-matter filter (which relies on leading _ runs).
+    .map(p => p.replace(/_/g, '').replace(/\s+/g, ' ').trim());
 }
 
 // Gutenberg serves text at a few different URL shapes depending on the book's
