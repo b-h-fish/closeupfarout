@@ -151,7 +151,7 @@
       position: relative;
       padding: 1.8rem 1.5rem 1.8rem 1.8rem;
       overflow: hidden;
-      cursor: pointer;
+      cursor: default;
       transition: opacity 0.35s;
       user-select: none;
     }
@@ -218,23 +218,54 @@
       line-height: 1.6;
     }
 
-    .vhint {
+    /* ── Per-corner controls ─────────────────────────────────── */
+    .vp-controls {
       position: absolute;
-      bottom: 1.4rem;
+      left: 1.8rem;
+      right: 1.5rem;
+      bottom: 1.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
       font-family: 'Space Mono', monospace;
       font-size: 0.5rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--dim);
-      opacity: 0;
+      opacity: 0.45;
       transition: opacity 0.2s;
     }
+    .vp:hover .vp-controls { opacity: 1; }
 
-    .vp:hover .vhint { opacity: 1; }
-
-    .vp.muted {
-      opacity: 0.22;
+    .vp-controls button {
+      background: none;
+      border: none;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      color: var(--dim);
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s;
+      white-space: nowrap;
     }
+    .vp-controls button:hover { color: var(--fg); }
+    .vp-controls button:disabled { cursor: default; opacity: 0.5; }
+
+    /* Source toggle — active side lit in the voice color */
+    .vc-toggle .seg { color: var(--dim); transition: color 0.2s; }
+    .vc-toggle .seg.on { color: var(--vc, var(--fg)); }
+    .vc-toggle:hover .seg { color: var(--fg); }
+    .vc-toggle:hover .seg.on { color: var(--vc, var(--fg)); }
+    .vc-toggle .sep { color: var(--dim); margin: 0 0.15em; }
+
+    /* Muted state — dim the text, keep controls fully usable */
+    .vp.muted .vnum,
+    .vp.muted .vtitle,
+    .vp.muted .vmeta { opacity: 0.25; }
+    .vp.muted::before { opacity: 0.25; }
+
+    /* Corner loading state */
+    .vp.vloading .vtitle { color: var(--dim); font-style: italic; }
 
     /* ── Error / unavailable state ───────────────────────────── */
     .vtitle.unavail { color: var(--dim); font-style: normal; }
@@ -260,7 +291,13 @@
       <div class="vnum">I</div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
-      <div class="vhint">click to silence</div>
+      <div class="vp-controls">
+        <button class="vc-toggle" data-vi="0" title="Switch source">
+          <span class="seg src-wiki">Wiki</span><span class="sep">/</span><span class="seg src-guten">Guten</span>
+        </button>
+        <button class="vc-reroll" data-vi="0" title="New source">↻ New</button>
+        <button class="vc-mute" data-vi="0" title="Silence this voice">Silence</button>
+      </div>
     </div>
 
     <div id="center">
@@ -273,21 +310,39 @@
       <div class="vnum">II</div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
-      <div class="vhint">click to silence</div>
+      <div class="vp-controls">
+        <button class="vc-toggle" data-vi="1" title="Switch source">
+          <span class="seg src-wiki">Wiki</span><span class="sep">/</span><span class="seg src-guten">Guten</span>
+        </button>
+        <button class="vc-reroll" data-vi="1" title="New source">↻ New</button>
+        <button class="vc-mute" data-vi="1" title="Silence this voice">Silence</button>
+      </div>
     </div>
 
     <div class="vp" id="v2" data-vi="2">
       <div class="vnum">III</div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
-      <div class="vhint">click to silence</div>
+      <div class="vp-controls">
+        <button class="vc-toggle" data-vi="2" title="Switch source">
+          <span class="seg src-wiki">Wiki</span><span class="sep">/</span><span class="seg src-guten">Guten</span>
+        </button>
+        <button class="vc-reroll" data-vi="2" title="New source">↻ New</button>
+        <button class="vc-mute" data-vi="2" title="Silence this voice">Silence</button>
+      </div>
     </div>
 
     <div class="vp" id="v3" data-vi="3">
       <div class="vnum">IV</div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
-      <div class="vhint">click to silence</div>
+      <div class="vp-controls">
+        <button class="vc-toggle" data-vi="3" title="Switch source">
+          <span class="seg src-wiki">Wiki</span><span class="sep">/</span><span class="seg src-guten">Guten</span>
+        </button>
+        <button class="vc-reroll" data-vi="3" title="New source">↻ New</button>
+        <button class="vc-mute" data-vi="3" title="Silence this voice">Silence</button>
+      </div>
     </div>
 
   </main>
@@ -295,10 +350,15 @@
   <script>
   (() => {
     const NUMERALS = ['I','II','III','IV'];
+    const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
 
     let voices  = [];
     let mode    = 'sentences';
     let loading = false;
+
+    // Each corner's chosen repository — persists across "New Pairing".
+    let cornerSources = ['wikipedia', 'wikipedia', 'gutenberg', 'gutenberg'];
+    const cornerLoading = [false, false, false, false];
 
     // ── Helpers ────────────────────────────────────────────────
     function esc(str) {
@@ -311,9 +371,18 @@
 
     // ── Render corners ─────────────────────────────────────────
     function renderCorners() {
-      voices.forEach((v, i) => {
+      for (let i = 0; i < 4; i++) {
         const panel = document.getElementById('v' + i);
-        panel.style.setProperty('--vc', v.color);
+        const v = voices[i];
+
+        // Source toggle highlight always reflects the corner's chosen source.
+        const toggle = panel.querySelector('.vc-toggle');
+        toggle.querySelector('.src-wiki').classList.toggle('on', cornerSources[i] === 'wikipedia');
+        toggle.querySelector('.src-guten').classList.toggle('on', cornerSources[i] === 'gutenberg');
+
+        if (!v) continue;
+
+        panel.style.setProperty('--vc', v.color || VOICE_COLORS[i]);
         panel.classList.toggle('muted', !v.active);
 
         panel.querySelector('.vtitle').textContent = v.title || '—';
@@ -324,9 +393,8 @@
         if (v.source && v.source !== 'error') metaParts.push(v.source);
         panel.querySelector('.vmeta').textContent = metaParts.join(' · ');
 
-        const hint = panel.querySelector('.vhint');
-        hint.textContent = v.active ? 'click to silence' : 'click to restore';
-      });
+        panel.querySelector('.vc-mute').textContent = v.active ? 'Silence' : 'Restore';
+      }
     }
 
     // ── Render text ────────────────────────────────────────────
@@ -425,7 +493,7 @@
       }
 
       try {
-        const res  = await fetch('/api/instrument-01');
+        const res  = await fetch('/api/instrument-01?sources=' + cornerSources.join(','));
         if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
 
@@ -448,6 +516,45 @@
       }
     }
 
+    // ── Refresh a single corner ────────────────────────────────
+    // Fetches one new source of `sourceType` for corner `i`, preserving the
+    // corner's color and active state. Used by both the per-corner reroll
+    // (same source) and the source toggle (the other source).
+    async function refreshVoice(i, sourceType) {
+      if (cornerLoading[i] || loading) return;
+      cornerLoading[i] = true;
+      cornerSources[i] = sourceType;
+
+      const panel = document.getElementById('v' + i);
+      panel.classList.add('vloading');
+      panel.querySelector('.vtitle').textContent = 'gathering…';
+      panel.querySelector('.vmeta').textContent = '';
+      renderCorners(); // update toggle highlight immediately
+
+      try {
+        const res = await fetch('/api/instrument-01?single=' + sourceType);
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const { voice } = await res.json();
+
+        const prev = voices[i] || {};
+        voices[i] = {
+          ...voice,
+          color: prev.color || VOICE_COLORS[i],
+          active: prev.active !== false,
+          index: i,
+        };
+
+        renderCorners();
+        renderText();
+      } catch (err) {
+        console.error('Instrument 01 voice ' + i + ':', err);
+        renderCorners(); // restore previous voice display
+      } finally {
+        cornerLoading[i] = false;
+        panel.classList.remove('vloading');
+      }
+    }
+
     // ── Events ─────────────────────────────────────────────────
     document.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -462,9 +569,28 @@
 
     document.getElementById('new-btn').addEventListener('click', loadPairing);
 
-    document.querySelectorAll('.vp').forEach(panel => {
-      panel.addEventListener('click', () => {
-        const i = parseInt(panel.dataset.vi, 10);
+    // Source toggle — flip this corner between Wikipedia and Gutenberg,
+    // fetching a fresh source of the newly chosen repository.
+    document.querySelectorAll('.vc-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.vi, 10);
+        const next = cornerSources[i] === 'wikipedia' ? 'gutenberg' : 'wikipedia';
+        refreshVoice(i, next);
+      });
+    });
+
+    // Reroll — pull a new source from the corner's current repository.
+    document.querySelectorAll('.vc-reroll').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.vi, 10);
+        refreshVoice(i, cornerSources[i]);
+      });
+    });
+
+    // Silence / restore this voice.
+    document.querySelectorAll('.vc-mute').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.vi, 10);
         if (!voices[i]) return;
         voices[i].active = !voices[i].active;
         renderCorners();

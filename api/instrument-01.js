@@ -59,7 +59,8 @@ function randomWindow(arr, size) {
   return arr.slice(start, start + size);
 }
 
-async function getOneWikiVoice(color, attempt) {
+// Returns a single Wikipedia voice (no color — the caller assigns it by corner).
+async function fetchWikiVoice(attempt) {
   attempt = attempt || 0;
   if (attempt > 8) throw new Error('Wikipedia: could not find a non-stub article after 9 attempts');
 
@@ -81,23 +82,16 @@ async function getOneWikiVoice(color, attempt) {
 
   // Retry stubs
   if (!page || !page.extract || page.extract.length < 1500) {
-    return getOneWikiVoice(color, attempt + 1);
+    return fetchWikiVoice(attempt + 1);
   }
 
   const paragraphs = cleanWiki(page.extract);
-  if (paragraphs.length < 3) return getOneWikiVoice(color, attempt + 1);
+  if (paragraphs.length < 3) return fetchWikiVoice(attempt + 1);
 
   return {
-    title: page.title, author: null, source: 'Wikipedia', color,
+    title: page.title, author: null, source: 'Wikipedia',
     paragraphs: randomWindow(paragraphs, WIKI_WINDOW),
   };
-}
-
-async function getWikiVoices() {
-  return Promise.all([
-    getOneWikiVoice(VOICE_COLORS[0]),
-    getOneWikiVoice(VOICE_COLORS[1]),
-  ]);
 }
 
 // ── Project Gutenberg ──────────────────────────────────────────────────────
@@ -174,9 +168,10 @@ function pickRandomBook(usedIds) {
 }
 
 // Draws a random book, fetches its full text, and returns a contiguous passage
-// from anywhere within it. Retries with a different book if a draw fails (404,
-// too short, or unclean) — expected occasionally across a 20k-title pool.
-async function getGutenbergVoice(color, usedIds, attempt) {
+// from anywhere within it (no color — the caller assigns it by corner). Retries
+// with a different book if a draw fails (404, too short, or unclean) — expected
+// occasionally across a 20k-title pool.
+async function fetchGutenbergVoice(usedIds, attempt) {
   attempt = attempt || 0;
   if (attempt > 6) throw new Error('Gutenberg: no usable book after ' + attempt + ' attempts');
 
@@ -184,18 +179,28 @@ async function getGutenbergVoice(color, usedIds, attempt) {
   usedIds.add(book.id); // reserve immediately so retries/other voice skip it
 
   const raw = await fetchGutenbergText(book.id);
-  if (!raw) return getGutenbergVoice(color, usedIds, attempt + 1);
+  if (!raw) return fetchGutenbergVoice(usedIds, attempt + 1);
 
   const all = cleanGutenberg(raw);
-  if (all.length < 12) return getGutenbergVoice(color, usedIds, attempt + 1);
+  if (all.length < 12) return fetchGutenbergVoice(usedIds, attempt + 1);
 
   return {
-    title: book.title, author: book.author, source: 'Project Gutenberg', color,
+    title: book.title, author: book.author, source: 'Project Gutenberg',
     paragraphs: randomWindow(all, GUT_WINDOW),
   };
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────
+
+const DEFAULT_SOURCES = ['wikipedia', 'wikipedia', 'gutenberg', 'gutenberg'];
+
+function normSource(s) {
+  return String(s || '').toLowerCase() === 'gutenberg' ? 'gutenberg' : 'wikipedia';
+}
+
+function fallbackVoice(color) {
+  return { title: 'Voice unavailable', author: null, source: 'error', color, paragraphs: [] };
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -204,25 +209,38 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const q = req.query || {};
+
   try {
-    const usedIds = new Set();
+    // ── Single-voice mode: refresh or toggle one corner ──────────────────
+    if (q.single) {
+      const src = normSource(q.single);
+      const voice = src === 'gutenberg'
+        ? await fetchGutenbergVoice(new Set())
+        : await fetchWikiVoice();
+      // No color — the frontend keeps the corner's existing color.
+      return res.status(200).json({ voice });
+    }
 
-    const [wikiResult, gut1, gut2] = await Promise.allSettled([
-      getWikiVoices(),
-      getGutenbergVoice(VOICE_COLORS[2], usedIds),
-      getGutenbergVoice(VOICE_COLORS[3], usedIds),
-    ]);
+    // ── Full pairing: one voice per corner, source list from ?sources= ───
+    let sources = DEFAULT_SOURCES;
+    if (typeof q.sources === 'string' && q.sources.trim()) {
+      const parsed = q.sources.split(',').map(normSource);
+      if (parsed.length === 4) sources = parsed;
+    }
 
-    const fallback = function(i) {
-      return { title: 'Voice unavailable', author: null, source: 'error', color: VOICE_COLORS[i], paragraphs: [] };
-    };
+    const usedIds = new Set(); // shared so two Gutenberg corners never collide
 
-    const voices = wikiResult.status === 'fulfilled'
-      ? wikiResult.value
-      : [fallback(0), fallback(1)];
+    const settled = await Promise.allSettled(
+      sources.map(src =>
+        src === 'gutenberg' ? fetchGutenbergVoice(usedIds) : fetchWikiVoice()
+      )
+    );
 
-    voices.push(gut1.status === 'fulfilled' ? gut1.value : fallback(2));
-    voices.push(gut2.status === 'fulfilled' ? gut2.value : fallback(3));
+    const voices = settled.map((s, i) => {
+      const color = VOICE_COLORS[i];
+      return s.status === 'fulfilled' ? { ...s.value, color } : fallbackVoice(color);
+    });
 
     res.status(200).json({ voices });
   } catch (err) {
