@@ -416,16 +416,35 @@
       document.getElementById('center').scrollTop = 0;
     }
 
+    // Abbreviations/honorifics that end in a period without ending a sentence.
+    // Their periods are swapped for a placeholder before splitting, then
+    // restored — so “Mr. Smith”, “Gen. Lee”, “Rev. Fr. Brown” stay whole.
+    const ABBR_PERIOD = '\uE000';
+    const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl)\./g;
+
+    function protectAbbrev(text) {
+      return text
+        // Dotted initialisms: U.S., U.K., e.g., i.e., a.m., U.S.A.
+        .replace(/\b(?:[A-Za-z]\.){2,}/g, m => m.replace(/\./g, ABBR_PERIOD))
+        // Spaced name-initial runs: J. R. R.
+        .replace(/\b[A-Za-z]\.(?:\s+[A-Za-z]\.)+/g, m => m.replace(/\./g, ABBR_PERIOD))
+        // Honorifics / titles / common abbreviations from the list
+        .replace(ABBR_WORDS, (m, w) => w + ABBR_PERIOD);
+    }
+
     // Split a run of prose into sentences. A terminator (.!?…) plus any closing
     // quotes/brackets only ends a sentence when what follows begins a new one —
     // whitespace then a capital, digit, or opening quote — or the text ends. A
     // closing quote followed by a lowercase word is a dialogue tag
-    // (“There is!” roared Grampa…) and stays part of the same sentence. A final
-    // unterminated fragment is captured by the trailing alternative.
+    // (“There is!” roared Grampa…) and stays part of the same sentence.
+    // Abbreviation periods are protected first so “Mr. Smith” never splits.
     function splitSentences(text) {
       const re = /[\s\S]+?[.!?…]+["”'’)\]]*(?=\s+["“'‘(]*[A-Z0-9]|\s*$)|[\s\S]+$/g;
-      const matches = text.match(re);
-      return matches ? matches.map(s => s.trim()).filter(s => s.length > 0) : [];
+      const matches = protectAbbrev(text).match(re);
+      if (!matches) return [];
+      return matches
+        .map(s => s.split(ABBR_PERIOD).join('.').trim())
+        .filter(s => s.length > 0);
     }
 
     function renderSentences(active) {
