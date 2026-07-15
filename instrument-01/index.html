@@ -226,12 +226,12 @@
       bottom: 1.35rem;
       display: flex;
       align-items: center;
-      gap: 0.9rem;
+      gap: 1rem;
       font-family: 'Space Mono', monospace;
-      font-size: 0.5rem;
-      letter-spacing: 0.1em;
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      opacity: 0.45;
+      opacity: 0.9;
       transition: opacity 0.2s;
     }
     .vp:hover .vp-controls { opacity: 1; }
@@ -242,7 +242,7 @@
       font: inherit;
       letter-spacing: inherit;
       text-transform: inherit;
-      color: var(--dim);
+      color: rgba(245,242,236,0.62);
       cursor: pointer;
       padding: 0;
       transition: color 0.2s;
@@ -252,11 +252,11 @@
     .vp-controls button:disabled { cursor: default; opacity: 0.5; }
 
     /* Source toggle — active side lit in the voice color */
-    .vc-toggle .seg { color: var(--dim); transition: color 0.2s; }
+    .vc-toggle .seg { color: rgba(245,242,236,0.45); transition: color 0.2s; }
     .vc-toggle .seg.on { color: var(--vc, var(--fg)); }
     .vc-toggle:hover .seg { color: var(--fg); }
     .vc-toggle:hover .seg.on { color: var(--vc, var(--fg)); }
-    .vc-toggle .sep { color: var(--dim); margin: 0 0.15em; }
+    .vc-toggle .sep { color: rgba(245,242,236,0.35); margin: 0 0.15em; }
 
     /* Muted state — dim the text, keep controls fully usable */
     .vp.muted .vnum,
