@@ -52,13 +52,13 @@
       user-select: none;
     }
 
-    #mode-toggle {
+    #mode-toggle, #color-toggle {
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
 
-    .mode-btn {
+    .mode-btn, .color-btn {
       background: none;
       border: none;
       font-family: 'EB Garamond', serif;
@@ -71,8 +71,8 @@
       padding: 0.15rem 0.4rem;
       transition: color 0.2s;
     }
-    .mode-btn:hover { color: var(--fg); }
-    .mode-btn.active {
+    .mode-btn:hover, .color-btn:hover { color: var(--fg); }
+    .mode-btn.active, .color-btn.active {
       color: var(--fg);
       text-decoration: underline;
       text-underline-offset: 3px;
@@ -84,22 +84,6 @@
       font-size: 0.74rem;
       user-select: none;
     }
-
-    #new-btn {
-      background: none;
-      border: none;
-      font-family: 'EB Garamond', serif;
-      font-size: 0.74rem;
-      font-weight: 500;
-      letter-spacing: 0.11em;
-      text-transform: uppercase;
-      color: var(--dim);
-      cursor: pointer;
-      transition: color 0.2s;
-      padding: 0.15rem 0;
-    }
-    #new-btn:hover { color: var(--fg); }
-    #new-btn:disabled { opacity: 0.3; cursor: default; }
 
     /* ── Stage ───────────────────────────────────────────────── */
     #stage {
@@ -286,7 +270,11 @@
       <button class="mode-btn" data-mode="words">Words</button>
     </div>
 
-    <button id="new-btn">New Voices</button>
+    <div id="color-toggle">
+      <button class="color-btn active" data-color="voice">Color</button>
+      <span class="mode-sep">·</span>
+      <button class="color-btn" data-color="white">White</button>
+    </div>
   </header>
 
   <main id="stage">
@@ -356,12 +344,13 @@
     const NUMERALS = ['I','II','III','IV'];
     const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
 
-    let voices  = [];
-    let mode    = 'sentences';
-    let loading = false;
+    let voices    = [];
+    let mode      = 'sentences';
+    let textColor = 'voice';   // 'voice' = per-voice colors, 'white' = uniform
+    let loading   = false;
 
     // Each corner's chosen repository — defaults to Gutenberg on load, then
-    // persists across "New Pairing" and corner refresh once the user changes it.
+    // persists across corner refresh once the user changes it.
     let cornerSources = ['gutenberg', 'gutenberg', 'gutenberg', 'gutenberg'];
     const cornerLoading = [false, false, false, false];
 
@@ -451,6 +440,12 @@
         .filter(s => s.length > 0);
     }
 
+    // Center-text color for a voice — its own hue, or uniform white when the
+    // Color/White toggle is set to white.
+    function spanColor(v) {
+      return textColor === 'white' ? 'var(--fg)' : v.color;
+    }
+
     function renderSentences(active) {
       // Flatten each voice to sentences, capped to keep the weave readable
       const sentsByVoice = active.map(v =>
@@ -465,7 +460,7 @@
         for (let j = 0; j < active.length; j++) {
           if (i < sentsByVoice[j].length) {
             spans.push(
-              `<span style="color:${active[j].color}">${esc(sentsByVoice[j][i])}</span>`
+              `<span style="color:${spanColor(active[j])}">${esc(sentsByVoice[j][i])}</span>`
             );
           }
         }
@@ -489,7 +484,7 @@
         for (let j = 0; j < active.length; j++) {
           if (i < wordsByVoice[j].length) {
             spans.push(
-              `<span style="color:${active[j].color}">${esc(wordsByVoice[j][i])}</span>`
+              `<span style="color:${spanColor(active[j])}">${esc(wordsByVoice[j][i])}</span>`
             );
           }
         }
@@ -502,10 +497,6 @@
     async function loadPairing() {
       if (loading) return;
       loading = true;
-
-      const newBtn = document.getElementById('new-btn');
-      newBtn.disabled = true;
-      newBtn.textContent = 'Loading…';
 
       document.getElementById('text-out').innerHTML =
         '<p class="loading-msg">gathering voices</p>';
@@ -538,8 +529,6 @@
         console.error('Instrument 01:', err);
       } finally {
         loading = false;
-        newBtn.disabled = false;
-        newBtn.textContent = 'New Voices';
       }
     }
 
@@ -594,7 +583,17 @@
       });
     });
 
-    document.getElementById('new-btn').addEventListener('click', loadPairing);
+    // Center-text color toggle — per-voice colors vs. uniform white.
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (textColor === btn.dataset.color) return;
+        textColor = btn.dataset.color;
+        document.querySelectorAll('.color-btn').forEach(b =>
+          b.classList.toggle('active', b.dataset.color === textColor)
+        );
+        renderText();
+      });
+    });
 
     // Source toggle — flip this corner between Wikipedia and Gutenberg,
     // fetching a fresh source of the newly chosen repository.
