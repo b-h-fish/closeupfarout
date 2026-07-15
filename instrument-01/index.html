@@ -388,10 +388,9 @@
         panel.querySelector('.vtitle').textContent = v.title || '—';
         panel.querySelector('.vtitle').classList.toggle('unavail', v.source === 'error');
 
-        const metaParts = [];
-        if (v.author) metaParts.push(v.author);
-        if (v.source && v.source !== 'error') metaParts.push(v.source);
-        panel.querySelector('.vmeta').textContent = metaParts.join(' · ');
+        // Source is already shown by the wiki/guten toggle, so the meta line
+        // carries only the author (Gutenberg books); Wikipedia articles have none.
+        panel.querySelector('.vmeta').textContent = v.author || '';
 
         panel.querySelector('.vc-mute').textContent = v.active ? 'Silence' : 'Restore';
       }
