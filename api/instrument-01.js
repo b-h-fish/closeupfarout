@@ -142,13 +142,14 @@ function cleanGutenberg(raw) {
     .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(p => p.length >= 120 && !isFrontMatter(p))
     .map(p => {
-      // Gutenberg plain-text conventions: _underscores_ mark italics, and runs
-      // of two-or-more hyphens are an ASCII em dash (night--and day). Convert
-      // those, and strip footnote/reference markers [1] and editorial [sic]
-      // (bracketed words like [Slavery] are kept as texture). Single hyphens
-      // (well-known) are left alone.
+      // Gutenberg plain-text conventions: _underscores_ mark italics, =equals=
+      // mark bold, and runs of two-or-more hyphens are an ASCII em dash
+      // (night--and day). Strip the emphasis markers, convert the dashes, and
+      // remove footnote/reference markers [1] and editorial [sic] (bracketed
+      // words like [Slavery] are kept as texture). Single hyphens (well-known)
+      // are left alone.
       p = p
-        .replace(/_/g, '')
+        .replace(/[_=]/g, '')
         .replace(/-{2,}/g, '—')
         .replace(/\[\d+\]/g, '')
         .replace(/\[sic\.?\]/gi, '')
