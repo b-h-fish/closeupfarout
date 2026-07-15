@@ -135,9 +135,14 @@ function cleanGutenberg(raw) {
     .split(/\n{2,}/)
     .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(p => p.length >= 120 && !isFrontMatter(p))
-    // Gutenberg marks italics with _underscores_ (e.g. _the Pequod_). Strip the
-    // markers after the front-matter filter (which relies on leading _ runs).
-    .map(p => p.replace(/_/g, '').replace(/\s+/g, ' ').trim());
+    // Gutenberg plain-text conventions: _underscores_ mark italics, and runs of
+    // two-or-more hyphens are an ASCII em dash (night--and day). Strip the italic
+    // markers and convert the dashes; single hyphens (well-known) are left alone.
+    .map(p => p
+      .replace(/_/g, '')
+      .replace(/-{2,}/g, '—')
+      .replace(/\s+/g, ' ')
+      .trim());
 }
 
 // Gutenberg serves text at a few different URL shapes depending on the book's
