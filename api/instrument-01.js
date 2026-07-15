@@ -113,6 +113,12 @@ function isFrontMatter(p) {
   return false;
 }
 
+// Hard citation signals used to identify (and trim) an attribution/reference
+// tail. Deliberately conservative — bare years and "No." are excluded as too
+// ambiguous, so we only trim when a page/volume/edition/op.cit./ibid. marker
+// is present.
+const CITE_SIGNAL = /\bpp?\.\s*\d|\bvols?\.|\bop\.\s*cit|\bibid\b|\bedition\b/i;
+
 function cleanGutenberg(raw) {
   // Normalize Windows CRLF — Gutenberg files always use CRLF; without this
   // the paragraph splitter (/\n{2,}/) never fires.
@@ -135,14 +141,27 @@ function cleanGutenberg(raw) {
     .split(/\n{2,}/)
     .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(p => p.length >= 120 && !isFrontMatter(p))
-    // Gutenberg plain-text conventions: _underscores_ mark italics, and runs of
-    // two-or-more hyphens are an ASCII em dash (night--and day). Strip the italic
-    // markers and convert the dashes; single hyphens (well-known) are left alone.
-    .map(p => p
-      .replace(/_/g, '')
-      .replace(/-{2,}/g, '—')
-      .replace(/\s+/g, ' ')
-      .trim());
+    .map(p => {
+      // Gutenberg plain-text conventions: _underscores_ mark italics, and runs
+      // of two-or-more hyphens are an ASCII em dash (night--and day). Convert
+      // those, and strip footnote/reference markers [1] and editorial [sic]
+      // (bracketed words like [Slavery] are kept as texture). Single hyphens
+      // (well-known) are left alone.
+      p = p
+        .replace(/_/g, '')
+        .replace(/-{2,}/g, '—')
+        .replace(/\[\d+\]/g, '')
+        .replace(/\[sic\.?\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      // Conservative attribution trim: drop a trailing em-dash citation tail,
+      // but only when the em dash follows a terminator/closing-quote AND the
+      // tail carries a hard citation signal — so narrative asides survive.
+      p = p.replace(/([.!?…"”'’])\s*—\s*[^—]*$/, (m, punct) =>
+        CITE_SIGNAL.test(m) ? punct : m
+      );
+      return p.trim();
+    });
 }
 
 // Gutenberg serves text at a few different URL shapes depending on the book's
