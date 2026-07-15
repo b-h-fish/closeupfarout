@@ -192,7 +192,7 @@ async function fetchGutenbergVoice(usedIds, attempt) {
 
 // ── Handler ────────────────────────────────────────────────────────────────
 
-const DEFAULT_SOURCES = ['wikipedia', 'wikipedia', 'gutenberg', 'gutenberg'];
+const DEFAULT_SOURCES = ['gutenberg', 'gutenberg', 'gutenberg', 'gutenberg'];
 
 function normSource(s) {
   return String(s || '').toLowerCase() === 'gutenberg' ? 'gutenberg' : 'wikipedia';

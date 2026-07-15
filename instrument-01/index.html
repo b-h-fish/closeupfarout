@@ -356,8 +356,9 @@
     let mode    = 'sentences';
     let loading = false;
 
-    // Each corner's chosen repository — persists across "New Pairing".
-    let cornerSources = ['wikipedia', 'wikipedia', 'gutenberg', 'gutenberg'];
+    // Each corner's chosen repository — defaults to Gutenberg on load, then
+    // persists across "New Pairing" and corner refresh once the user changes it.
+    let cornerSources = ['gutenberg', 'gutenberg', 'gutenberg', 'gutenberg'];
     const cornerLoading = [false, false, false, false];
 
     // ── Helpers ────────────────────────────────────────────────
