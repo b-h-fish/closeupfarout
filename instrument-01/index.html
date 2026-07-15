@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Instrument 01 — Close Up Far Out</title>
+  <link rel="icon" href="../favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:     #090909;
+      --fg:     #f5f2ec;
+      --dim:    rgba(245,242,236,0.38);
+      --rule:   rgba(245,242,236,0.07);
+      --bar-h:  2.5rem;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Cormorant Garamond', serif;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────────── */
+    #top-bar {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.4rem;
+      border-bottom: 1px solid var(--rule);
+      background: var(--bg);
+      z-index: 50;
+    }
+
+    #instrument-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--dim);
+      user-select: none;
+    }
+
+    #mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mode-btn {
+      background: none;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--dim);
+      cursor: pointer;
+      padding: 0.15rem 0.4rem;
+      transition: color 0.2s;
+    }
+    .mode-btn:hover { color: var(--fg); }
+    .mode-btn.active {
+      color: var(--fg);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .mode-sep {
+      color: var(--dim);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      user-select: none;
+    }
+
+    #new-btn {
+      background: none;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--dim);
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 0.15rem 0;
+    }
+    #new-btn:hover { color: var(--fg); }
+    #new-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── Stage ───────────────────────────────────────────────── */
+    #stage {
+      position: fixed;
+      inset: var(--bar-h) 0 0 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      grid-template-areas:
+        "v0 center v1"
+        "v2 center v3";
+    }
+
+    /* ── Center column ───────────────────────────────────────── */
+    #center {
+      grid-area: center;
+      overflow-y: scroll;
+      border-left: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245,242,236,0.12) transparent;
+    }
+
+    #text-out {
+      padding: 2.4rem 1.8rem 4rem;
+      font-size: clamp(0.9rem, 1.25vw, 1.1rem);
+      line-height: 1.88;
+    }
+
+    #text-out p {
+      margin: 0 0 1.5em;
+    }
+
+    #text-out .words-block {
+      line-height: 2;
+    }
+
+    .loading-msg {
+      color: var(--dim);
+      font-style: italic;
+      font-size: 0.95rem;
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0.25; }
+      50%       { opacity: 0.7; }
+    }
+    .loading-msg { animation: fadeInOut 2s ease-in-out infinite; }
+
+    /* ── Voice panels ────────────────────────────────────────── */
+    .vp {
+      position: relative;
+      padding: 1.8rem 1.5rem 1.8rem 1.8rem;
+      overflow: hidden;
+      cursor: pointer;
+      transition: opacity 0.35s;
+      user-select: none;
+    }
+
+    /* Colored rule on the inner edge (touching center) */
+    #v0::after, #v2::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; right: 0;
+      width: 1px;
+      background: var(--vc, rgba(245,242,236,0.07));
+      opacity: 0.45;
+    }
+    #v1::after, #v3::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; left: 0;
+      width: 1px;
+      background: var(--vc, rgba(245,242,236,0.07));
+      opacity: 0.45;
+    }
+
+    /* Horizontal divider between top and bottom rows */
+    #v0, #v1 { border-bottom: 1px solid var(--rule); }
+
+    /* Voice accent mark */
+    .vp::before {
+      content: '';
+      position: absolute;
+      top: 1.8rem;
+      bottom: 1.8rem;
+      left: 0;
+      width: 2px;
+      background: var(--vc, transparent);
+    }
+    #v1::before, #v3::before {
+      left: auto;
+      right: 0;
+    }
+
+    .vnum {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--vc, var(--dim));
+      margin-bottom: 0.9rem;
+      font-weight: 300;
+    }
+
+    .vtitle {
+      font-size: clamp(0.82rem, 1.15vw, 1rem);
+      font-style: italic;
+      line-height: 1.3;
+      color: var(--fg);
+      margin-bottom: 0.5rem;
+    }
+
+    .vmeta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.53rem;
+      letter-spacing: 0.06em;
+      color: var(--dim);
+      line-height: 1.6;
+    }
+
+    .vhint {
+      position: absolute;
+      bottom: 1.4rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .vp:hover .vhint { opacity: 1; }
+
+    .vp.muted {
+      opacity: 0.22;
+    }
+
+    /* ── Error / unavailable state ───────────────────────────── */
+    .vtitle.unavail { color: var(--dim); font-style: normal; }
+  </style>
+</head>
+<body>
+
+  <header id="top-bar">
+    <span id="instrument-label">Instrument 01</span>
+
+    <div id="mode-toggle">
+      <button class="mode-btn active" data-mode="paragraphs">Paragraphs</button>
+      <span class="mode-sep">·</span>
+      <button class="mode-btn" data-mode="words">Words</button>
+    </div>
+
+    <button id="new-btn">New Pairing</button>
+  </header>
+
+  <main id="stage">
+
+    <div class="vp" id="v0" data-vi="0">
+      <div class="vnum">I</div>
+      <div class="vtitle">—</div>
+      <div class="vmeta"></div>
+      <div class="vhint">click to silence</div>
+    </div>
+
+    <div id="center">
+      <div id="text-out">
+        <p class="loading-msg">gathering voices</p>
+      </div>
+    </div>
+
+    <div class="vp" id="v1" data-vi="1">
+      <div class="vnum">II</div>
+      <div class="vtitle">—</div>
+      <div class="vmeta"></div>
+      <div class="vhint">click to silence</div>
+    </div>
+
+    <div class="vp" id="v2" data-vi="2">
+      <div class="vnum">III</div>
+      <div class="vtitle">—</div>
+      <div class="vmeta"></div>
+      <div class="vhint">click to silence</div>
+    </div>
+
+    <div class="vp" id="v3" data-vi="3">
+      <div class="vnum">IV</div>
+      <div class="vtitle">—</div>
+      <div class="vmeta"></div>
+      <div class="vhint">click to silence</div>
+    </div>
+
+  </main>
+
+  <script>
+  (() => {
+    const NUMERALS = ['I','II','III','IV'];
+
+    let voices  = [];
+    let mode    = 'paragraphs';
+    let loading = false;
+
+    // ── Helpers ────────────────────────────────────────────────
+    function esc(str) {
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+    }
+
+    // ── Render corners ─────────────────────────────────────────
+    function renderCorners() {
+      voices.forEach((v, i) => {
+        const panel = document.getElementById('v' + i);
+        panel.style.setProperty('--vc', v.color);
+        panel.classList.toggle('muted', !v.active);
+
+        panel.querySelector('.vtitle').textContent = v.title || '—';
+        panel.querySelector('.vtitle').classList.toggle('unavail', v.source === 'error');
+
+        const metaParts = [];
+        if (v.author) metaParts.push(v.author);
+        if (v.source && v.source !== 'error') metaParts.push(v.source);
+        panel.querySelector('.vmeta').textContent = metaParts.join(' · ');
+
+        const hint = panel.querySelector('.vhint');
+        hint.textContent = v.active ? 'click to silence' : 'click to restore';
+      });
+    }
+
+    // ── Render text ────────────────────────────────────────────
+    function renderText() {
+      const out   = document.getElementById('text-out');
+      const active = voices.filter(v => v.active && v.paragraphs.length > 0);
+
+      if (!active.length) {
+        out.innerHTML = '<p class="loading-msg" style="animation:none;opacity:0.3">—</p>';
+        return;
+      }
+
+      if (mode === 'paragraphs') {
+        out.innerHTML = renderParas(active);
+      } else {
+        out.innerHTML = renderWords(active);
+      }
+
+      document.getElementById('center').scrollTop = 0;
+    }
+
+    function renderParas(active) {
+      const maxLen = Math.max(...active.map(v => v.paragraphs.length));
+      const parts  = [];
+
+      for (let i = 0; i < maxLen; i++) {
+        for (const v of active) {
+          if (i < v.paragraphs.length) {
+            parts.push(`<p style="color:${v.color}">${esc(v.paragraphs[i])}</p>`);
+          }
+        }
+      }
+
+      return parts.join('');
+    }
+
+    function renderWords(active) {
+      // Flatten each voice to an array of words, capped at 250 per voice
+      const wordsByVoice = active.map(v =>
+        v.paragraphs
+          .flatMap(p => p.split(/\s+/).filter(w => w))
+          .slice(0, 250)
+      );
+
+      const maxLen = Math.max(...wordsByVoice.map(w => w.length));
+      const spans  = [];
+
+      for (let i = 0; i < maxLen; i++) {
+        for (let j = 0; j < active.length; j++) {
+          if (i < wordsByVoice[j].length) {
+            spans.push(
+              `<span style="color:${active[j].color}">${esc(wordsByVoice[j][i])}</span>`
+            );
+          }
+        }
+      }
+
+      return `<p class="words-block">${spans.join(' ')}</p>`;
+    }
+
+    // ── Fetch pairing ──────────────────────────────────────────
+    async function loadPairing() {
+      if (loading) return;
+      loading = true;
+
+      const newBtn = document.getElementById('new-btn');
+      newBtn.disabled = true;
+      newBtn.textContent = 'Loading…';
+
+      document.getElementById('text-out').innerHTML =
+        '<p class="loading-msg">gathering voices</p>';
+
+      // Reset corners to placeholder while loading
+      for (let i = 0; i < 4; i++) {
+        const p = document.getElementById('v' + i);
+        p.style.removeProperty('--vc');
+        p.classList.remove('muted');
+        p.querySelector('.vtitle').textContent = '—';
+        p.querySelector('.vmeta').textContent = '';
+      }
+
+      try {
+        const res  = await fetch('/api/instrument-01');
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+
+        voices = data.voices.map((v, i) => ({
+          ...v,
+          active: true,
+          index: i,
+        }));
+
+        renderCorners();
+        renderText();
+      } catch (err) {
+        document.getElementById('text-out').innerHTML =
+          `<p class="loading-msg" style="animation:none">Could not load voices. Please try again.</p>`;
+        console.error('Instrument 01:', err);
+      } finally {
+        loading = false;
+        newBtn.disabled = false;
+        newBtn.textContent = 'New Pairing';
+      }
+    }
+
+    // ── Events ─────────────────────────────────────────────────
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (mode === btn.dataset.mode) return;
+        mode = btn.dataset.mode;
+        document.querySelectorAll('.mode-btn').forEach(b =>
+          b.classList.toggle('active', b.dataset.mode === mode)
+        );
+        renderText();
+      });
+    });
+
+    document.getElementById('new-btn').addEventListener('click', loadPairing);
+
+    document.querySelectorAll('.vp').forEach(panel => {
+      panel.addEventListener('click', () => {
+        const i = parseInt(panel.dataset.vi, 10);
+        if (!voices[i]) return;
+        voices[i].active = !voices[i].active;
+        renderCorners();
+        renderText();
+      });
+    });
+
+    // ── Init ───────────────────────────────────────────────────
+    loadPairing();
+  })();
+  </script>
+
+</body>
+</html>
