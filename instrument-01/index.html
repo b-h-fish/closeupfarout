@@ -250,6 +250,119 @@
 
     /* ── Error / unavailable state ───────────────────────────── */
     .vtitle.unavail { color: var(--dim); font-style: normal; }
+
+    /* ── Search modal ────────────────────────────────────────── */
+    #search-modal[hidden] { display: none; }
+    #search-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(2px);
+    }
+    .sm-panel {
+      position: relative;
+      width: min(90vw, 460px);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      background: #111010;
+      border: 1px solid rgba(245,242,236,0.14);
+      padding: 1.4rem 1.4rem 1.1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .sm-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .sm-title {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    #sm-voice { color: var(--fg); }
+    #sm-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--dim); font-size: 1rem; line-height: 1;
+      transition: color 0.2s;
+    }
+    #sm-close:hover { color: var(--fg); }
+    #sm-input {
+      width: 100%;
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(245,242,236,0.2);
+      color: var(--fg);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.25rem;
+      padding: 0.4rem 0.1rem;
+      outline: none;
+    }
+    #sm-input:focus { border-bottom-color: rgba(245,242,236,0.5); }
+    #sm-input::placeholder { color: rgba(245,242,236,0.3); font-style: italic; }
+    #sm-results {
+      margin-top: 0.6rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .sm-result {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(245,242,236,0.06);
+      cursor: pointer;
+      padding: 0.55rem 0.2rem;
+      transition: background 0.15s;
+    }
+    .sm-result:hover { background: rgba(245,242,236,0.05); }
+    .sm-r-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.02rem;
+      color: var(--fg);
+      line-height: 1.25;
+    }
+    .sm-r-author {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.78rem;
+      color: var(--dim);
+    }
+    .sm-empty {
+      color: var(--dim);
+      font-family: 'EB Garamond', serif;
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: 0.6rem 0.2rem;
+    }
+    #sm-random {
+      margin-top: 0.9rem;
+      align-self: flex-start;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'EB Garamond', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dim);
+      transition: color 0.2s;
+    }
+    #sm-random:hover { color: var(--fg); }
   </style>
 </head>
 <body>
@@ -277,7 +390,8 @@
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
-        <button class="vc-reroll" data-vi="0" title="New source">↻ New</button>
+        <button class="vc-find" data-vi="0" title="Find a specific book">⌕ Find</button>
+        <button class="vc-reroll" data-vi="0" title="New passage / book">↻ New</button>
         <button class="vc-mute" data-vi="0" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -293,7 +407,8 @@
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
-        <button class="vc-reroll" data-vi="1" title="New source">↻ New</button>
+        <button class="vc-find" data-vi="1" title="Find a specific book">⌕ Find</button>
+        <button class="vc-reroll" data-vi="1" title="New passage / book">↻ New</button>
         <button class="vc-mute" data-vi="1" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -303,7 +418,8 @@
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
-        <button class="vc-reroll" data-vi="2" title="New source">↻ New</button>
+        <button class="vc-find" data-vi="2" title="Find a specific book">⌕ Find</button>
+        <button class="vc-reroll" data-vi="2" title="New passage / book">↻ New</button>
         <button class="vc-mute" data-vi="2" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -313,12 +429,27 @@
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
-        <button class="vc-reroll" data-vi="3" title="New source">↻ New</button>
+        <button class="vc-find" data-vi="3" title="Find a specific book">⌕ Find</button>
+        <button class="vc-reroll" data-vi="3" title="New passage / book">↻ New</button>
         <button class="vc-mute" data-vi="3" title="Silence this voice">Silence</button>
       </div>
     </div>
 
   </main>
+
+  <div id="search-modal" hidden>
+    <div class="sm-backdrop"></div>
+    <div class="sm-panel">
+      <div class="sm-head">
+        <span class="sm-title">Find a book — Voice <span id="sm-voice">I</span></span>
+        <button id="sm-close" aria-label="Close">✕</button>
+      </div>
+      <input id="sm-input" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Search by title or author…">
+      <div id="sm-results"></div>
+      <button id="sm-random">↺ Back to random</button>
+    </div>
+  </div>
 
   <script>
   (() => {
@@ -330,9 +461,10 @@
     let textColor = 'voice';   // 'voice' = per-voice colors (default), 'white' = uniform
     let loading   = false;
 
-    // Each corner's chosen repository — defaults to Gutenberg on load, then
-    // persists across corner refresh once the user changes it.
-    let cornerSources = ['gutenberg', 'gutenberg', 'gutenberg', 'gutenberg'];
+    // Per-corner draw mode: 'random' pulls any Gutenberg book; 'book' pins a
+    // specific title (reroll then draws a new passage from that same book).
+    const cornerMode = ['random', 'random', 'random', 'random'];
+    const cornerBook = [null, null, null, null]; // {id,title,author} when mode==='book'
     const cornerLoading = [false, false, false, false];
 
     // ── Helpers ────────────────────────────────────────────────
@@ -487,7 +619,7 @@
       }
 
       try {
-        const res  = await fetch('/api/instrument-01?sources=' + cornerSources.join(','));
+        const res  = await fetch('/api/instrument-01');
         if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
 
@@ -509,22 +641,23 @@
     }
 
     // ── Refresh a single corner ────────────────────────────────
-    // Fetches one new source of `sourceType` for corner `i`, preserving the
-    // corner's color and active state. Used by both the per-corner reroll
-    // (same source) and the source toggle (the other source).
-    async function refreshVoice(i, sourceType) {
+    // Draws per the corner's mode: a new random book, or a new passage from its
+    // pinned book. Preserves the corner's color and active state.
+    async function refreshVoice(i) {
       if (cornerLoading[i] || loading) return;
       cornerLoading[i] = true;
-      cornerSources[i] = sourceType;
 
       const panel = document.getElementById('v' + i);
       panel.classList.add('vloading');
       panel.querySelector('.vtitle').textContent = 'gathering…';
       panel.querySelector('.vmeta').textContent = '';
-      renderCorners(); // update toggle highlight immediately
+
+      const url = (cornerMode[i] === 'book' && cornerBook[i])
+        ? '/api/instrument-01?book=' + cornerBook[i].id
+        : '/api/instrument-01?single=gutenberg';
 
       try {
-        const res = await fetch('/api/instrument-01?single=' + sourceType);
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`API ${res.status}`);
         const { voice } = await res.json();
 
@@ -535,6 +668,11 @@
           active: prev.active !== false,
           index: i,
         };
+        // For a pinned book, trust the user's chosen title/author.
+        if (cornerMode[i] === 'book' && cornerBook[i]) {
+          voices[i].title  = cornerBook[i].title;
+          voices[i].author = cornerBook[i].author;
+        }
 
         renderCorners();
         renderText();
@@ -545,6 +683,20 @@
         cornerLoading[i] = false;
         panel.classList.remove('vloading');
       }
+    }
+
+    // Pin an exact book to a corner (from the search modal), then load it.
+    function pinBook(i, book) {
+      cornerMode[i] = 'book';
+      cornerBook[i] = book;
+      refreshVoice(i);
+    }
+
+    // Return a corner to random draws.
+    function unpinCorner(i) {
+      cornerMode[i] = 'random';
+      cornerBook[i] = null;
+      refreshVoice(i);
     }
 
     // ── Events ─────────────────────────────────────────────────
@@ -571,11 +723,17 @@
       });
     });
 
-    // Reroll — pull a new book from Gutenberg for this corner.
+    // Reroll — a new random book, or a new passage from the pinned book.
     document.querySelectorAll('.vc-reroll').forEach(btn => {
       btn.addEventListener('click', () => {
-        const i = parseInt(btn.dataset.vi, 10);
-        refreshVoice(i, cornerSources[i]);
+        refreshVoice(parseInt(btn.dataset.vi, 10));
+      });
+    });
+
+    // Find — open the search modal targeting this corner.
+    document.querySelectorAll('.vc-find').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openSearch(parseInt(btn.dataset.vi, 10));
       });
     });
 
@@ -589,6 +747,89 @@
         renderText();
       });
     });
+
+    // ── Search modal ───────────────────────────────────────────
+    const searchModal = document.getElementById('search-modal');
+    const smInput     = document.getElementById('sm-input');
+    const smResults   = document.getElementById('sm-results');
+    const smVoice     = document.getElementById('sm-voice');
+    let searchTarget  = null;   // corner index being edited
+    let searchTimer   = null;
+    let searchResults = [];     // current [{id,title,author}]
+
+    function openSearch(i) {
+      searchTarget = i;
+      smVoice.textContent = NUMERALS[i];
+      smInput.value = '';
+      smResults.innerHTML = '';
+      searchResults = [];
+      searchModal.hidden = false;
+      smInput.focus();
+    }
+
+    function closeSearch() {
+      searchModal.hidden = true;
+      searchTarget = null;
+      clearTimeout(searchTimer);
+    }
+
+    function renderSearchResults() {
+      if (!searchResults.length) {
+        smResults.innerHTML = smInput.value.trim().length >= 2
+          ? '<div class="sm-empty">No matches.</div>' : '';
+        return;
+      }
+      smResults.innerHTML = searchResults.map((b, idx) =>
+        `<button class="sm-result" data-idx="${idx}">` +
+          `<span class="sm-r-title">${esc(b.title)}</span>` +
+          (b.author ? `<span class="sm-r-author">${esc(b.author)}</span>` : '') +
+        `</button>`
+      ).join('');
+    }
+
+    async function runSearch(q) {
+      try {
+        const res = await fetch('/api/instrument-01?search=' + encodeURIComponent(q));
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        const data = await res.json();
+        if (searchModal.hidden) return; // closed while in flight
+        searchResults = data.results || [];
+        renderSearchResults();
+      } catch (err) {
+        console.error('Instrument 01 search:', err);
+      }
+    }
+
+    smInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const q = smInput.value.trim();
+      if (q.length < 2) { searchResults = []; renderSearchResults(); return; }
+      searchTimer = setTimeout(() => runSearch(q), 250);
+    });
+
+    // Enter selects the first result.
+    smInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && searchResults.length) {
+        pinBook(searchTarget, searchResults[0]);
+        closeSearch();
+      } else if (e.key === 'Escape') {
+        closeSearch();
+      }
+    });
+
+    smResults.addEventListener('click', e => {
+      const btn = e.target.closest('.sm-result');
+      if (!btn) return;
+      pinBook(searchTarget, searchResults[parseInt(btn.dataset.idx, 10)]);
+      closeSearch();
+    });
+
+    document.getElementById('sm-random').addEventListener('click', () => {
+      if (searchTarget !== null) unpinCorner(searchTarget);
+      closeSearch();
+    });
+    document.getElementById('sm-close').addEventListener('click', closeSearch);
+    searchModal.querySelector('.sm-backdrop').addEventListener('click', closeSearch);
 
     // ── Init ───────────────────────────────────────────────────
     loadPairing();

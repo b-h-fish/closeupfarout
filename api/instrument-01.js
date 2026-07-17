@@ -5,13 +5,16 @@
 // regardless of how many titles you pass. We run two parallel single-article
 // requests instead, each retrying until a non-stub article is found.
 //
-// Gutenberg note: books are drawn from a ~20k-title manifest (api/books.json,
-// built by scripts/build-gutenberg-manifest.py). We fetch the full text and pull
-// a contiguous passage from anywhere in the book — not just the opening pages.
+// Gutenberg note: books are drawn from a ~61k-title manifest (api/books.json,
+// built by scripts/build-gutenberg-manifest.py) covering all English prose in
+// the catalog. We fetch the full text and pull a contiguous passage from
+// anywhere in the book — not just the opening pages. Exact search (?search=) and
+// direct load (?book=) run against this manifest; no external service needed.
 
 module.exports.config = { maxDuration: 30 };
 
 const BOOKS = require('./books.json');
+const BOOKS_BY_ID = new Map(BOOKS.map(b => [b.id, b]));
 
 const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
 
@@ -218,6 +221,49 @@ async function fetchGutenbergVoice(usedIds, attempt) {
   };
 }
 
+// Loads one specific book by id (for exact search). No random retry — if the
+// chosen book can't be fetched/cleaned, the caller surfaces an error.
+async function fetchGutenbergVoiceById(id) {
+  const book = BOOKS_BY_ID.get(id) || { id, title: null, author: null };
+  const raw = await fetchGutenbergText(id);
+  if (!raw) throw new Error('Gutenberg ' + id + ': text unavailable');
+
+  const all = cleanGutenberg(raw);
+  if (all.length < 12) throw new Error('Gutenberg ' + id + ': too little usable prose');
+
+  return {
+    title: book.title, author: book.author, source: 'Project Gutenberg',
+    paragraphs: randomWindow(all, GUT_WINDOW),
+  };
+}
+
+// ── Exact search over the manifest ──────────────────────────────────────────
+
+// Lowercased title/author index, built once per instance for fast substring search.
+const SEARCH_INDEX = BOOKS.map(b => ({
+  b, t: b.title.toLowerCase(), a: (b.author || '').toLowerCase(),
+}));
+
+function searchBooks(query, limit) {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const scored = [];
+  for (const e of SEARCH_INDEX) {
+    let score = 0;
+    if (e.t === q) score = 100;
+    else if (e.t.startsWith(q)) score = 80;
+    else if (e.t.includes(' ' + q)) score = 60;
+    else if (e.t.includes(q)) score = 40;
+    else if (e.a.includes(q)) score = 20;
+    if (score) scored.push({ e, score });
+  }
+  // Higher score first; ties broken by lower id (older ~ more canonical).
+  scored.sort((x, y) => y.score - x.score || x.e.b.id - y.e.b.id);
+  return scored.slice(0, limit || 20).map(s => ({
+    id: s.e.b.id, title: s.e.b.title, author: s.e.b.author,
+  }));
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────
 
 const DEFAULT_SOURCES = ['gutenberg', 'gutenberg', 'gutenberg', 'gutenberg'];
@@ -240,6 +286,19 @@ module.exports = async function handler(req, res) {
   const q = req.query || {};
 
   try {
+    // ── Exact search: return matching books for a corner's Find box ───────
+    if (typeof q.search === 'string') {
+      return res.status(200).json({ results: searchBooks(q.search, 20) });
+    }
+
+    // ── Load a specific book by id into a corner ─────────────────────────
+    if (q.book) {
+      const id = parseInt(q.book, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad book id' });
+      const voice = await fetchGutenbergVoiceById(id);
+      return res.status(200).json({ voice });
+    }
+
     // ── Single-voice mode: refresh or toggle one corner ──────────────────
     if (q.single) {
       const src = normSource(q.single);

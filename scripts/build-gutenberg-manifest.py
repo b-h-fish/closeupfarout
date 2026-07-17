@@ -28,7 +28,7 @@ ROOT = os.path.dirname(HERE)
 OUT = os.path.join(ROOT, "api", "books.json")
 CACHE = os.path.join(HERE, "pg_catalog.csv")  # local scratch copy if present
 
-TARGET = 20000      # size of the sampled pool (before adding curated classics)
+TARGET = 200000     # cap on the pool; >= eligible count means "include them all"
 SEED = 42
 
 # Curated anchors — recognizable works we always want reachable. Merged in on top
