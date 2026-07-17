@@ -395,7 +395,7 @@
         <button class="vc-find" data-vi="0" title="Find a specific book">⌕ Find</button>
         <button class="vc-reroll" data-vi="0" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="0" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="0" title="Silence this voice">Silence</button>
+        <button class="vc-mute" data-vi="0" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
@@ -413,7 +413,7 @@
         <button class="vc-find" data-vi="1" title="Find a specific book">⌕ Find</button>
         <button class="vc-reroll" data-vi="1" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="1" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="1" title="Silence this voice">Silence</button>
+        <button class="vc-mute" data-vi="1" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
@@ -425,7 +425,7 @@
         <button class="vc-find" data-vi="2" title="Find a specific book">⌕ Find</button>
         <button class="vc-reroll" data-vi="2" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="2" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="2" title="Silence this voice">Silence</button>
+        <button class="vc-mute" data-vi="2" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
@@ -437,7 +437,7 @@
         <button class="vc-find" data-vi="3" title="Find a specific book">⌕ Find</button>
         <button class="vc-reroll" data-vi="3" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="3" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="3" title="Silence this voice">Silence</button>
+        <button class="vc-mute" data-vi="3" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
@@ -501,7 +501,7 @@
 
         // Light the Find control when this corner is pinned to a specific book.
         panel.querySelector('.vc-find').classList.toggle('pinned', cornerMode[i] === 'book');
-        panel.querySelector('.vc-mute').textContent = v.active ? 'Silence' : 'Restore';
+        panel.querySelector('.vc-mute').textContent = v.active ? '✕ Silence' : '○ Restore';
       }
     }
 
