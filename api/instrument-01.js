@@ -16,7 +16,7 @@ module.exports.config = { maxDuration: 30 };
 const BOOKS = require('./books.json');
 const BOOKS_BY_ID = new Map(BOOKS.map(b => [b.id, b]));
 
-const VOICE_COLORS = ['#9a5a1f', '#7a2f56', '#1f556c', '#3a6234'];
+const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
 
 const WIKI_UA = 'closeupfarout.com/instrument-01 (hello@closeupfarout.com)';
 const GUT_UA  = 'closeupfarout.com/instrument-01 (hello@closeupfarout.com)';
