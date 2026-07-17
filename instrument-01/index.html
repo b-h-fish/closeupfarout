@@ -13,10 +13,11 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg:     #090909;
-      --fg:     #f5f2ec;
-      --dim:    rgba(245,242,236,0.38);
-      --rule:   rgba(245,242,236,0.07);
+      --ink-rgb: 43, 38, 32;          /* warm dark-brown ink */
+      --bg:     #f5f0e4;              /* warm parchment */
+      --fg:     #2b2620;              /* ink */
+      --dim:    rgba(var(--ink-rgb), 0.46);
+      --rule:   rgba(var(--ink-rgb), 0.12);
       --bar-h:  2.5rem;
     }
 
@@ -104,7 +105,7 @@
       border-left: 1px solid var(--rule);
       border-right: 1px solid var(--rule);
       scrollbar-width: thin;
-      scrollbar-color: rgba(245,242,236,0.12) transparent;
+      scrollbar-color: rgba(var(--ink-rgb),0.12) transparent;
     }
 
     #text-out {
@@ -149,7 +150,7 @@
       position: absolute;
       top: 0; bottom: 0; right: 0;
       width: 1px;
-      background: var(--vc, rgba(245,242,236,0.07));
+      background: var(--vc, rgba(var(--ink-rgb),0.07));
       opacity: 0.45;
     }
     #v1::after, #v3::after {
@@ -157,7 +158,7 @@
       position: absolute;
       top: 0; bottom: 0; left: 0;
       width: 1px;
-      background: var(--vc, rgba(245,242,236,0.07));
+      background: var(--vc, rgba(var(--ink-rgb),0.07));
       opacity: 0.45;
     }
 
@@ -231,7 +232,7 @@
       font: inherit;
       letter-spacing: inherit;
       text-transform: inherit;
-      color: rgba(245,242,236,0.62);
+      color: rgba(var(--ink-rgb),0.62);
       cursor: pointer;
       padding: 0;
       transition: color 0.2s;
@@ -266,7 +267,7 @@
     .sm-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(var(--ink-rgb), 0.28);
       backdrop-filter: blur(2px);
     }
     .sm-panel {
@@ -275,10 +276,10 @@
       max-height: 80vh;
       display: flex;
       flex-direction: column;
-      background: #111010;
-      border: 1px solid rgba(245,242,236,0.14);
+      background: #fdf9f0;
+      border: 1px solid rgba(var(--ink-rgb),0.18);
       padding: 1.4rem 1.4rem 1.1rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 18px 50px rgba(var(--ink-rgb), 0.2);
     }
     .sm-head {
       display: flex;
@@ -304,15 +305,15 @@
       width: 100%;
       background: none;
       border: none;
-      border-bottom: 1px solid rgba(245,242,236,0.2);
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.2);
       color: var(--fg);
       font-family: 'Cormorant Garamond', serif;
       font-size: 1.25rem;
       padding: 0.4rem 0.1rem;
       outline: none;
     }
-    #sm-input:focus { border-bottom-color: rgba(245,242,236,0.5); }
-    #sm-input::placeholder { color: rgba(245,242,236,0.3); font-style: italic; }
+    #sm-input:focus { border-bottom-color: rgba(var(--ink-rgb),0.5); }
+    #sm-input::placeholder { color: rgba(var(--ink-rgb),0.3); font-style: italic; }
     #sm-results {
       margin-top: 0.6rem;
       overflow-y: auto;
@@ -326,12 +327,12 @@
       text-align: left;
       background: none;
       border: none;
-      border-bottom: 1px solid rgba(245,242,236,0.06);
+      border-bottom: 1px solid rgba(var(--ink-rgb),0.06);
       cursor: pointer;
       padding: 0.55rem 0.2rem;
       transition: background 0.15s;
     }
-    .sm-result:hover { background: rgba(245,242,236,0.05); }
+    .sm-result:hover { background: rgba(var(--ink-rgb),0.05); }
     .sm-r-title {
       font-family: 'Cormorant Garamond', serif;
       font-style: italic;
@@ -381,7 +382,7 @@
     <div id="color-toggle">
       <button class="color-btn active" data-color="voice">Color</button>
       <span class="mode-sep">·</span>
-      <button class="color-btn" data-color="white">White</button>
+      <button class="color-btn" data-color="ink">Ink</button>
     </div>
   </header>
 
@@ -460,11 +461,11 @@
   <script>
   (() => {
     const NUMERALS = ['I','II','III','IV'];
-    const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
+    const VOICE_COLORS = ['#9a5a1f', '#7a2f56', '#1f556c', '#3a6234'];
 
     let voices    = [];
     let mode      = 'sentences';
-    let textColor = 'voice';   // 'voice' = per-voice colors (default), 'white' = uniform
+    let textColor = 'voice';   // 'voice' = per-voice colors (default), 'ink' = uniform
     let loading   = false;
 
     // Per-corner state. cornerMode only drives the pinned indicator ('book' when
@@ -558,7 +559,7 @@
     // Center-text color for a voice — its own hue, or uniform white when the
     // Color/White toggle is set to white.
     function spanColor(v) {
-      return textColor === 'white' ? 'var(--fg)' : v.color;
+      return textColor === 'ink' ? 'var(--fg)' : v.color;
     }
 
     function renderSentences(active) {
