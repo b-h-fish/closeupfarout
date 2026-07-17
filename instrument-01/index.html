@@ -96,6 +96,10 @@
         "v0 center v1"
         "v2 center v3";
     }
+    #v0 { grid-area: v0; }
+    #v1 { grid-area: v1; }
+    #v2 { grid-area: v2; }
+    #v3 { grid-area: v3; }
 
     /* ── Center column ───────────────────────────────────────── */
     #center {
@@ -365,6 +369,61 @@
       transition: color 0.2s;
     }
     #sm-random:hover { color: var(--fg); }
+
+    /* ── Mobile: weave-first, voices as a tap-to-expand strip ──── */
+    @media (max-width: 720px), (max-width: 950px) and (max-height: 540px) {
+      /* Condensed top bar so the label stops wrapping */
+      #top-bar { padding: 0 0.9rem; }
+      #instrument-label { font-size: 0.56rem; letter-spacing: 0.08em; white-space: nowrap; }
+      .mode-btn, .color-btn, .mode-sep { font-size: 0.58rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
+      #mode-toggle, #color-toggle { gap: 0.25rem; }
+
+      /* Voices become a compact 2×2 strip up top; weave fills below */
+      #stage {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-areas:
+          "v0 v1"
+          "v2 v3"
+          "center center";
+      }
+
+      .vp {
+        padding: 0.7rem 0.7rem 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--rule);
+      }
+      #v0, #v2 { border-right: 1px solid var(--rule); }
+      .vp::before { top: 0.7rem; bottom: 0.7rem; }
+
+      .vnum { margin-bottom: 0.35rem; }
+      .vtitle {
+        font-size: 0.82rem;
+        margin-bottom: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* Author + controls hidden until the tab is tapped */
+      .vp .vmeta, .vp .vp-controls { display: none; }
+      .vp.expanded .vmeta { display: block; margin-top: 0.45rem; font-size: 0.8rem; }
+      .vp.expanded .vp-controls {
+        display: flex;
+        position: static;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+        margin-top: 0.6rem;
+        font-size: 0.74rem;
+        opacity: 1;
+      }
+
+      /* Full-width reading column */
+      #center { border-left: none; border-right: none; }
+      #text-out { padding: 1.6rem 1.3rem 3rem; }
+    }
   </style>
 </head>
 <body>
@@ -766,6 +825,17 @@
         voices[i].active = !voices[i].active;
         renderCorners();
         renderText();
+      });
+    });
+
+    // Mobile: tap a voice tab (not its buttons) to reveal/hide its controls.
+    // On desktop the .expanded class has no styling, so this is a no-op there.
+    document.querySelectorAll('.vp').forEach(panel => {
+      panel.addEventListener('click', e => {
+        if (e.target.closest('button')) return; // let control buttons act
+        const wasExpanded = panel.classList.contains('expanded');
+        document.querySelectorAll('.vp.expanded').forEach(p => p.classList.remove('expanded'));
+        if (!wasExpanded) panel.classList.add('expanded');
       });
     });
 
