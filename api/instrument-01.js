@@ -216,13 +216,14 @@ async function fetchGutenbergVoice(usedIds, attempt) {
   if (all.length < 12) return fetchGutenbergVoice(usedIds, attempt + 1);
 
   return {
-    title: book.title, author: book.author, source: 'Project Gutenberg',
+    id: book.id, title: book.title, author: book.author, source: 'Project Gutenberg',
     paragraphs: randomWindow(all, GUT_WINDOW),
   };
 }
 
-// Loads one specific book by id (for exact search). No random retry — if the
-// chosen book can't be fetched/cleaned, the caller surfaces an error.
+// Loads one specific book by id — used by exact search and by "new passage from
+// the same work." No random retry — if the chosen book can't be fetched/cleaned,
+// the caller surfaces an error.
 async function fetchGutenbergVoiceById(id) {
   const book = BOOKS_BY_ID.get(id) || { id, title: null, author: null };
   const raw = await fetchGutenbergText(id);
@@ -232,7 +233,7 @@ async function fetchGutenbergVoiceById(id) {
   if (all.length < 12) throw new Error('Gutenberg ' + id + ': too little usable prose');
 
   return {
-    title: book.title, author: book.author, source: 'Project Gutenberg',
+    id: book.id, title: book.title, author: book.author, source: 'Project Gutenberg',
     paragraphs: randomWindow(all, GUT_WINDOW),
   };
 }

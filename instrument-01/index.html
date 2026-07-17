@@ -212,12 +212,13 @@
       right: 1.5rem;
       bottom: 1.35rem;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 1rem;
+      gap: 0.35rem 0.8rem;
       font-family: 'EB Garamond', serif;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: 500;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       opacity: 0.9;
       transition: opacity 0.2s;
@@ -392,7 +393,8 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="0" title="Find a specific book">⌕ Find</button>
-        <button class="vc-reroll" data-vi="0" title="New passage / book">↻ New</button>
+        <button class="vc-reroll" data-vi="0" title="New passage from this book">↻ Passage</button>
+        <button class="vc-random" data-vi="0" title="A different random book">⚄ Random</button>
         <button class="vc-mute" data-vi="0" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -409,7 +411,8 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="1" title="Find a specific book">⌕ Find</button>
-        <button class="vc-reroll" data-vi="1" title="New passage / book">↻ New</button>
+        <button class="vc-reroll" data-vi="1" title="New passage from this book">↻ Passage</button>
+        <button class="vc-random" data-vi="1" title="A different random book">⚄ Random</button>
         <button class="vc-mute" data-vi="1" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -420,7 +423,8 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="2" title="Find a specific book">⌕ Find</button>
-        <button class="vc-reroll" data-vi="2" title="New passage / book">↻ New</button>
+        <button class="vc-reroll" data-vi="2" title="New passage from this book">↻ Passage</button>
+        <button class="vc-random" data-vi="2" title="A different random book">⚄ Random</button>
         <button class="vc-mute" data-vi="2" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -431,7 +435,8 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="3" title="Find a specific book">⌕ Find</button>
-        <button class="vc-reroll" data-vi="3" title="New passage / book">↻ New</button>
+        <button class="vc-reroll" data-vi="3" title="New passage from this book">↻ Passage</button>
+        <button class="vc-random" data-vi="3" title="A different random book">⚄ Random</button>
         <button class="vc-mute" data-vi="3" title="Silence this voice">Silence</button>
       </div>
     </div>
@@ -462,10 +467,10 @@
     let textColor = 'voice';   // 'voice' = per-voice colors (default), 'white' = uniform
     let loading   = false;
 
-    // Per-corner draw mode: 'random' pulls any Gutenberg book; 'book' pins a
-    // specific title (reroll then draws a new passage from that same book).
+    // Per-corner state. cornerMode only drives the pinned indicator ('book' when
+    // the current book was chosen via Find, 'random' otherwise); the current
+    // book id itself lives on voices[i].id.
     const cornerMode = ['random', 'random', 'random', 'random'];
-    const cornerBook = [null, null, null, null]; // {id,title,author} when mode==='book'
     const cornerLoading = [false, false, false, false];
 
     // ── Helpers ────────────────────────────────────────────────
@@ -642,10 +647,11 @@
       }
     }
 
-    // ── Refresh a single corner ────────────────────────────────
-    // Draws per the corner's mode: a new random book, or a new passage from its
-    // pinned book. Preserves the corner's color and active state.
-    async function refreshVoice(i) {
+    // ── Load one corner ────────────────────────────────────────
+    // Fetches `url` into corner `i`, preserving its color and active state.
+    // `titleOverride` (a {title,author} book) is used when the user pinned an
+    // exact book so its label matches exactly what they chose.
+    async function loadVoice(i, url, titleOverride) {
       if (cornerLoading[i] || loading) return;
       cornerLoading[i] = true;
 
@@ -653,10 +659,6 @@
       panel.classList.add('vloading');
       panel.querySelector('.vtitle').textContent = 'gathering…';
       panel.querySelector('.vmeta').textContent = '';
-
-      const url = (cornerMode[i] === 'book' && cornerBook[i])
-        ? '/api/instrument-01?book=' + cornerBook[i].id
-        : '/api/instrument-01?single=gutenberg';
 
       try {
         const res = await fetch(url);
@@ -670,10 +672,10 @@
           active: prev.active !== false,
           index: i,
         };
-        // For a pinned book, trust the user's chosen title/author.
-        if (cornerMode[i] === 'book' && cornerBook[i]) {
-          voices[i].title  = cornerBook[i].title;
-          voices[i].author = cornerBook[i].author;
+        if (titleOverride) {
+          voices[i].id     = titleOverride.id;
+          voices[i].title  = titleOverride.title;
+          voices[i].author = titleOverride.author;
         }
 
         renderCorners();
@@ -687,18 +689,28 @@
       }
     }
 
+    // New passage from the book this corner currently holds (random or pinned).
+    function newPassage(i) {
+      const id = voices[i] && voices[i].id;
+      if (!id) return newRandom(i);           // no current book — fall back
+      loadVoice(i, '/api/instrument-01?book=' + id);
+    }
+
+    // Swap in a different random book.
+    function newRandom(i) {
+      cornerMode[i] = 'random';
+      loadVoice(i, '/api/instrument-01?single=gutenberg');
+    }
+
     // Pin an exact book to a corner (from the search modal), then load it.
     function pinBook(i, book) {
       cornerMode[i] = 'book';
-      cornerBook[i] = book;
-      refreshVoice(i);
+      loadVoice(i, '/api/instrument-01?book=' + book.id, book);
     }
 
     // Return a corner to random draws.
     function unpinCorner(i) {
-      cornerMode[i] = 'random';
-      cornerBook[i] = null;
-      refreshVoice(i);
+      newRandom(i);
     }
 
     // ── Events ─────────────────────────────────────────────────
@@ -725,10 +737,17 @@
       });
     });
 
-    // Reroll — a new random book, or a new passage from the pinned book.
+    // Passage — a new passage from the book this corner currently holds.
     document.querySelectorAll('.vc-reroll').forEach(btn => {
       btn.addEventListener('click', () => {
-        refreshVoice(parseInt(btn.dataset.vi, 10));
+        newPassage(parseInt(btn.dataset.vi, 10));
+      });
+    });
+
+    // Random — swap in a different random book.
+    document.querySelectorAll('.vc-random').forEach(btn => {
+      btn.addEventListener('click', () => {
+        newRandom(parseInt(btn.dataset.vi, 10));
       });
     });
 
