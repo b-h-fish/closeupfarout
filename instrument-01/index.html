@@ -238,6 +238,7 @@
     }
     .vp-controls button:hover { color: var(--fg); }
     .vp-controls button:disabled { cursor: default; opacity: 0.5; }
+    .vc-find.pinned { color: var(--vc, var(--fg)); }
 
     /* Muted state — dim the text, keep controls fully usable */
     .vp.muted .vnum,
@@ -490,10 +491,11 @@
         panel.querySelector('.vtitle').textContent = v.title || '—';
         panel.querySelector('.vtitle').classList.toggle('unavail', v.source === 'error');
 
-        // Source is already shown by the wiki/guten toggle, so the meta line
-        // carries only the author (Gutenberg books); Wikipedia articles have none.
+        // Meta line carries the author (Gutenberg books have one; some don't).
         panel.querySelector('.vmeta').textContent = v.author || '';
 
+        // Light the Find control when this corner is pinned to a specific book.
+        panel.querySelector('.vc-find').classList.toggle('pinned', cornerMode[i] === 'book');
         panel.querySelector('.vc-mute').textContent = v.active ? 'Silence' : 'Restore';
       }
     }
