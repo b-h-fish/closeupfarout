@@ -18,6 +18,39 @@
       --dim:    rgba(245,242,236,0.38);
       --rule:   rgba(245,242,236,0.07);
       --bar-h:  2.5rem;
+      --subtle: rgba(245,242,236,0.12);
+      --ctrl:   rgba(245,242,236,0.62);
+      --border: rgba(245,242,236,0.15);
+      --border-focus: rgba(245,242,236,0.4);
+      --overlay-bg: rgba(0,0,0,0.6);
+      --panel-bg: #111010;
+      --panel-border: rgba(245,242,236,0.14);
+      --panel-shadow: rgba(0,0,0,0.5);
+      --input-rule: rgba(245,242,236,0.2);
+      --input-rule-focus: rgba(245,242,236,0.5);
+      --placeholder: rgba(245,242,236,0.3);
+      --result-rule: rgba(245,242,236,0.06);
+      --result-hover: rgba(245,242,236,0.05);
+    }
+
+    :root.light {
+      --bg:     #f5f2ec;
+      --fg:     #090909;
+      --dim:    rgba(9,9,9,0.38);
+      --rule:   rgba(9,9,9,0.07);
+      --subtle: rgba(9,9,9,0.10);
+      --ctrl:   rgba(9,9,9,0.62);
+      --border: rgba(9,9,9,0.18);
+      --border-focus: rgba(9,9,9,0.4);
+      --overlay-bg: rgba(0,0,0,0.3);
+      --panel-bg: #e8e5df;
+      --panel-border: rgba(9,9,9,0.14);
+      --panel-shadow: rgba(0,0,0,0.15);
+      --input-rule: rgba(9,9,9,0.2);
+      --input-rule-focus: rgba(9,9,9,0.5);
+      --placeholder: rgba(9,9,9,0.3);
+      --result-rule: rgba(9,9,9,0.08);
+      --result-hover: rgba(9,9,9,0.05);
     }
 
     html, body {
@@ -26,6 +59,8 @@
       color: var(--fg);
       font-family: 'Cormorant Garamond', serif;
       overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
     }
 
     /* ── Top bar ─────────────────────────────────────────────── */
@@ -43,47 +78,62 @@
     }
 
     #instrument-label {
+      background: none;
+      border: none;
       font-family: 'EB Garamond', serif;
-      font-size: 0.74rem;
+      font-size: 0.85rem;
       font-weight: 500;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--dim);
-      user-select: none;
+      color: var(--fg);
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    @media (hover: hover) {
+      #instrument-label:hover { color: var(--dim); }
     }
 
-    #mode-toggle, #color-toggle {
+    #mode-toggle {
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
 
-    .mode-btn, .color-btn {
+    #mode-btn, #color-btn {
       background: none;
       border: none;
       font-family: 'EB Garamond', serif;
-      font-size: 0.74rem;
+      font-size: 0.85rem;
       font-weight: 500;
       letter-spacing: 0.11em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--fg);
       cursor: pointer;
       padding: 0.15rem 0.4rem;
       transition: color 0.2s;
     }
-    .mode-btn:hover, .color-btn:hover { color: var(--fg); }
-    .mode-btn.active, .color-btn.active {
-      color: var(--fg);
-      text-decoration: underline;
-      text-underline-offset: 3px;
+    @media (hover: hover) {
+      #mode-btn:hover, #color-btn:hover { color: var(--dim); }
     }
 
-    .mode-sep {
-      color: var(--dim);
+    #count-input {
+      width: 3.6rem;
+      margin-left: 0.6rem;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--fg);
       font-family: 'EB Garamond', serif;
-      font-size: 0.74rem;
-      user-select: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-align: center;
+      padding: 0.15rem 0.3rem;
+      outline: none;
+      transition: border-color 0.2s;
     }
+    #count-input:focus { border-color: var(--border-focus); }
+
 
     /* ── Stage ───────────────────────────────────────────────── */
     #stage {
@@ -108,12 +158,12 @@
       border-left: 1px solid var(--rule);
       border-right: 1px solid var(--rule);
       scrollbar-width: thin;
-      scrollbar-color: rgba(245,242,236,0.12) transparent;
+      scrollbar-color: var(--subtle) transparent;
     }
 
     #text-out {
       padding: 2.4rem 1.8rem 4rem;
-      font-size: clamp(0.9rem, 1.25vw, 1.1rem);
+      font-size: clamp(1.08rem, 1.5vw, 1.32rem);
       line-height: 1.88;
     }
 
@@ -153,7 +203,7 @@
       position: absolute;
       top: 0; bottom: 0; right: 0;
       width: 1px;
-      background: var(--vc, rgba(245,242,236,0.07));
+      background: var(--vc, var(--rule));
       opacity: 0.45;
     }
     #v1::after, #v3::after {
@@ -161,7 +211,7 @@
       position: absolute;
       top: 0; bottom: 0; left: 0;
       width: 1px;
-      background: var(--vc, rgba(245,242,236,0.07));
+      background: var(--vc, var(--rule));
       opacity: 0.45;
     }
 
@@ -194,7 +244,7 @@
     }
 
     .vtitle {
-      font-size: clamp(0.82rem, 1.15vw, 1rem);
+      font-size: clamp(0.95rem, 1.4vw, 1.25rem);
       font-style: italic;
       line-height: 1.3;
       color: var(--fg);
@@ -203,7 +253,7 @@
 
     .vmeta {
       font-family: 'EB Garamond', serif;
-      font-size: 0.82rem;
+      font-size: clamp(0.85rem, 1.1vw, 1.05rem);
       letter-spacing: 0.01em;
       color: var(--dim);
       line-height: 1.6;
@@ -216,11 +266,11 @@
       right: 1.5rem;
       bottom: 1.35rem;
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.35rem 0.8rem;
       font-family: 'EB Garamond', serif;
-      font-size: 0.72rem;
+      font-size: 0.88rem;
       font-weight: 500;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -235,7 +285,7 @@
       font: inherit;
       letter-spacing: inherit;
       text-transform: inherit;
-      color: rgba(245,242,236,0.62);
+      color: var(--ctrl);
       cursor: pointer;
       padding: 0;
       transition: color 0.2s;
@@ -270,7 +320,7 @@
     .sm-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: var(--overlay-bg);
       backdrop-filter: blur(2px);
     }
     .sm-panel {
@@ -279,10 +329,10 @@
       max-height: 80vh;
       display: flex;
       flex-direction: column;
-      background: #111010;
-      border: 1px solid rgba(245,242,236,0.14);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
       padding: 1.4rem 1.4rem 1.1rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 60px var(--panel-shadow);
     }
     .sm-head {
       display: flex;
@@ -308,15 +358,15 @@
       width: 100%;
       background: none;
       border: none;
-      border-bottom: 1px solid rgba(245,242,236,0.2);
+      border-bottom: 1px solid var(--input-rule);
       color: var(--fg);
       font-family: 'Cormorant Garamond', serif;
       font-size: 1.25rem;
       padding: 0.4rem 0.1rem;
       outline: none;
     }
-    #sm-input:focus { border-bottom-color: rgba(245,242,236,0.5); }
-    #sm-input::placeholder { color: rgba(245,242,236,0.3); font-style: italic; }
+    #sm-input:focus { border-bottom-color: var(--input-rule-focus); }
+    #sm-input::placeholder { color: var(--placeholder); font-style: italic; }
     #sm-results {
       margin-top: 0.6rem;
       overflow-y: auto;
@@ -330,12 +380,12 @@
       text-align: left;
       background: none;
       border: none;
-      border-bottom: 1px solid rgba(245,242,236,0.06);
+      border-bottom: 1px solid var(--result-rule);
       cursor: pointer;
       padding: 0.55rem 0.2rem;
       transition: background 0.15s;
     }
-    .sm-result:hover { background: rgba(245,242,236,0.05); }
+    .sm-result:hover { background: var(--result-hover); }
     .sm-r-title {
       font-family: 'Cormorant Garamond', serif;
       font-style: italic;
@@ -370,15 +420,19 @@
     }
     #sm-random:hover { color: var(--fg); }
 
+    /* ── Small-screen shared: anything both portrait and landscape need ── */
+    @media (max-width: 720px), (max-height: 540px) {
+      #top-bar { padding: 0 0.9rem; }
+      #instrument-label { white-space: nowrap; }
+    }
+
     /* ── Portrait phones: weave-first, voices as a tap-to-expand strip ── */
     @media (max-width: 720px) and (orientation: portrait) {
-      /* Condensed top bar so the label stops wrapping */
-      #top-bar { padding: 0 0.9rem; }
-      #instrument-label { font-size: 0.56rem; letter-spacing: 0.08em; white-space: nowrap; }
-      .mode-btn, .color-btn, .mode-sep { font-size: 0.58rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
-      #mode-toggle, #color-toggle { gap: 0.25rem; }
+      #instrument-label { font-size: 0.56rem; letter-spacing: 0.08em; }
+      #mode-btn, #color-btn { font-size: 0.58rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
+      #mode-toggle { gap: 0.25rem; }
+      #count-input { width: 3.2rem; margin-left: 0.35rem; font-size: 16px; padding: 0.1rem 0.2rem; }
 
-      /* Voices become a compact 2×2 strip up top; weave fills below */
       #stage {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto minmax(0, 1fr);
@@ -406,7 +460,8 @@
         overflow: hidden;
       }
 
-      /* Author + controls hidden until the tab is tapped */
+      .vmeta { font-size: 0.82rem; }
+
       .vp .vmeta, .vp .vp-controls { display: none; }
       .vp.expanded .vmeta { display: block; margin-top: 0.45rem; font-size: 0.8rem; }
       .vp.expanded .vp-controls {
@@ -420,19 +475,44 @@
         opacity: 1;
       }
 
-      /* Full-width reading column */
+      /* Reset landscape control overrides */
+      .vp-controls {
+        position: absolute;
+        left: 1.8rem;
+        right: 1.5rem;
+        bottom: 1.35rem;
+        margin-top: 0;
+      }
+
       #center { border-left: none; border-right: none; }
-      #text-out { padding: 1.6rem 1.3rem 3rem; }
+      #text-out { padding: 1.6rem 1.3rem 3rem; font-size: clamp(1.08rem, 1.5vw, 1.32rem); }
     }
 
     /* ── Landscape phones: keep the four-corners layout, fit short corners ── */
     @media (orientation: landscape) and (max-height: 540px) {
       #top-bar { padding: 0 1rem; }
-      #instrument-label { font-size: 0.58rem; letter-spacing: 0.1em; white-space: nowrap; }
-      .mode-btn, .color-btn, .mode-sep { font-size: 0.6rem; letter-spacing: 0.07em; }
+      #instrument-label { font-size: 0.58rem; letter-spacing: 0.1em; }
+      #mode-btn, #color-btn { font-size: 0.6rem; letter-spacing: 0.07em; }
+      #count-input { width: 3rem; margin-left: 0.4rem; font-size: 0.6rem; }
 
-      .vp { padding: 0.7rem 0.9rem 0.7rem 1rem; }
+      /* Reset portrait grid — restore desktop four-corners */
+      #stage {
+        grid-template-columns: 3fr 5fr 3fr;
+        grid-template-rows: 1fr 1fr;
+        grid-template-areas:
+          "v0 center v1"
+          "v2 center v3";
+      }
+
+      .vp {
+        padding: 0.7rem 0.9rem 0.7rem 1rem;
+        cursor: default;
+        border-bottom: none;
+      }
+      #v0, #v1 { border-bottom: 1px solid var(--rule); }
+      #v0, #v2 { border-right: none; }
       .vp::before { top: 0.7rem; bottom: 0.7rem; }
+
       .vnum { margin-bottom: 0.4rem; }
       .vtitle {
         font-size: 0.82rem;
@@ -444,7 +524,10 @@
       }
       .vmeta { font-size: 0.74rem; }
 
-      /* Controls flow after the author (no absolute overlap), compact wrapped row */
+      /* Reset portrait hide — always show meta and controls */
+      .vp .vmeta { display: block; }
+      .vp .vp-controls { display: flex; }
+
       .vp-controls {
         position: static;
         margin-top: 0.5rem;
@@ -454,26 +537,22 @@
         opacity: 1;
       }
 
-      #text-out { padding: 1.6rem 1.4rem 3rem; }
+      #center { border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+      #text-out { padding: 1.6rem 1.4rem 3rem; font-size: clamp(1.08rem, 1.5vw, 1.32rem); }
     }
   </style>
 </head>
 <body>
 
   <header id="top-bar">
-    <span id="instrument-label">Instrument-01</span>
+    <button id="instrument-label">Instrument-01</button>
 
     <div id="mode-toggle">
-      <button class="mode-btn active" data-mode="sentences">Sentences</button>
-      <span class="mode-sep">·</span>
-      <button class="mode-btn" data-mode="words">Words</button>
+      <button id="mode-btn">Sentences</button>
+      <input id="count-input" type="text" inputmode="numeric" value="50" aria-label="Count">
     </div>
 
-    <div id="color-toggle">
-      <button class="color-btn active" data-color="voice">Color</button>
-      <span class="mode-sep">·</span>
-      <button class="color-btn" data-color="white">White</button>
-    </div>
+    <button id="color-btn">Color</button>
   </header>
 
   <main id="stage">
@@ -558,6 +637,14 @@
     let textColor = 'voice';   // 'voice' = per-voice colors (default), 'white' = uniform
     let loading   = false;
 
+    const MAX_SENTENCES = 999;
+    const MAX_WORDS     = 9999;
+    const DEFAULT_SENTENCES = 50;
+    const DEFAULT_WORDS     = 500;
+    const DISPLAY_WINDOW = 150;
+    let sentenceCount = DEFAULT_SENTENCES;
+    let wordCount     = DEFAULT_WORDS;
+
     // Per-corner state. cornerMode only drives the pinned indicator ('book' when
     // the current book was chosen via Find, 'random' otherwise); the current
     // book id itself lives on voices[i].id.
@@ -565,6 +652,12 @@
     const cornerLoading = [false, false, false, false];
 
     // ── Helpers ────────────────────────────────────────────────
+    function pickWindow(arr, size) {
+      if (!size || arr.length <= size) return arr.slice();
+      const start = Math.floor(Math.random() * (arr.length - size));
+      return arr.slice(start, start + size);
+    }
+
     function esc(str) {
       return String(str)
         .replace(/&/g,'&amp;')
@@ -581,7 +674,7 @@
 
         if (!v) continue;
 
-        panel.style.setProperty('--vc', v.color || VOICE_COLORS[i]);
+        panel.style.setProperty('--vc', VOICE_COLORS[i]);
         panel.classList.toggle('muted', !v.active);
 
         panel.querySelector('.vtitle').textContent = v.title || '—';
@@ -649,21 +742,20 @@
     // Center-text color for a voice — its own hue, or uniform white when the
     // Color/White toggle is set to white.
     function spanColor(v) {
-      return textColor === 'white' ? 'var(--fg)' : v.color;
+      return textColor === 'white' ? 'var(--fg)' : VOICE_COLORS[v.index];
     }
 
     function renderSentences(active) {
-      // Flatten each voice to sentences, capped to keep the weave readable
+      const perVoice = Math.ceil(sentenceCount / active.length);
       const sentsByVoice = active.map(v =>
-        splitSentences(v.paragraphs.join(' ')).slice(0, 40)
+        splitSentences(v.paragraphs.join(' ')).slice(0, perVoice)
       );
 
       const maxLen = Math.max(...sentsByVoice.map(s => s.length));
       const spans  = [];
 
-      // Round-robin one sentence per voice, flowing as continuous prose
-      for (let i = 0; i < maxLen; i++) {
-        for (let j = 0; j < active.length; j++) {
+      for (let i = 0; i < maxLen && spans.length < sentenceCount; i++) {
+        for (let j = 0; j < active.length && spans.length < sentenceCount; j++) {
           if (i < sentsByVoice[j].length) {
             spans.push(
               `<span style="color:${spanColor(active[j])}">${esc(sentsByVoice[j][i])}</span>`
@@ -676,18 +768,18 @@
     }
 
     function renderWords(active) {
-      // Flatten each voice to an array of words, capped at 250 per voice
+      const perVoice = Math.ceil(wordCount / active.length);
       const wordsByVoice = active.map(v =>
         v.paragraphs
           .flatMap(p => p.split(/\s+/).filter(w => w))
-          .slice(0, 250)
+          .slice(0, perVoice)
       );
 
       const maxLen = Math.max(...wordsByVoice.map(w => w.length));
       const spans  = [];
 
-      for (let i = 0; i < maxLen; i++) {
-        for (let j = 0; j < active.length; j++) {
+      for (let i = 0; i < maxLen && spans.length < wordCount; i++) {
+        for (let j = 0; j < active.length && spans.length < wordCount; j++) {
           if (i < wordsByVoice[j].length) {
             spans.push(
               `<span style="color:${spanColor(active[j])}">${esc(wordsByVoice[j][i])}</span>`
@@ -723,6 +815,8 @@
 
         voices = data.voices.map((v, i) => ({
           ...v,
+          allParagraphs: v.paragraphs,
+          paragraphs: pickWindow(v.paragraphs, DISPLAY_WINDOW),
           active: true,
           index: i,
         }));
@@ -759,7 +853,9 @@
         const prev = voices[i] || {};
         voices[i] = {
           ...voice,
-          color: prev.color || VOICE_COLORS[i],
+          allParagraphs: voice.paragraphs,
+          paragraphs: pickWindow(voice.paragraphs, DISPLAY_WINDOW),
+          color: VOICE_COLORS[i],
           active: prev.active !== false,
           index: i,
         };
@@ -780,11 +876,11 @@
       }
     }
 
-    // New passage from the book this corner currently holds (random or pinned).
     function newPassage(i) {
-      const id = voices[i] && voices[i].id;
-      if (!id) return newRandom(i);           // no current book — fall back
-      loadVoice(i, '/api/instrument-01?book=' + id);
+      const v = voices[i];
+      if (!v || !v.allParagraphs || !v.allParagraphs.length) return newRandom(i);
+      v.paragraphs = pickWindow(v.allParagraphs, DISPLAY_WINDOW);
+      renderText();
     }
 
     // Swap in a different random book.
@@ -805,27 +901,57 @@
     }
 
     // ── Events ─────────────────────────────────────────────────
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (mode === btn.dataset.mode) return;
-        mode = btn.dataset.mode;
-        document.querySelectorAll('.mode-btn').forEach(b =>
-          b.classList.toggle('active', b.dataset.mode === mode)
-        );
-        renderText();
-      });
+    document.getElementById('instrument-label').addEventListener('click', () => {
+      document.documentElement.classList.toggle('light');
+      syncColorLabel();
     });
 
-    // Center-text color toggle — per-voice colors vs. uniform white.
-    document.querySelectorAll('.color-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (textColor === btn.dataset.color) return;
-        textColor = btn.dataset.color;
-        document.querySelectorAll('.color-btn').forEach(b =>
-          b.classList.toggle('active', b.dataset.color === textColor)
-        );
-        renderText();
-      });
+    const countInput = document.getElementById('count-input');
+
+    function syncCountInput() {
+      countInput.value = mode === 'sentences' ? sentenceCount : wordCount;
+    }
+
+    const modeBtn = document.getElementById('mode-btn');
+    modeBtn.addEventListener('click', () => {
+      mode = mode === 'sentences' ? 'words' : 'sentences';
+      modeBtn.textContent = mode === 'sentences' ? 'Sentences' : 'Words';
+      syncCountInput();
+      renderText();
+    });
+
+    countInput.addEventListener('input', () => {
+      const raw = countInput.value.replace(/\D/g, '');
+      if (!raw) return;
+      let n = parseInt(raw, 10);
+      const max = mode === 'sentences' ? MAX_SENTENCES : MAX_WORDS;
+      if (n > max) { n = max; countInput.value = n; }
+      if (n < 1) n = 1;
+      if (mode === 'sentences') sentenceCount = n;
+      else wordCount = n;
+      renderText();
+    });
+
+    countInput.addEventListener('blur', () => {
+      const raw = countInput.value.replace(/\D/g, '');
+      if (!raw || parseInt(raw, 10) < 1) {
+        if (mode === 'sentences') { sentenceCount = DEFAULT_SENTENCES; }
+        else { wordCount = DEFAULT_WORDS; }
+      }
+      syncCountInput();
+    });
+
+    const colorBtn = document.getElementById('color-btn');
+    function syncColorLabel() {
+      if (textColor === 'voice') { colorBtn.textContent = 'Color'; }
+      else {
+        colorBtn.textContent = document.documentElement.classList.contains('light') ? 'Black' : 'White';
+      }
+    }
+    colorBtn.addEventListener('click', () => {
+      textColor = textColor === 'voice' ? 'white' : 'voice';
+      syncColorLabel();
+      renderText();
     });
 
     // Passage — a new passage from the book this corner currently holds.

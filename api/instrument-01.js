@@ -29,7 +29,7 @@ const MAX_BYTES = 4000000;
 // How many contiguous paragraphs one voice contributes. Wikipedia's window is
 // small so its random start engages on most articles (which are short), letting
 // a voice begin deep in the article rather than always at the lead section.
-const GUT_WINDOW  = 50;
+const GUT_WINDOW  = 0;  // 0 = return all cleaned paragraphs (client handles windowing)
 const WIKI_WINDOW = 8;
 
 // ── Wikipedia ──────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function cleanWiki(text) {
 
 // Contiguous window from anywhere in the list.
 function randomWindow(arr, size) {
-  if (arr.length <= size) return arr;
+  if (!size || arr.length <= size) return arr;
   const start = Math.floor(Math.random() * (arr.length - size));
   return arr.slice(start, start + size);
 }
