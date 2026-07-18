@@ -134,6 +134,19 @@
     }
     #count-input:focus { border-color: var(--border-focus); }
 
+    #words-refresh {
+      background: none;
+      border: none;
+      color: var(--fg);
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 0 0.2rem;
+      transition: color 0.2s;
+    }
+    @media (hover: hover) {
+      #words-refresh:hover { color: var(--dim); }
+    }
+
 
     /* ── Stage ───────────────────────────────────────────────── */
     #stage {
@@ -548,6 +561,7 @@
     <button id="instrument-label">Instrument-01</button>
 
     <div id="mode-toggle">
+      <button id="words-refresh" hidden aria-label="Regenerate">↻</button>
       <button id="mode-btn">Sentences</button>
       <input id="count-input" type="text" inputmode="numeric" value="50" aria-label="Count">
     </div>
@@ -644,6 +658,7 @@
     const DISPLAY_WINDOW = 150;
     let sentenceCount = DEFAULT_SENTENCES;
     let wordCount     = DEFAULT_WORDS;
+    let cachedWordsHtml = null;
 
     // Per-corner state. cornerMode only drives the pinned indicator ('book' when
     // the current book was chosen via Find, 'random' otherwise); the current
@@ -702,7 +717,8 @@
       if (mode === 'sentences') {
         out.innerHTML = renderSentences(active);
       } else {
-        out.innerHTML = renderWords(active);
+        if (!cachedWordsHtml) cachedWordsHtml = renderWords(active);
+        out.innerHTML = cachedWordsHtml;
       }
 
       document.getElementById('center').scrollTop = 0;
@@ -767,6 +783,18 @@
       return `<p class="sentences-block">${spans.join(' ')}</p>`;
     }
 
+    const ARTICLES = new Set(['the','a','an']);
+    const PREPS = new Set(['of','in','to','on','at','by','from','with','for','into','through','during','before','after','between','about','over','under','upon']);
+    const LINKING = new Set(['is','am','are','was','were','be','been','being','has','have','had']);
+
+    function wordCat(w) {
+      const lc = w.toLowerCase().replace(/[^a-z']/g, '');
+      if (ARTICLES.has(lc)) return 'art';
+      if (PREPS.has(lc)) return 'prep';
+      if (LINKING.has(lc)) return 'link';
+      return null;
+    }
+
     function renderWords(active) {
       const perVoice = Math.ceil(wordCount / active.length);
       const wordsByVoice = active.map(v =>
@@ -775,17 +803,49 @@
           .slice(0, perVoice)
       );
 
-      const maxLen = Math.max(...wordsByVoice.map(w => w.length));
-      const spans  = [];
+      const cursors = active.map(() => 0);
+      const spans = [];
+      let vi = 0;
+      let lastCat = null;
+      let needsCap = false;
 
-      for (let i = 0; i < maxLen && spans.length < wordCount; i++) {
-        for (let j = 0; j < active.length && spans.length < wordCount; j++) {
-          if (i < wordsByVoice[j].length) {
-            spans.push(
-              `<span style="color:${spanColor(active[j])}">${esc(wordsByVoice[j][i])}</span>`
-            );
+      while (spans.length < wordCount) {
+        const words = wordsByVoice[vi];
+        if (cursors[vi] >= words.length) {
+          vi = (vi + 1) % active.length;
+          let checked = 0;
+          while (cursors[vi] >= wordsByVoice[vi].length && checked < active.length) {
+            vi = (vi + 1) % active.length;
+            checked++;
           }
+          if (checked >= active.length) break;
+          continue;
         }
+
+        const chunkLen = 1 + Math.floor(Math.random() * 5);
+        const color = spanColor(active[vi]);
+
+        if (needsCap) {
+          while (cursors[vi] < words.length && !/^[A-Z""“]/.test(words[cursors[vi]])) {
+            cursors[vi]++;
+          }
+          if (cursors[vi] >= words.length) {
+            vi = (vi + 1) % active.length;
+            continue;
+          }
+          needsCap = false;
+        }
+
+        for (let w = 0; w < chunkLen && cursors[vi] < words.length && spans.length < wordCount; w++) {
+          const word = words[cursors[vi]++];
+          const cat = wordCat(word);
+          if (cat && cat === lastCat) continue;
+          spans.push(`<span style="color:${color}">${esc(word)}</span>`);
+          lastCat = cat;
+          if (/[.!?…][""”]?$/.test(word)) needsCap = true;
+        }
+
+        vi = (vi + 1) % active.length;
       }
 
       return `<p class="words-block">${spans.join(' ')}</p>`;
@@ -795,6 +855,7 @@
     async function loadPairing() {
       if (loading) return;
       loading = true;
+      cachedWordsHtml = null;
 
       document.getElementById('text-out').innerHTML =
         '<p class="loading-msg">gathering voices</p>';
@@ -839,6 +900,7 @@
     async function loadVoice(i, url, titleOverride) {
       if (cornerLoading[i] || loading) return;
       cornerLoading[i] = true;
+      cachedWordsHtml = null;
 
       const panel = document.getElementById('v' + i);
       panel.classList.add('vloading');
@@ -880,6 +942,7 @@
       const v = voices[i];
       if (!v || !v.allParagraphs || !v.allParagraphs.length) return newRandom(i);
       v.paragraphs = pickWindow(v.allParagraphs, DISPLAY_WINDOW);
+      cachedWordsHtml = null;
       renderText();
     }
 
@@ -907,9 +970,14 @@
     });
 
     const countInput = document.getElementById('count-input');
+    const refreshBtn = document.getElementById('words-refresh');
 
     function syncCountInput() {
       countInput.value = mode === 'sentences' ? sentenceCount : wordCount;
+    }
+
+    function syncRefreshBtn() {
+      refreshBtn.hidden = mode !== 'words';
     }
 
     const modeBtn = document.getElementById('mode-btn');
@@ -917,6 +985,12 @@
       mode = mode === 'sentences' ? 'words' : 'sentences';
       modeBtn.textContent = mode === 'sentences' ? 'Sentences' : 'Words';
       syncCountInput();
+      syncRefreshBtn();
+      renderText();
+    });
+
+    refreshBtn.addEventListener('click', () => {
+      cachedWordsHtml = null;
       renderText();
     });
 
@@ -928,7 +1002,7 @@
       if (n > max) { n = max; countInput.value = n; }
       if (n < 1) n = 1;
       if (mode === 'sentences') sentenceCount = n;
-      else wordCount = n;
+      else { wordCount = n; cachedWordsHtml = null; }
       renderText();
     });
 
@@ -981,6 +1055,7 @@
         const i = parseInt(btn.dataset.vi, 10);
         if (!voices[i]) return;
         voices[i].active = !voices[i].active;
+        cachedWordsHtml = null;
         renderCorners();
         renderText();
       });
