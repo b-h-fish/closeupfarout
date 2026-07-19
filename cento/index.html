@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Instrument 01 — Close Up Far Out</title>
+  <title>Cento — Close Up Far Out</title>
   <link rel="icon" href="../favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cinzel:wght@400&family=Abril+Fatface&family=Libre+Baskerville:ital@1&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,7 +34,7 @@
     }
 
     :root.light {
-      --bg:     #f5f2ec;
+      --bg:     #f7f6f3;
       --fg:     #090909;
       --dim:    rgba(9,9,9,0.38);
       --rule:   rgba(9,9,9,0.07);
@@ -53,6 +53,15 @@
       --result-hover: rgba(9,9,9,0.05);
     }
 
+    ::selection {
+      background: rgba(245,242,236,0.18);
+      color: inherit;
+    }
+    :root.light ::selection {
+      background: rgba(9,9,9,0.14);
+      color: inherit;
+    }
+
     html, body {
       height: 100%;
       background: var(--bg);
@@ -68,23 +77,26 @@
       position: fixed;
       inset: 0 0 auto 0;
       height: var(--bar-h);
-      display: flex;
+      display: grid;
+      grid-template-columns: 3fr 5fr 3fr;
       align-items: center;
-      justify-content: space-between;
       padding: 0 1.4rem;
       border-bottom: 1px solid var(--rule);
       background: var(--bg);
       z-index: 50;
     }
+    #top-left { display: flex; align-items: center; }
+    #top-center { display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+    #top-right { display: flex; align-items: center; justify-content: flex-end; }
 
     #instrument-label {
       background: none;
       border: none;
-      font-family: 'EB Garamond', serif;
-      font-size: 0.85rem;
-      font-weight: 500;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
       color: var(--fg);
       cursor: pointer;
       padding: 0;
@@ -100,7 +112,8 @@
       gap: 0.5rem;
     }
 
-    #mode-btn, #color-btn {
+    #share-btn { min-width: 7rem; text-align: right; outline: none; }
+    #mode-btn, #color-btn, #share-btn {
       background: none;
       border: none;
       font-family: 'EB Garamond', serif;
@@ -113,13 +126,14 @@
       padding: 0.15rem 0.4rem;
       transition: color 0.2s;
     }
+    #mode-group { display: flex; align-items: center; justify-content: flex-end; width: 8.5rem; }
+    #color-btn { width: 5rem; text-align: left; }
     @media (hover: hover) {
-      #mode-btn:hover, #color-btn:hover { color: var(--dim); }
+      #mode-btn:hover, #color-btn:hover, #share-btn:hover { color: var(--dim); }
     }
 
     #count-input {
       width: 3.6rem;
-      margin-left: 0.6rem;
       background: none;
       border: 1px solid var(--border);
       color: var(--fg);
@@ -146,6 +160,66 @@
     @media (hover: hover) {
       #words-refresh:hover { color: var(--dim); }
     }
+
+    body.share-mode #center { cursor: default; }
+    body.share-mode .vp-controls,
+    body.share-mode .vc-mute { visibility: hidden !important; }
+    body.share-mode #words-refresh,
+    body.share-mode #count-input,
+    body.share-mode #mode-btn,
+    body.share-mode #color-btn { visibility: hidden !important; }
+    #share-popup {
+      display: none;
+      position: absolute;
+      z-index: 11;
+      background: #f5f2ec;
+      border: none;
+      border-radius: 4px;
+      padding: 0.4rem 0.8rem;
+      font-family: 'EB Garamond', serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: #090909;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      transition: opacity 0.2s;
+    }
+    :root.light #share-popup {
+      background: #090909;
+      color: #f5f2ec;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    @media (hover: hover) {
+      #share-popup:hover { opacity: 0.7; }
+    }
+    .share-caret {
+      display: none;
+      position: absolute;
+      width: 1.5px;
+      background: var(--fg);
+      z-index: 10;
+      touch-action: none;
+    }
+    .share-caret::before, .share-caret::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background: var(--fg);
+      border-radius: 50%;
+      cursor: grab;
+    }
+    .share-caret::before { top: -4px; }
+    .share-caret::after { bottom: -4px; }
+    @media (max-width: 720px) {
+      .share-caret { display: none !important; }
+    }
+    body.share-dragging { cursor: grabbing !important; }
+    body.share-dragging .share-caret { pointer-events: none; }
 
 
     /* ── Stage ───────────────────────────────────────────────── */
@@ -185,7 +259,7 @@
     }
 
     #text-out .words-block {
-      line-height: 2;
+      line-height: 1.88;
     }
 
     .loading-msg {
@@ -246,14 +320,38 @@
       right: 0;
     }
 
+    .vnum-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.9rem;
+    }
+
     .vnum {
       font-family: 'Cormorant Garamond', serif;
       font-size: 0.62rem;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--vc, var(--dim));
-      margin-bottom: 0.9rem;
       font-weight: 300;
+    }
+
+    .vc-mute {
+      background: none;
+      border: none;
+      font-family: 'EB Garamond', serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ctrl);
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+    @media (hover: hover) {
+      .vc-mute:hover { color: var(--fg); }
     }
 
     .vtitle {
@@ -263,6 +361,7 @@
       color: var(--fg);
       margin-bottom: 0.5rem;
     }
+    :root.light .vtitle { font-weight: 600; }
 
     .vmeta {
       font-family: 'EB Garamond', serif;
@@ -271,6 +370,7 @@
       color: var(--dim);
       line-height: 1.6;
     }
+    :root.light .vmeta { font-weight: 500; }
 
     /* ── Per-corner controls ─────────────────────────────────── */
     .vp-controls {
@@ -309,7 +409,7 @@
     .vc-find.pinned { color: var(--vc, var(--fg)); }
 
     /* Muted state — dim the text, keep controls fully usable */
-    .vp.muted .vnum,
+    .vp.muted .vnum-row .vnum,
     .vp.muted .vtitle,
     .vp.muted .vmeta { opacity: 0.25; }
     .vp.muted::before { opacity: 0.25; }
@@ -418,20 +518,46 @@
       font-style: italic;
       padding: 0.6rem 0.2rem;
     }
-    #sm-random {
+
+    /* ── Paste modal ─────────────────────────────────────────── */
+    #paste-modal[hidden] { display: none; }
+    #paste-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #pm-input {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--input-rule);
+      color: var(--fg);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      padding: 0.7rem 0.6rem;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+    #pm-input:focus { border-color: var(--input-rule-focus); }
+    #pm-input::placeholder { color: var(--placeholder); font-style: italic; }
+    #pm-submit {
       margin-top: 0.9rem;
       align-self: flex-start;
       background: none;
       border: none;
       cursor: pointer;
       font-family: 'EB Garamond', serif;
-      font-size: 0.72rem;
+      font-size: 0.82rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--dim);
       transition: color 0.2s;
     }
-    #sm-random:hover { color: var(--fg); }
+    #pm-submit:hover { color: var(--fg); }
 
     /* ── Small-screen shared: anything both portrait and landscape need ── */
     @media (max-width: 720px), (max-height: 540px) {
@@ -441,8 +567,8 @@
 
     /* ── Portrait phones: weave-first, voices as a tap-to-expand strip ── */
     @media (max-width: 720px) and (orientation: portrait) {
-      #instrument-label { font-size: 0.56rem; letter-spacing: 0.08em; }
-      #mode-btn, #color-btn { font-size: 0.58rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
+      #instrument-label { font-size: 0.72rem; letter-spacing: 0.08em; }
+      #mode-btn, #color-btn, #share-btn { font-size: 0.72rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
       #mode-toggle { gap: 0.25rem; }
       #count-input { width: 3.2rem; margin-left: 0.35rem; font-size: 16px; padding: 0.1rem 0.2rem; }
 
@@ -463,7 +589,8 @@
       #v0, #v2 { border-right: 1px solid var(--rule); }
       .vp::before { top: 0.7rem; bottom: 0.7rem; }
 
-      .vnum { margin-bottom: 0.35rem; }
+      .vnum-row { margin-bottom: 0.35rem; }
+      .vc-mute { font-size: 0.64rem; }
       .vtitle {
         font-size: 0.82rem;
         margin-bottom: 0;
@@ -478,13 +605,13 @@
       .vp .vmeta, .vp .vp-controls { display: none; }
       .vp.expanded .vmeta { display: block; margin-top: 0.45rem; font-size: 0.8rem; }
       .vp.expanded .vp-controls {
-        display: flex;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        justify-items: start;
         position: static;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.6rem;
         margin-top: 0.6rem;
         font-size: 0.74rem;
+        gap: 0.7rem 0.6rem;
         opacity: 1;
       }
 
@@ -505,7 +632,7 @@
     @media (orientation: landscape) and (max-height: 540px) {
       #top-bar { padding: 0 1rem; }
       #instrument-label { font-size: 0.58rem; letter-spacing: 0.1em; }
-      #mode-btn, #color-btn { font-size: 0.6rem; letter-spacing: 0.07em; }
+      #mode-btn, #color-btn, #share-btn { font-size: 0.6rem; letter-spacing: 0.07em; }
       #count-input { width: 3rem; margin-left: 0.4rem; font-size: 0.6rem; }
 
       /* Reset portrait grid — restore desktop four-corners */
@@ -526,7 +653,8 @@
       #v0, #v2 { border-right: none; }
       .vp::before { top: 0.7rem; bottom: 0.7rem; }
 
-      .vnum { margin-bottom: 0.4rem; }
+      .vnum-row { margin-bottom: 0.4rem; }
+      .vc-mute { font-size: 0.6rem; }
       .vtitle {
         font-size: 0.82rem;
         margin-bottom: 0.3rem;
@@ -539,14 +667,15 @@
 
       /* Reset portrait hide — always show meta and controls */
       .vp .vmeta { display: block; }
-      .vp .vp-controls { display: flex; }
-
-      .vp-controls {
-        position: static;
-        margin-top: 0.5rem;
-        left: auto; right: auto; bottom: auto;
-        font-size: 0.66rem;
-        gap: 0.3rem 0.7rem;
+      .vp .vp-controls {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        justify-items: start;
+        position: absolute;
+        left: 1rem; right: 0.9rem; bottom: 0.45rem;
+        margin-top: 0;
+        font-size: 0.72rem;
+        gap: 0.35rem 0.6rem;
         opacity: 1;
       }
 
@@ -558,70 +687,90 @@
 <body>
 
   <header id="top-bar">
-    <button id="instrument-label">Instrument-01</button>
-
-    <div id="mode-toggle">
-      <button id="words-refresh" hidden aria-label="Regenerate">↻</button>
-      <button id="mode-btn">Sentences</button>
-      <input id="count-input" type="text" inputmode="numeric" value="50" aria-label="Count">
+    <div id="top-left">
+      <button id="instrument-label"><span style="color:#c07a2b">C</span><span style="color:#8b3d6b">E</span><span style="color:#2b6e8b">N</span><span style="color:#4a7a46">T</span><span style="color:#c07a2b">O</span></button>
     </div>
-
-    <button id="color-btn">Color</button>
+    <div id="top-center">
+      <div id="mode-group">
+        <button id="words-refresh" style="visibility:hidden" aria-label="Regenerate">↻</button>
+        <button id="mode-btn">Sentences</button>
+      </div>
+      <input id="count-input" type="text" inputmode="numeric" value="50" aria-label="Count">
+      <button id="color-btn">Color</button>
+    </div>
+    <div id="top-right">
+      <button id="share-btn">Share</button>
+    </div>
   </header>
 
   <main id="stage">
 
     <div class="vp" id="v0" data-vi="0">
-      <div class="vnum">I</div>
+      <div class="vnum-row">
+        <span class="vnum">I</span>
+        <button class="vc-mute" data-vi="0" title="Silence this voice">✕ Silence</button>
+      </div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="0" title="Find a specific book">⌕ Find</button>
+        <button class="vc-paste" data-vi="0" title="Type or paste your own text">⎘ Type</button>
         <button class="vc-reroll" data-vi="0" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="0" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="0" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
-    <div id="center">
+    <div id="center" style="position:relative">
+      <div id="share-caret-start" class="share-caret"></div>
+      <div id="share-caret-end" class="share-caret"></div>
+      <div id="share-popup">Share</div>
       <div id="text-out">
         <p class="loading-msg">gathering voices</p>
       </div>
     </div>
 
     <div class="vp" id="v1" data-vi="1">
-      <div class="vnum">II</div>
+      <div class="vnum-row">
+        <span class="vnum">II</span>
+        <button class="vc-mute" data-vi="1" title="Silence this voice">✕ Silence</button>
+      </div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="1" title="Find a specific book">⌕ Find</button>
+        <button class="vc-paste" data-vi="1" title="Type or paste your own text">⎘ Type</button>
         <button class="vc-reroll" data-vi="1" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="1" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="1" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
     <div class="vp" id="v2" data-vi="2">
-      <div class="vnum">III</div>
+      <div class="vnum-row">
+        <span class="vnum">III</span>
+        <button class="vc-mute" data-vi="2" title="Silence this voice">✕ Silence</button>
+      </div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="2" title="Find a specific book">⌕ Find</button>
+        <button class="vc-paste" data-vi="2" title="Type or paste your own text">⎘ Type</button>
         <button class="vc-reroll" data-vi="2" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="2" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="2" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
     <div class="vp" id="v3" data-vi="3">
-      <div class="vnum">IV</div>
+      <div class="vnum-row">
+        <span class="vnum">IV</span>
+        <button class="vc-mute" data-vi="3" title="Silence this voice">✕ Silence</button>
+      </div>
       <div class="vtitle">—</div>
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="3" title="Find a specific book">⌕ Find</button>
+        <button class="vc-paste" data-vi="3" title="Type or paste your own text">⎘ Type</button>
         <button class="vc-reroll" data-vi="3" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="3" title="A different random book">⚄ Random</button>
-        <button class="vc-mute" data-vi="3" title="Silence this voice">✕ Silence</button>
       </div>
     </div>
 
@@ -637,7 +786,19 @@
       <input id="sm-input" type="text" autocomplete="off" spellcheck="false"
              placeholder="Search by title or author…">
       <div id="sm-results"></div>
-      <button id="sm-random">↺ Back to random</button>
+    </div>
+  </div>
+
+  <div id="paste-modal" hidden>
+    <div class="sm-backdrop"></div>
+    <div class="sm-panel">
+      <div class="sm-head">
+        <span class="sm-title">Type — Voice <span id="pm-voice">I</span></span>
+        <button id="pm-close" aria-label="Close">✕</button>
+      </div>
+      <textarea id="pm-input" rows="10" spellcheck="false"
+                placeholder="Paste or type your text here…"></textarea>
+      <button id="pm-submit">Use this text</button>
     </div>
   </div>
 
@@ -705,7 +866,7 @@
     }
 
     // ── Render text ────────────────────────────────────────────
-    function renderText() {
+    function renderText(scrollToTop) {
       const out   = document.getElementById('text-out');
       const active = voices.filter(v => v.active && v.paragraphs.length > 0);
 
@@ -721,14 +882,14 @@
         out.innerHTML = cachedWordsHtml;
       }
 
-      document.getElementById('center').scrollTop = 0;
+      if (scrollToTop) document.getElementById('center').scrollTop = 0;
     }
 
     // Abbreviations/honorifics that end in a period without ending a sentence.
     // Their periods are swapped for a placeholder before splitting, then
     // restored — so “Mr. Smith”, “Gen. Lee”, “Rev. Fr. Brown” stay whole.
     const ABBR_PERIOD = '\uE000';
-    const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl)\./g;
+    const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\./g;
 
     function protectAbbrev(text) {
       return text
@@ -736,6 +897,8 @@
         .replace(/\b(?:[A-Za-z]\.){2,}/g, m => m.replace(/\./g, ABBR_PERIOD))
         // Spaced name-initial runs: J. R. R.
         .replace(/\b[A-Za-z]\.(?:\s+[A-Za-z]\.)+/g, m => m.replace(/\./g, ABBR_PERIOD))
+        // Multi-character Roman numerals: II. III. IV. XII. etc.
+        .replace(/\b[IVXLCDM]{2,}\./g, m => m.replace(/\./g, ABBR_PERIOD))
         // Honorifics / titles / common abbreviations from the list
         .replace(ABBR_WORDS, (m, w) => w + ABBR_PERIOD);
     }
@@ -840,7 +1003,7 @@
           const word = words[cursors[vi]++];
           const cat = wordCat(word);
           if (cat && cat === lastCat) continue;
-          spans.push(`<span style="color:${color}">${esc(word)}</span>`);
+          spans.push(`<span style="color:${color}" data-vi="${active[vi].index}">${esc(word)}</span>`);
           lastCat = cat;
           if (/[.!?…][""”]?$/.test(word)) needsCap = true;
         }
@@ -883,7 +1046,7 @@
         }));
 
         renderCorners();
-        renderText();
+        renderText(true);
       } catch (err) {
         document.getElementById('text-out').innerHTML =
           `<p class="loading-msg" style="animation:none">Could not load voices. Please try again.</p>`;
@@ -928,7 +1091,7 @@
         }
 
         renderCorners();
-        renderText();
+        renderText(true);
       } catch (err) {
         console.error('Instrument 01 voice ' + i + ':', err);
         renderCorners(); // restore previous voice display
@@ -940,8 +1103,21 @@
 
     function newPassage(i) {
       const v = voices[i];
-      if (!v || !v.allParagraphs || !v.allParagraphs.length) return newRandom(i);
-      v.paragraphs = pickWindow(v.allParagraphs, DISPLAY_WINDOW);
+      if (!v || !v.allParagraphs || !v.allParagraphs.length) return;
+      const total = v.allParagraphs.length;
+      if (total <= DISPLAY_WINDOW) {
+        const half = Math.floor(total / 2);
+        const oldStart = v.allParagraphs.indexOf(v.paragraphs[0]);
+        const newStart = (oldStart + half) % total;
+        v.paragraphs = v.allParagraphs.slice(newStart, newStart + total);
+      } else {
+        const oldFirst = v.paragraphs[0];
+        let attempts = 0;
+        do {
+          v.paragraphs = pickWindow(v.allParagraphs, DISPLAY_WINDOW);
+          attempts++;
+        } while (v.paragraphs[0] === oldFirst && attempts < 5);
+      }
       cachedWordsHtml = null;
       renderText();
     }
@@ -977,7 +1153,7 @@
     }
 
     function syncRefreshBtn() {
-      refreshBtn.hidden = mode !== 'words';
+      refreshBtn.style.visibility = mode === 'words' ? 'visible' : 'hidden';
     }
 
     const modeBtn = document.getElementById('mode-btn');
@@ -1055,9 +1231,15 @@
         const i = parseInt(btn.dataset.vi, 10);
         if (!voices[i]) return;
         voices[i].active = !voices[i].active;
-        cachedWordsHtml = null;
         renderCorners();
-        renderText();
+        if (mode === 'words' && cachedWordsHtml) {
+          document.querySelectorAll('#text-out span[data-vi="' + i + '"]').forEach(sp => {
+            sp.style.display = voices[i].active ? '' : 'none';
+          });
+        } else {
+          cachedWordsHtml = null;
+          renderText();
+        }
       });
     });
 
@@ -1084,6 +1266,7 @@
     function openSearch(i) {
       searchTarget = i;
       smVoice.textContent = NUMERALS[i];
+      smVoice.style.color = VOICE_COLORS[i];
       smInput.value = '';
       smResults.innerHTML = '';
       searchResults = [];
@@ -1148,12 +1331,603 @@
       closeSearch();
     });
 
-    document.getElementById('sm-random').addEventListener('click', () => {
-      if (searchTarget !== null) unpinCorner(searchTarget);
-      closeSearch();
-    });
     document.getElementById('sm-close').addEventListener('click', closeSearch);
     searchModal.querySelector('.sm-backdrop').addEventListener('click', closeSearch);
+
+    // ── Paste modal ──────────────────────────────────────────────
+    const pasteModal = document.getElementById('paste-modal');
+    const pmInput    = document.getElementById('pm-input');
+    const pmVoice    = document.getElementById('pm-voice');
+    let pasteTarget  = null;
+
+    document.querySelectorAll('.vc-paste').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pasteTarget = parseInt(btn.dataset.vi, 10);
+        pmVoice.textContent = NUMERALS[pasteTarget];
+        pmVoice.style.color = VOICE_COLORS[pasteTarget];
+        pmInput.value = '';
+        pasteModal.hidden = false;
+        pmInput.focus();
+      });
+    });
+
+    function closePaste() {
+      pasteModal.hidden = true;
+      pasteTarget = null;
+    }
+
+    document.getElementById('pm-close').addEventListener('click', closePaste);
+    pasteModal.querySelector('.sm-backdrop').addEventListener('click', closePaste);
+
+    document.getElementById('pm-submit').addEventListener('click', () => {
+      const raw = pmInput.value.trim();
+      if (!raw || pasteTarget === null) return;
+
+      const paragraphs = raw.split(/\n\s*\n/)
+        .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
+        .filter(p => p.length > 0);
+
+      if (!paragraphs.length) return;
+
+      const i = pasteTarget;
+      const allWords = raw.split(/\s+/).filter(w => w);
+      const titleWords = allWords.slice(0, 5);
+      const title = titleWords.join(' ') + (allWords.length > 5 ? '…' : '');
+
+      voices[i] = {
+        title: title,
+        author: null,
+        source: 'paste',
+        color: VOICE_COLORS[i],
+        allParagraphs: paragraphs,
+        paragraphs: pickWindow(paragraphs, DISPLAY_WINDOW),
+        active: true,
+        index: i,
+      };
+      cornerMode[i] = 'random';
+      cachedWordsHtml = null;
+
+      renderCorners();
+      renderText(true);
+      closePaste();
+    });
+
+    // ── Share ──────────────────────────────────────────────────
+    const shareBtn = document.getElementById('share-btn');
+    let shareMode = false;
+    let shareReady = false;
+
+    const caretStart = document.getElementById('share-caret-start');
+    const caretEnd = document.getElementById('share-caret-end');
+
+    function positionCaretStart() {
+      const center = document.getElementById('center');
+      const textOut = document.getElementById('text-out');
+      const centerRect = center.getBoundingClientRect();
+      const spans = textOut.querySelectorAll('span[style*="color"]');
+
+      for (const span of spans) {
+        const rect = span.getBoundingClientRect();
+        if (rect.top >= centerRect.top) {
+          const left = rect.left - centerRect.left;
+          const top = rect.top - centerRect.top + center.scrollTop;
+          const height = parseFloat(getComputedStyle(span).fontSize) * 1.2;
+          caretStart.style.left = left + 'px';
+          caretStart.style.top = top + 'px';
+          caretStart.style.height = height + 'px';
+          caretStart.style.display = 'block';
+          return;
+        }
+      }
+    }
+
+    function positionCaretEnd() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const rects = range.getClientRects();
+      if (!rects.length) return;
+
+      const center = document.getElementById('center');
+      const centerRect = center.getBoundingClientRect();
+      const lastRect = rects[rects.length - 1];
+      const left = lastRect.right - centerRect.left;
+      const top = lastRect.top - centerRect.top + center.scrollTop;
+      const height = lastRect.height;
+
+      caretEnd.style.left = left + 'px';
+      caretEnd.style.top = top + 'px';
+      caretEnd.style.height = height + 'px';
+      caretEnd.style.display = 'block';
+    }
+
+    function selectFirstVisibleWord() {
+      const center = document.getElementById('center');
+      const textOut = document.getElementById('text-out');
+      const centerRect = center.getBoundingClientRect();
+      const spans = textOut.querySelectorAll('span[style*="color"]');
+
+      for (const span of spans) {
+        const rect = span.getBoundingClientRect();
+        if (rect.top >= centerRect.top) {
+          const textNode = span.firstChild;
+          if (!textNode || textNode.nodeType !== 3) continue;
+          const text = textNode.textContent;
+          const firstWordEnd = text.indexOf(' ');
+          let end = firstWordEnd > 0 ? firstWordEnd : text.length;
+
+          if (end < 3) {
+            const nextSpace = text.indexOf(' ', end + 1);
+            end = nextSpace > 0 ? nextSpace : text.length;
+          }
+
+          anchorStartNode = textNode;
+          anchorStartOffset = 0;
+          anchorEndNode = textNode;
+          anchorEndOffset = end;
+
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          const r = document.createRange();
+          r.setStart(textNode, 0);
+          r.setEnd(textNode, end);
+          sel.addRange(r);
+
+          updateCaretPositions();
+          caretStart.style.display = 'block';
+          caretEnd.style.display = 'block';
+          return;
+        }
+      }
+    }
+
+    const sharePopup = document.getElementById('share-popup');
+
+    function positionPopup() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const rects = range.getClientRects();
+      if (!rects.length) return;
+
+      const center = document.getElementById('center');
+      const centerRect = center.getBoundingClientRect();
+      const lastRect = rects[rects.length - 1];
+
+      const left = lastRect.right - centerRect.left;
+      const top = lastRect.bottom - centerRect.top + center.scrollTop + 12;
+
+      sharePopup.style.left = left + 'px';
+      sharePopup.style.top = top + 'px';
+      sharePopup.style.display = 'block';
+    }
+
+    function enterShareMode() {
+      shareMode = true;
+      shareReady = true;
+      anchorStartNode = null; anchorStartOffset = 0;
+      anchorEndNode = null; anchorEndOffset = 0;
+      document.body.classList.add('share-mode');
+      shareBtn.textContent = 'Cancel';
+      selectFirstVisibleWord();
+      positionPopup();
+    }
+
+    function exitShareMode() {
+      shareMode = false;
+      shareReady = false;
+      savedRange = null;
+      anchorStartNode = null; anchorStartOffset = 0;
+      anchorEndNode = null; anchorEndOffset = 0;
+      document.body.classList.remove('share-mode');
+      shareBtn.textContent = 'Share';
+      caretStart.style.display = 'none';
+      caretEnd.style.display = 'none';
+      sharePopup.style.display = 'none';
+      window.getSelection().removeAllRanges();
+    }
+
+    shareBtn.addEventListener('click', () => {
+      if (shareMode) { exitShareMode(); return; }
+      enterShareMode();
+    });
+
+    let savedRange = null;
+
+    function saveSelection() {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && sel.toString().trim()) {
+        savedRange = sel.getRangeAt(0).cloneRange();
+      }
+    }
+
+    function restoreSelection() {
+      if (!savedRange) return;
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+
+    document.addEventListener('selectionchange', () => {
+      if (!shareMode) return;
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim()) {
+        saveSelection();
+      } else if (savedRange && !isDragging) {
+        setTimeout(restoreSelection, 0);
+      }
+    });
+
+    sharePopup.addEventListener('mousedown', (e) => { e.preventDefault(); });
+    sharePopup.addEventListener('touchstart', (e) => { e.preventDefault(); });
+    sharePopup.addEventListener('click', () => {
+      generateShareCard();
+    });
+
+    let isDragging = false;
+    let dragWhich = null; // 'start' or 'end'
+    let anchorStartNode = null, anchorStartOffset = 0;
+    let anchorEndNode = null, anchorEndOffset = 0;
+
+    function caretFromPoint(x, y) {
+      if (document.caretRangeFromPoint) {
+        return document.caretRangeFromPoint(x, y);
+      }
+      if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(x, y);
+        if (!pos) return null;
+        const range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+        return range;
+      }
+      return null;
+    }
+
+    function caretPosToNode(caretEl) {
+      const center = document.getElementById('center');
+      const centerRect = center.getBoundingClientRect();
+      const x = parseFloat(caretEl.style.left) + centerRect.left;
+      const y = parseFloat(caretEl.style.top) - center.scrollTop + centerRect.top + parseFloat(caretEl.style.height) / 2;
+      return caretFromPoint(x, y);
+    }
+
+    function updateSelection() {
+      if (!anchorStartNode || !anchorEndNode) return;
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      const r = document.createRange();
+      try {
+        r.setStart(anchorStartNode, anchorStartOffset);
+        r.setEnd(anchorEndNode, anchorEndOffset);
+        if (r.collapsed) {
+          r.setStart(anchorEndNode, anchorEndOffset);
+          r.setEnd(anchorStartNode, anchorStartOffset);
+        }
+      } catch (_) { return; }
+      sel.addRange(r);
+    }
+
+    function updateCaretPositions() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const rects = range.getClientRects();
+      if (!rects.length) return;
+
+      const center = document.getElementById('center');
+      const centerRect = center.getBoundingClientRect();
+
+      const firstRect = rects[0];
+      caretStart.style.left = (firstRect.left - centerRect.left) + 'px';
+      caretStart.style.top = (firstRect.top - centerRect.top + center.scrollTop) + 'px';
+      caretStart.style.height = firstRect.height + 'px';
+
+      const lastRect = rects[rects.length - 1];
+      caretEnd.style.left = (lastRect.right - centerRect.left) + 'px';
+      caretEnd.style.top = (lastRect.top - centerRect.top + center.scrollTop) + 'px';
+      caretEnd.style.height = lastRect.height + 'px';
+    }
+
+    function beginDrag(which, e) {
+      if (!shareMode) return;
+      e.preventDefault();
+      dragWhich = which;
+      isDragging = true;
+      document.body.classList.add('share-dragging');
+      sharePopup.style.display = 'none';
+    }
+
+    let scrollRAF = null;
+    const SCROLL_ZONE = 60;
+    const SCROLL_SPEED = 8;
+
+    function autoScroll(clientY) {
+      const center = document.getElementById('center');
+      const rect = center.getBoundingClientRect();
+      const distTop = clientY - rect.top;
+      const distBot = rect.bottom - clientY;
+
+      if (distTop < SCROLL_ZONE && center.scrollTop > 0) {
+        const rate = SCROLL_SPEED * (1 - distTop / SCROLL_ZONE);
+        center.scrollTop -= rate;
+        return true;
+      }
+      if (distBot < SCROLL_ZONE && center.scrollTop < center.scrollHeight - center.clientHeight) {
+        const rate = SCROLL_SPEED * (1 - distBot / SCROLL_ZONE);
+        center.scrollTop += rate;
+        return true;
+      }
+      return false;
+    }
+
+    let lastDragX = 0, lastDragY = 0;
+
+    function dragTick() {
+      if (!isDragging) { scrollRAF = null; return; }
+      autoScroll(lastDragY);
+
+      const range = caretFromPoint(lastDragX, lastDragY);
+      if (range) {
+        if (dragWhich === 'start') {
+          anchorStartNode = range.startContainer;
+          anchorStartOffset = range.startOffset;
+        } else {
+          anchorEndNode = range.startContainer;
+          anchorEndOffset = range.startOffset;
+        }
+        updateSelection();
+        updateCaretPositions();
+      }
+
+      scrollRAF = requestAnimationFrame(dragTick);
+    }
+
+    function onDragMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      lastDragX = e.touches ? e.touches[0].clientX : e.clientX;
+      lastDragY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (!scrollRAF) scrollRAF = requestAnimationFrame(dragTick);
+    }
+
+    function onDragEnd() {
+      if (!isDragging) return;
+      isDragging = false;
+      dragWhich = null;
+      if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+      document.body.classList.remove('share-dragging');
+      positionPopup();
+    }
+
+    document.getElementById('center').addEventListener('mousedown', (e) => {
+      if (!shareMode) return;
+      if (e.target.closest('.share-caret')) return;
+      e.preventDefault();
+    });
+
+    caretStart.addEventListener('mousedown', (e) => beginDrag('start', e));
+    caretStart.addEventListener('touchstart', (e) => beginDrag('start', e));
+    caretEnd.addEventListener('mousedown', (e) => beginDrag('end', e));
+    caretEnd.addEventListener('touchstart', (e) => beginDrag('end', e));
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('mouseup', onDragEnd);
+    document.addEventListener('touchend', onDragEnd);
+
+    function getSelectedSpans() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return [];
+      const range = sel.getRangeAt(0);
+      const cloned = range.cloneContents();
+      const result = [];
+      const walker = document.createTreeWalker(cloned, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const text = node.textContent.trim();
+        if (!text) continue;
+        const parent = node.parentElement;
+        const color = parent && parent.style && parent.style.color
+          ? parent.style.color : '#f5f2ec';
+        if (result.length > 0 && result[result.length - 1].color === color) {
+          result[result.length - 1].text += ' ' + text;
+        } else {
+          result.push({ text, color });
+        }
+      }
+      return result;
+    }
+
+    function getActiveVoiceSources() {
+      return voices.filter(v => v && v.active).map(v => ({
+        title: v.title || 'Untitled',
+        author: v.author || null,
+        color: v.color,
+      }));
+    }
+
+    async function generateShareCard() {
+      const sel = window.getSelection();
+      if (!sel || !sel.toString().trim()) return;
+
+      const selectedText = sel.toString().trim();
+      const spans = getSelectedSpans();
+      const sources = getActiveVoiceSources();
+
+      const W = 1200;
+      const PAD = 80;
+      const maxWidth = W - PAD * 2;
+      const HEADER_Y = 70;
+      const TEXT_TOP = 160;
+      const SRC_HEIGHT = 100;
+      const MIN_FONT = 22;
+      const MAX_FONT = 36;
+      const MAX_PAGE_H = 1800;
+
+      // Build tokens
+      const tokens = [];
+      if (spans.length > 0) {
+        for (const span of spans) {
+          const words = span.text.split(/\s+/).filter(w => w);
+          for (const word of words) tokens.push({ word, color: span.color || '#f5f2ec' });
+        }
+      } else {
+        const words = selectedText.split(/\s+/).filter(w => w);
+        for (const word of words) tokens.push({ word, color: '#f5f2ec' });
+      }
+
+      // Measure helper: wrap tokens at a given font size, return lines
+      const measure = document.createElement('canvas').getContext('2d');
+      function wrapAtSize(fontSize) {
+        measure.font = fontSize + 'px "Cormorant Garamond", serif';
+        const lh = Math.round(fontSize * 1.6);
+        const sp = measure.measureText(' ').width;
+        const lines = [];
+        let cur = [], cw = 0;
+        for (const tok of tokens) {
+          const ww = measure.measureText(tok.word).width;
+          const needed = cur.length > 0 ? sp + ww : ww;
+          if (cur.length > 0 && cw + needed > maxWidth) {
+            lines.push(cur);
+            cur = [tok]; cw = ww;
+          } else {
+            cur.push(tok); cw += needed;
+          }
+        }
+        if (cur.length) lines.push(cur);
+        return { lines, lineHeight: lh, spaceWidth: sp };
+      }
+
+      // Find the best font size: largest that fits one page, or min if it overflows
+      let fontSize = MAX_FONT;
+      let wrapped = wrapAtSize(fontSize);
+      let textHeight = wrapped.lines.length * wrapped.lineHeight;
+      const maxTextH = MAX_PAGE_H - TEXT_TOP - SRC_HEIGHT - 40;
+
+      while (fontSize > MIN_FONT && textHeight > maxTextH) {
+        fontSize -= 1;
+        wrapped = wrapAtSize(fontSize);
+        textHeight = wrapped.lines.length * wrapped.lineHeight;
+      }
+
+      // Split into pages if text still overflows at min font
+      const linesPerPage = Math.floor(maxTextH / wrapped.lineHeight);
+      const pages = [];
+      for (let i = 0; i < wrapped.lines.length; i += linesPerPage) {
+        pages.push(wrapped.lines.slice(i, i + linesPerPage));
+      }
+
+      // Render each page
+      const blobs = [];
+      const fixedH = pages.length > 1
+        ? TEXT_TOP + linesPerPage * wrapped.lineHeight + SRC_HEIGHT + 40
+        : null;
+      for (let p = 0; p < pages.length; p++) {
+        const pageLines = pages[p];
+        const pageTextH = pageLines.length * wrapped.lineHeight;
+        const H = fixedH || (TEXT_TOP + pageTextH + SRC_HEIGHT + 40);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#090909';
+        ctx.fillRect(0, 0, W, H);
+
+        // Header
+        ctx.font = 'italic 28px Spectral, serif';
+        ctx.textAlign = 'left';
+        const centoLetters = ['C','E','N','T','O'];
+        const centoColors = ['#c07a2b','#8b3d6b','#2b6e8b','#4a7a46','#c07a2b'];
+        let cx = PAD;
+        for (let i = 0; i < centoLetters.length; i++) {
+          ctx.fillStyle = centoColors[i];
+          ctx.fillText(centoLetters[i], cx, HEADER_Y);
+          cx += ctx.measureText(centoLetters[i]).width + 2;
+        }
+        ctx.font = '28px "EB Garamond", serif';
+        ctx.fillStyle = '#f5f2ec';
+        ctx.textAlign = 'right';
+        ctx.fillText('closeupfarout.com', W - PAD, HEADER_Y);
+
+        // Text
+        ctx.textAlign = 'left';
+        ctx.font = fontSize + 'px "Cormorant Garamond", serif';
+        let y = TEXT_TOP;
+        for (const line of pageLines) {
+          let x = PAD;
+          for (const tok of line) {
+            ctx.fillStyle = tok.color;
+            ctx.fillText(tok.word, x, y);
+            x += ctx.measureText(tok.word).width + wrapped.spaceWidth;
+          }
+          y += wrapped.lineHeight;
+        }
+
+        // Sources
+        const srcY = H - SRC_HEIGHT + 10;
+        const colW = maxWidth / 2 - 20;
+        function fitText(ctx, text, maxW) {
+          if (ctx.measureText(text).width <= maxW) return text;
+          let t = text;
+          while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+          return t + '…';
+        }
+        ctx.font = '22px "EB Garamond", serif';
+        sources.forEach((src, i) => {
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          ctx.fillStyle = src.color;
+          const sx = PAD + col * (maxWidth / 2);
+          const sy = srcY + row * 36;
+          ctx.fillText(fitText(ctx, src.title || 'Untitled', colW), sx, sy);
+        });
+
+        if (pages.length > 1) {
+          ctx.font = '20px "EB Garamond", serif';
+          ctx.fillStyle = '#f5f2ec';
+          ctx.textAlign = 'right';
+          ctx.fillText((p + 1) + '/' + pages.length, W - PAD, H - 30);
+        }
+
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        blobs.push(blob);
+      }
+
+      // Share or download
+      if (blobs.length === 1) {
+        const file = new File([blobs[0]], 'cento-share.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file] }); }
+          catch (e) { if (e.name !== 'AbortError') downloadBlob(blobs[0]); }
+        } else {
+          downloadBlob(blobs[0]);
+        }
+      } else {
+        const files = blobs.map((b, i) =>
+          new File([b], 'cento-share-' + (i + 1) + '.png', { type: 'image/png' })
+        );
+        if (navigator.canShare && navigator.canShare({ files })) {
+          try { await navigator.share({ files }); }
+          catch (e) { if (e.name !== 'AbortError') blobs.forEach((b, i) => downloadBlob(b, i + 1)); }
+        } else {
+          blobs.forEach((b, i) => downloadBlob(b, i + 1));
+        }
+      }
+      exitShareMode();
+    }
+
+    function downloadBlob(blob, pageNum) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pageNum ? 'cento-share-' + pageNum + '.png' : 'cento-share.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
 
     // ── Init ───────────────────────────────────────────────────
     loadPairing();

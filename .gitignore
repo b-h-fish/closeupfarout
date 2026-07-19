@@ -1,3 +1,4 @@
 .vercel
 images/
 scripts/pg_catalog.csv
+.DS_Store

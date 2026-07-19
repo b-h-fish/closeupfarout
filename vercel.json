@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/instrument-01",
+      "destination": "/cento",
+      "permanent": true
+    },
+    {
+      "source": "/quarterly",
+      "destination": "/periodical",
+      "permanent": true
+    }
+  ]
+}

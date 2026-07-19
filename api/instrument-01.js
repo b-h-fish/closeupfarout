@@ -260,9 +260,16 @@ function searchBooks(query, limit) {
   }
   // Higher score first; ties broken by lower id (older ~ more canonical).
   scored.sort((x, y) => y.score - x.score || x.e.b.id - y.e.b.id);
-  return scored.slice(0, limit || 20).map(s => ({
-    id: s.e.b.id, title: s.e.b.title, author: s.e.b.author,
-  }));
+  const seen = new Set();
+  const out = [];
+  for (const s of scored) {
+    const key = s.e.t + '||' + s.e.a;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: s.e.b.id, title: s.e.b.title, author: s.e.b.author });
+    if (out.length >= (limit || 20)) break;
+  }
+  return out;
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────
