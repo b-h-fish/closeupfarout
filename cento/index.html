@@ -194,6 +194,59 @@
     @media (hover: hover) {
       #share-popup:hover { opacity: 0.7; }
     }
+
+    #share-preview-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.85);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    #share-preview-overlay.visible { display: flex; }
+    #share-preview-images {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      max-height: calc(100vh - 6rem);
+      width: 100%;
+    }
+    #share-preview-images img {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 4px;
+      object-fit: contain;
+    }
+    #share-preview-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    #share-preview-actions button {
+      background: none;
+      border: 1px solid rgba(245,242,236,0.3);
+      border-radius: 4px;
+      color: #f5f2ec;
+      font-family: 'EB Garamond', serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.5rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #share-preview-actions button:hover {
+      border-color: rgba(245,242,236,0.6);
+    }
+
     .share-caret {
       display: none;
       position: absolute;
@@ -569,8 +622,13 @@
     @media (max-width: 720px) and (orientation: portrait) {
       #instrument-label { font-size: 0.72rem; letter-spacing: 0.08em; }
       #mode-btn, #color-btn, #share-btn { font-size: 0.72rem; letter-spacing: 0.05em; padding: 0.15rem 0.2rem; }
-      #mode-toggle { gap: 0.25rem; }
-      #count-input { width: 3.2rem; margin-left: 0.35rem; font-size: 16px; padding: 0.1rem 0.2rem; }
+      #share-btn { min-width: auto; }
+      #mode-group { width: 6.5rem; }
+      #color-btn { width: 4rem; }
+      #count-input { width: 3.2rem; font-size: 16px; padding: 0.1rem 0.2rem; }
+      #share-preview-overlay { padding: 1rem; }
+      #share-preview-actions { gap: 0.5rem; }
+      #share-preview-actions button { font-size: 0.75rem; padding: 0.4rem 1rem; }
 
       #stage {
         grid-template-columns: 1fr 1fr;
@@ -631,9 +689,11 @@
     /* ── Landscape phones: keep the four-corners layout, fit short corners ── */
     @media (orientation: landscape) and (max-height: 540px) {
       #top-bar { padding: 0 1rem; }
-      #instrument-label { font-size: 0.58rem; letter-spacing: 0.1em; }
-      #mode-btn, #color-btn, #share-btn { font-size: 0.6rem; letter-spacing: 0.07em; }
-      #count-input { width: 3rem; margin-left: 0.4rem; font-size: 0.6rem; }
+      #instrument-label { font-size: 0.85rem; letter-spacing: 0.1em; }
+      #mode-btn, #color-btn, #share-btn { font-size: 0.72rem; letter-spacing: 0.07em; }
+      #mode-group { width: 6.5rem; }
+      #color-btn { width: 4rem; }
+      #count-input { width: 3rem; font-size: 0.72rem; }
 
       /* Reset portrait grid — restore desktop four-corners */
       #stage {
@@ -775,6 +835,15 @@
     </div>
 
   </main>
+
+  <div id="share-preview-overlay">
+    <div id="share-preview-images"></div>
+    <div id="share-preview-actions">
+      <button id="sp-download">Download</button>
+      <button id="sp-share">Share</button>
+      <button id="sp-close">Close</button>
+    </div>
+  </div>
 
   <div id="search-modal" hidden>
     <div class="sm-backdrop"></div>
@@ -1449,7 +1518,7 @@
 
       for (const span of spans) {
         const rect = span.getBoundingClientRect();
-        if (rect.top >= centerRect.top) {
+        if (rect.bottom > centerRect.top && rect.top < centerRect.bottom) {
           const textNode = span.firstChild;
           if (!textNode || textNode.nodeType !== 3) continue;
           const text = textNode.textContent;
@@ -1548,19 +1617,28 @@
       sel.addRange(savedRange);
     }
 
+    let restoreTimer = null;
     document.addEventListener('selectionchange', () => {
       if (!shareMode) return;
+      if (document.getElementById('share-preview-overlay').classList.contains('visible')) return;
+      if (restoreTimer) { clearTimeout(restoreTimer); restoreTimer = null; }
       const sel = window.getSelection();
       if (sel && sel.toString().trim()) {
         saveSelection();
+        positionPopup();
       } else if (savedRange && !isDragging) {
-        setTimeout(restoreSelection, 0);
+        restoreTimer = setTimeout(() => {
+          restoreSelection();
+          restoreTimer = null;
+        }, 300);
       }
     });
 
     sharePopup.addEventListener('mousedown', (e) => { e.preventDefault(); });
     sharePopup.addEventListener('touchstart', (e) => { e.preventDefault(); });
-    sharePopup.addEventListener('click', () => {
+    sharePopup.addEventListener('click', () => { generateShareCard(); });
+    sharePopup.addEventListener('touchend', (e) => {
+      e.preventDefault();
       generateShareCard();
     });
 
@@ -1896,37 +1974,62 @@
         blobs.push(blob);
       }
 
-      // Share or download
-      if (blobs.length === 1) {
-        const file = new File([blobs[0]], 'cento-share.png', { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try { await navigator.share({ files: [file] }); }
-          catch (e) { if (e.name !== 'AbortError') downloadBlob(blobs[0]); }
-        } else {
-          downloadBlob(blobs[0]);
-        }
-      } else {
-        const files = blobs.map((b, i) =>
-          new File([b], 'cento-share-' + (i + 1) + '.png', { type: 'image/png' })
-        );
-        if (navigator.canShare && navigator.canShare({ files })) {
-          try { await navigator.share({ files }); }
-          catch (e) { if (e.name !== 'AbortError') blobs.forEach((b, i) => downloadBlob(b, i + 1)); }
-        } else {
-          blobs.forEach((b, i) => downloadBlob(b, i + 1));
-        }
-      }
+      showSharePreview(blobs);
+    }
+
+    let previewBlobs = [];
+
+    function showSharePreview(blobs) {
+      previewBlobs = blobs;
+      sharePopup.style.display = 'none';
+      const container = document.getElementById('share-preview-images');
+      container.innerHTML = '';
+      blobs.forEach(blob => {
+        const url = URL.createObjectURL(blob);
+        const img = document.createElement('img');
+        img.src = url;
+        container.appendChild(img);
+      });
+      const overlay = document.getElementById('share-preview-overlay');
+      overlay.classList.add('visible');
+      const canShare = navigator.canShare && navigator.canShare({
+        files: [new File([blobs[0]], 'Cento.png', { type: 'image/png' })]
+      });
+      document.getElementById('sp-share').style.display = canShare ? '' : 'none';
+    }
+
+    function closeSharePreview() {
+      const overlay = document.getElementById('share-preview-overlay');
+      overlay.classList.remove('visible');
+      document.querySelectorAll('#share-preview-images img').forEach(img => {
+        URL.revokeObjectURL(img.src);
+      });
+      previewBlobs = [];
       exitShareMode();
     }
 
-    function downloadBlob(blob, pageNum) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = pageNum ? 'cento-share-' + pageNum + '.png' : 'cento-share.png';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    document.getElementById('sp-close').addEventListener('click', closeSharePreview);
+
+    document.getElementById('sp-download').addEventListener('click', () => {
+      previewBlobs.forEach((blob, i) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = previewBlobs.length > 1 ? 'Cento-' + (i + 1) + '.png' : 'Cento.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      closeSharePreview();
+    });
+
+    document.getElementById('sp-share').addEventListener('click', async () => {
+      const files = previewBlobs.map((b, i) =>
+        new File([b], previewBlobs.length > 1 ? 'Cento-' + (i + 1) + '.png' : 'Cento.png', { type: 'image/png' })
+      );
+      try { await navigator.share({ files }); }
+      catch (e) { if (e.name === 'AbortError') return; }
+      closeSharePreview();
+    });
 
 
     // ── Init ───────────────────────────────────────────────────
