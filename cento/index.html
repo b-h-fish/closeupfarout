@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cento — Close Up Far Out</title>
-  <link rel="icon" href="../favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cinzel:wght@400&family=Abril+Fatface&family=Libre+Baskerville:ital@1&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
@@ -126,7 +129,7 @@
       padding: 0.15rem 0.4rem;
       transition: color 0.2s;
     }
-    #mode-group { display: flex; align-items: center; justify-content: flex-end; width: 8.5rem; }
+    #mode-group { display: flex; align-items: center; justify-content: flex-end; width: 9rem; }
     #color-btn { width: 5rem; text-align: left; }
     @media (hover: hover) {
       #mode-btn:hover, #color-btn:hover, #share-btn:hover { color: var(--dim); }
@@ -755,7 +758,7 @@
         <button id="words-refresh" style="visibility:hidden" aria-label="Regenerate">↻</button>
         <button id="mode-btn">Sentences</button>
       </div>
-      <input id="count-input" type="text" inputmode="numeric" value="50" aria-label="Count">
+      <input id="count-input" type="text" inputmode="numeric" value="30" aria-label="Count">
       <button id="color-btn">Color</button>
     </div>
     <div id="top-right">
@@ -774,7 +777,7 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="0" title="Find a specific book">⌕ Find</button>
-        <button class="vc-paste" data-vi="0" title="Type or paste your own text">⎘ Type</button>
+        <button class="vc-paste" data-vi="0" title="Type or paste your own text">⎘ Enter</button>
         <button class="vc-reroll" data-vi="0" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="0" title="A different random book">⚄ Random</button>
       </div>
@@ -798,7 +801,7 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="1" title="Find a specific book">⌕ Find</button>
-        <button class="vc-paste" data-vi="1" title="Type or paste your own text">⎘ Type</button>
+        <button class="vc-paste" data-vi="1" title="Type or paste your own text">⎘ Enter</button>
         <button class="vc-reroll" data-vi="1" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="1" title="A different random book">⚄ Random</button>
       </div>
@@ -813,7 +816,7 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="2" title="Find a specific book">⌕ Find</button>
-        <button class="vc-paste" data-vi="2" title="Type or paste your own text">⎘ Type</button>
+        <button class="vc-paste" data-vi="2" title="Type or paste your own text">⎘ Enter</button>
         <button class="vc-reroll" data-vi="2" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="2" title="A different random book">⚄ Random</button>
       </div>
@@ -828,7 +831,7 @@
       <div class="vmeta"></div>
       <div class="vp-controls">
         <button class="vc-find" data-vi="3" title="Find a specific book">⌕ Find</button>
-        <button class="vc-paste" data-vi="3" title="Type or paste your own text">⎘ Type</button>
+        <button class="vc-paste" data-vi="3" title="Type or paste your own text">⎘ Enter</button>
         <button class="vc-reroll" data-vi="3" title="New passage from this book">↻ Passage</button>
         <button class="vc-random" data-vi="3" title="A different random book">⚄ Random</button>
       </div>
@@ -883,11 +886,14 @@
 
     const MAX_SENTENCES = 999;
     const MAX_WORDS     = 9999;
-    const DEFAULT_SENTENCES = 50;
-    const DEFAULT_WORDS     = 500;
+    const MAX_DIALOGUE  = 999;
+    const DEFAULT_SENTENCES = 30;
+    const DEFAULT_WORDS     = 300;
+    const DEFAULT_DIALOGUE  = 30;
     const DISPLAY_WINDOW = 150;
     let sentenceCount = DEFAULT_SENTENCES;
     let wordCount     = DEFAULT_WORDS;
+    let dialogueCount = DEFAULT_DIALOGUE;
     let cachedWordsHtml = null;
 
     // Per-corner state. cornerMode only drives the pinned indicator ('book' when
@@ -946,6 +952,8 @@
 
       if (mode === 'sentences') {
         out.innerHTML = renderSentences(active);
+      } else if (mode === 'dialogue') {
+        out.innerHTML = renderDialogue(active);
       } else {
         if (!cachedWordsHtml) cachedWordsHtml = renderWords(active);
         out.innerHTML = cachedWordsHtml;
@@ -984,7 +992,7 @@
       if (!matches) return [];
       return matches
         .map(s => s.split(ABBR_PERIOD).join('.').trim())
-        .filter(s => s.length > 0);
+        .filter(s => s.split(/\s+/).length >= 3 && !/\S+@\S+\.\S+/.test(s) && !/^[IVXLCDM]+\.?\s*—/.test(s));
     }
 
     // Center-text color for a voice — its own hue, or uniform white when the
@@ -1007,6 +1015,89 @@
           if (i < sentsByVoice[j].length) {
             spans.push(
               `<span style="color:${spanColor(active[j])}">${esc(sentsByVoice[j][i])}</span>`
+            );
+          }
+        }
+      }
+
+      return `<p class="sentences-block">${spans.join(' ')}</p>`;
+    }
+
+    // Pull quoted speech out of a book. Quote characters are written as escapes
+    // so the pattern can't be broken by smart-quote substitution in an editor.
+    const QUOTE_CHARS = '“”„‟"';
+    const DIALOGUE_RE = new RegExp(
+      '[' + QUOTE_CHARS + ']([^' + QUOTE_CHARS + ']+)[' + QUOTE_CHARS + ']', 'g'
+    );
+
+    // A usable line of dialogue is a complete spoken sentence: at least three
+    // words, opening on a capital, and closing on a period inside the quotes.
+    // This drops index fragments, mid-sentence scraps, and "he said," tags.
+    function isUsableDialogue(q) {
+      if (q.split(/\s+/).length < 3) return false;
+      if (!/^[A-Z]/.test(q)) return false;
+      if (!/\.$/.test(q)) return false;
+      return true;
+    }
+
+    function extractDialogue(text) {
+      const re = new RegExp(DIALOGUE_RE.source, 'g');
+      const results = [];
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        const quote = m[1].trim();
+        if (isUsableDialogue(quote)) results.push(quote);
+      }
+      return results;
+    }
+
+    // Extracted quotes and the chosen starting offset are cached on the voice so
+    // a change in one corner never reshuffles the others. Random/Find/Type build
+    // a brand-new voice object, which drops the cache; Passage clears the offset
+    // only, drawing a fresh run from the same book.
+    function voiceQuotes(v) {
+      if (!v._quotes) {
+        // Search the whole book, not just the display window — a 150-paragraph
+        // slice often lands on front matter or narration with no dialogue.
+        v._quotes = extractDialogue((v.allParagraphs || v.paragraphs).join(' '));
+      }
+      return v._quotes;
+    }
+
+    function renderDialogue(active) {
+      const voiced = [];
+      const quotesByVoice = [];
+      for (const v of active) {
+        const quotes = voiceQuotes(v);
+        if (quotes.length > 0) {
+          voiced.push(v);
+          quotesByVoice.push(quotes);
+        }
+      }
+      if (!voiced.length) {
+        return '<p class="loading-msg" style="animation:none;opacity:0.3">no dialogue found</p>';
+      }
+      const perVoice = Math.ceil(dialogueCount / voiced.length);
+      for (let i = 0; i < quotesByVoice.length; i++) {
+        const quotes = quotesByVoice[i];
+        const v = voiced[i];
+        if (v._qStart == null) {
+          v._qStart = quotes.length > perVoice
+            ? Math.floor(Math.random() * (quotes.length - perVoice))
+            : 0;
+        }
+        const start = Math.min(v._qStart, Math.max(0, quotes.length - perVoice));
+        quotesByVoice[i] = quotes.slice(start, start + perVoice);
+      }
+
+      const maxLen = Math.max(...quotesByVoice.map(q => q.length));
+      const spans = [];
+
+      for (let i = 0; i < maxLen && spans.length < dialogueCount; i++) {
+        for (let j = 0; j < voiced.length && spans.length < dialogueCount; j++) {
+          if (i < quotesByVoice[j].length) {
+            spans.push(
+              `<span style="color:${spanColor(voiced[j])}">“${esc(quotesByVoice[j][i])}”</span>`
             );
           }
         }
@@ -1187,6 +1278,9 @@
           attempts++;
         } while (v.paragraphs[0] === oldFirst && attempts < 5);
       }
+      // Dialogue reads the whole book, so the paragraph window above doesn't
+      // affect it — clear this voice's offset so it draws a new run instead.
+      v._qStart = null;
       cachedWordsHtml = null;
       renderText();
     }
@@ -1217,8 +1311,13 @@
     const countInput = document.getElementById('count-input');
     const refreshBtn = document.getElementById('words-refresh');
 
+    const MODES = ['sentences', 'words', 'dialogue'];
+    const MODE_LABELS = { sentences: 'Sentences', words: 'Words', dialogue: 'Dialogue' };
+
     function syncCountInput() {
-      countInput.value = mode === 'sentences' ? sentenceCount : wordCount;
+      if (mode === 'sentences') countInput.value = sentenceCount;
+      else if (mode === 'words') countInput.value = wordCount;
+      else countInput.value = dialogueCount;
     }
 
     function syncRefreshBtn() {
@@ -1227,8 +1326,9 @@
 
     const modeBtn = document.getElementById('mode-btn');
     modeBtn.addEventListener('click', () => {
-      mode = mode === 'sentences' ? 'words' : 'sentences';
-      modeBtn.textContent = mode === 'sentences' ? 'Sentences' : 'Words';
+      const idx = (MODES.indexOf(mode) + 1) % MODES.length;
+      mode = MODES[idx];
+      modeBtn.textContent = MODE_LABELS[mode];
       syncCountInput();
       syncRefreshBtn();
       renderText();
@@ -1243,19 +1343,21 @@
       const raw = countInput.value.replace(/\D/g, '');
       if (!raw) return;
       let n = parseInt(raw, 10);
-      const max = mode === 'sentences' ? MAX_SENTENCES : MAX_WORDS;
+      const max = mode === 'sentences' ? MAX_SENTENCES : mode === 'words' ? MAX_WORDS : MAX_DIALOGUE;
       if (n > max) { n = max; countInput.value = n; }
       if (n < 1) n = 1;
       if (mode === 'sentences') sentenceCount = n;
-      else { wordCount = n; cachedWordsHtml = null; }
+      else if (mode === 'words') { wordCount = n; cachedWordsHtml = null; }
+      else dialogueCount = n;
       renderText();
     });
 
     countInput.addEventListener('blur', () => {
       const raw = countInput.value.replace(/\D/g, '');
       if (!raw || parseInt(raw, 10) < 1) {
-        if (mode === 'sentences') { sentenceCount = DEFAULT_SENTENCES; }
-        else { wordCount = DEFAULT_WORDS; }
+        if (mode === 'sentences') sentenceCount = DEFAULT_SENTENCES;
+        else if (mode === 'words') wordCount = DEFAULT_WORDS;
+        else dialogueCount = DEFAULT_DIALOGUE;
       }
       syncCountInput();
     });
@@ -1270,7 +1372,16 @@
     colorBtn.addEventListener('click', () => {
       textColor = textColor === 'voice' ? 'white' : 'voice';
       syncColorLabel();
-      renderText();
+      if (mode === 'words' && cachedWordsHtml) {
+        document.querySelectorAll('#text-out span[data-vi]').forEach(sp => {
+          const vi = parseInt(sp.dataset.vi, 10);
+          sp.style.color = textColor === 'white' ? 'var(--fg)' : VOICE_COLORS[vi];
+        });
+        cachedWordsHtml = document.getElementById('text-out').innerHTML;
+      } else {
+        cachedWordsHtml = null;
+        renderText();
+      }
     });
 
     // Passage — a new passage from the book this corner currently holds.
@@ -1593,6 +1704,7 @@
       caretStart.style.display = 'none';
       caretEnd.style.display = 'none';
       sharePopup.style.display = 'none';
+      if (restoreTimer) { clearTimeout(restoreTimer); restoreTimer = null; }
       window.getSelection().removeAllRanges();
     }
 
@@ -1831,7 +1943,19 @@
 
       const selectedText = sel.toString().trim();
       const spans = getSelectedSpans();
-      const sources = getActiveVoiceSources();
+      const selectedColors = new Set(spans.map(s => s.color));
+      const sources = voices.filter(v => v && v.active).reduce((acc, v) => {
+        const vc = VOICE_COLORS[v.index];
+        const matches = [...selectedColors].some(sc => {
+          if (sc === vc) return true;
+          const m = sc.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+          if (!m) return false;
+          const hex = '#' + [m[1],m[2],m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
+          return hex === vc;
+        });
+        if (matches) acc.push({ title: v.title || 'Untitled', author: v.author || null, color: vc });
+        return acc;
+      }, []);
 
       const W = 1200;
       const PAD = 80;
@@ -2010,16 +2134,132 @@
 
     document.getElementById('sp-close').addEventListener('click', closeSharePreview);
 
-    document.getElementById('sp-download').addEventListener('click', () => {
-      previewBlobs.forEach((blob, i) => {
+    // The anchor has to be in the document and the blob URL has to outlive the
+    // click — revoking it synchronously cancels the download in some browsers.
+    function downloadBlob(blob, name, delay) {
+      setTimeout(() => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = previewBlobs.length > 1 ? 'Cento-' + (i + 1) + '.png' : 'Cento.png';
+        a.download = name;
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }, delay);
+    }
+
+    // ── Multi-page cards download as one PDF ───────────────────
+    // Built by hand so there's no library to load. Page images go in lossless,
+    // Flate-compressed via the platform's own deflate — no JPEG artefacts on
+    // the coloured serif text, which is the whole point of the card.
+
+    function zlibDeflate(bytes) {
+      const cs = new CompressionStream('deflate'); // zlib-wrapped, = /FlateDecode
+      const stream = new Blob([bytes]).stream().pipeThrough(cs);
+      return new Response(stream).arrayBuffer().then(b => new Uint8Array(b));
+    }
+
+    async function pngBlobToRgb(blob) {
+      const bmp = await createImageBitmap(blob);
+      const c = document.createElement('canvas');
+      c.width = bmp.width;
+      c.height = bmp.height;
+      const cx = c.getContext('2d');
+      cx.drawImage(bmp, 0, 0);
+      const { data } = cx.getImageData(0, 0, c.width, c.height);
+      const rgb = new Uint8Array(c.width * c.height * 3);
+      for (let i = 0, j = 0; i < data.length; i += 4) {
+        rgb[j++] = data[i]; rgb[j++] = data[i + 1]; rgb[j++] = data[i + 2];
+      }
+      return { w: c.width, h: c.height, rgb };
+    }
+
+    function buildPdf(pages) {
+      const enc = new TextEncoder();
+      const chunks = [];
+      const offsets = [];
+      let len = 0;
+      const push = u8 => { chunks.push(u8); len += u8.length; };
+      const str = s => push(enc.encode(s));
+      const startObj = id => { offsets[id] = len; str(id + ' 0 obj\n'); };
+
+      str('%PDF-1.4\n');
+      push(new Uint8Array([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A])); // binary marker
+
+      const total = 2 + pages.length * 3;
+
+      startObj(1);
+      str('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+      startObj(2);
+      str('<< /Type /Pages /Kids [' +
+        pages.map((_, p) => (3 + p * 3) + ' 0 R').join(' ') +
+        '] /Count ' + pages.length + ' >>\nendobj\n');
+
+      pages.forEach((pg, p) => {
+        const pageId = 3 + p * 3, contId = 4 + p * 3, imgId = 5 + p * 3;
+        const pw = 600, ph = Math.round(600 * pg.h / pg.w);
+
+        startObj(pageId);
+        str('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph +
+          '] /Resources << /XObject << /Im0 ' + imgId + ' 0 R >> >> /Contents ' +
+          contId + ' 0 R >>\nendobj\n');
+
+        const content = 'q ' + pw + ' 0 0 ' + ph + ' 0 0 cm /Im0 Do Q\n';
+        startObj(contId);
+        str('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream\nendobj\n');
+
+        startObj(imgId);
+        str('<< /Type /XObject /Subtype /Image /Width ' + pg.w + ' /Height ' + pg.h +
+          ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ' +
+          pg.data.length + ' >>\nstream\n');
+        push(pg.data);
+        str('\nendstream\nendobj\n');
       });
+
+      const xrefPos = len;
+      let xref = 'xref\n0 ' + (total + 1) + '\n0000000000 65535 f \n';
+      for (let i = 1; i <= total; i++) {
+        xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+      }
+      str(xref);
+      str('trailer\n<< /Size ' + (total + 1) + ' /Root 1 0 R >>\nstartxref\n' +
+        xrefPos + '\n%%EOF\n');
+
+      const out = new Uint8Array(len);
+      let o = 0;
+      for (const c of chunks) { out.set(c, o); o += c.length; }
+      return new Blob([out], { type: 'application/pdf' });
+    }
+
+    async function blobsToPdf(blobs) {
+      const pages = [];
+      for (const blob of blobs) {
+        const { w, h, rgb } = await pngBlobToRgb(blob);
+        pages.push({ w, h, data: await zlibDeflate(rgb) });
+      }
+      return buildPdf(pages);
+    }
+
+    document.getElementById('sp-download').addEventListener('click', async () => {
+      const blobs = previewBlobs.slice();
       closeSharePreview();
+      if (blobs.length === 1) {
+        downloadBlob(blobs[0], 'Cento.png', 0);
+        return;
+      }
+      try {
+        if (!window.CompressionStream) throw new Error('no CompressionStream');
+        downloadBlob(await blobsToPdf(blobs), 'Cento.pdf', 0);
+      } catch (e) {
+        // Older browser — fall back to one PNG per page.
+        console.warn('PDF build failed, falling back to PNGs:', e);
+        blobs.forEach((b, i) => downloadBlob(b, 'Cento-' + (i + 1) + '.png', i * 300));
+      }
     });
 
     document.getElementById('sp-share').addEventListener('click', async () => {
