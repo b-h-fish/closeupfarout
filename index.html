@@ -53,19 +53,6 @@
       text-decoration: none;
     }
 
-    .nav-links { display: flex; list-style: none; gap: 2rem; }
-
-    .nav-links a {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.85rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent);
-      text-decoration: none;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-    }
-    .nav-links a:hover { opacity: 1; }
 
     /* ── MAIN: weave left, cover right ── */
     main {
@@ -74,7 +61,7 @@
       left: 0; right: 0;
       bottom: var(--foot-h);
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 2fr 1fr;
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -207,8 +194,8 @@
 
     #cover-cube-scene {
       position: relative;
-      width: clamp(260px, 27vw, 400px);
-      height: clamp(260px, 27vw, 400px);
+      width: clamp(200px, 24vw, 380px);
+      height: clamp(200px, 24vw, 380px);
       perspective: 900px;
     }
 
@@ -217,14 +204,22 @@
       left: 50%; top: 50%;
       width: 0; height: 0;
       transform-style: preserve-3d;
+      /* The tile positions are fixed px, so the cube spans ~612px corner-on no
+         matter how wide its column is — it can only be fitted by scaling. These
+         steps keep it inside the narrower third instead of being clipped by
+         #cover-pane's overflow. */
+      --cube-scale: 0.56;
       animation: cubeSpin 32s linear infinite,
                  coverCubeBreathe 8s ease-in-out infinite;
     }
 
+    @media (max-width: 1200px) { #cover-cube { --cube-scale: 0.46; } }
+    @media (max-width: 1000px) { #cover-cube { --cube-scale: 0.38; } }
+
     /* cubeSpin owns `transform`, so the breathe drives the standalone `scale`. */
     @keyframes coverCubeBreathe {
-      0%, 100% { scale: 0.66; }
-      50%      { scale: 0.58; }
+      0%, 100% { scale: var(--cube-scale); }
+      50%      { scale: calc(var(--cube-scale) * 0.88); }
     }
 
     #cover-cube .tile {
@@ -270,27 +265,13 @@
       align-items: center;
     }
 
-    .foot-meta {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--dim);
-      white-space: nowrap;
-    }
-
     /* ── MOBILE: stack weave over cover ── */
     @media (max-width: 768px) {
-      :root { --nav-h: 110px; --foot-h: 104px; }
+      /* The header was 110px to stack the wordmark over the links; with the
+         links gone it only has to hold one line. */
+      :root { --nav-h: 80px; --foot-h: 104px; }
 
-      body > nav {
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.6rem;
-      }
-      .nav-links { gap: 1.4rem; justify-content: center; }
-      .nav-links a { font-size: 0.75rem; }
+      body > nav { justify-content: center; }
 
       main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
 
@@ -305,7 +286,6 @@
       #cover-pane { display: none; }
 
       footer { padding: 0 1.4rem; }
-      .foot-meta { display: none; }
     }
 
     /* ── GRAIN ── */
@@ -328,10 +308,6 @@
 
   <nav>
     <a class="nav-wordmark" href="/">closeupfarout</a>
-    <ul class="nav-links">
-      <li><a href="/cento/">Cento</a></li>
-      <li><a href="/periodical/">Issue-01</a></li>
-    </ul>
   </nav>
 
   <main>
@@ -352,7 +328,6 @@
 
   <footer>
     <div id="player-slot"><!-- audio player --></div>
-    <div class="foot-meta">Close Up Far Out</div>
   </footer>
 
   <div class="grain"></div>
