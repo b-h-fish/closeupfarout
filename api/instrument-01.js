@@ -337,6 +337,15 @@ module.exports = async function handler(req, res) {
       return s.status === 'fulfilled' ? { ...s.value, color } : fallbackVoice(color);
     });
 
+    // ?window=N trims each voice to a contiguous run of N paragraphs. Cento
+    // itself wants the whole book (Passage and Dialogue read across all of it),
+    // but the landing-page weave needs only a few dozen sentences and would
+    // otherwise pull about a megabyte of JSON to show them.
+    const win = parseInt(q.window, 10);
+    if (Number.isFinite(win) && win > 0) {
+      voices.forEach(v => { v.paragraphs = randomWindow(v.paragraphs, win); });
+    }
+
     res.status(200).json({ voices });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>closeupfarout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Chakra+Petch:wght@600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@1,400&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -13,12 +15,17 @@
       --ink: #1a1008;
       --paper: #ffffff;
       --accent: #1a1008;
+      --rule: rgba(26, 16, 8, 0.10);
+      --dim: rgba(26, 16, 8, 0.45);
+      --nav-h: 80px;
+      --foot-h: 132px;
     }
 
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
       background: var(--paper);
+      color: var(--ink);
     }
 
     /* ── NAV ── */
@@ -30,7 +37,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 2rem;
-      height: 80px;
+      height: var(--nav-h);
       background: var(--paper);
     }
 
@@ -44,11 +51,7 @@
       text-decoration: none;
     }
 
-    .nav-links {
-      display: flex;
-      list-style: none;
-      gap: 2rem;
-    }
+    .nav-links { display: flex; list-style: none; gap: 2rem; }
 
     .nav-links a {
       font-family: 'Space Mono', monospace;
@@ -60,151 +63,249 @@
       opacity: 0.6;
       transition: opacity 0.2s;
     }
-
     .nav-links a:hover { opacity: 1; }
 
-    /* ── STAGE ── */
-    #stage {
+    /* ── MAIN: weave left, cover right ── */
+    main {
       position: fixed;
-      top: 80px; left: 0; right: 0; bottom: 0;
-      overflow: hidden;
-      background: var(--paper);
+      top: var(--nav-h);
+      left: 0; right: 0;
+      bottom: var(--foot-h);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
     }
 
-    /* ── SPHERE SCENE ── */
-    .scene {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      perspective: 900px;
-    }
-
-    .sphere {
+    /* ── Left: hover veil with the cube from the old stage ── */
+    #weave-link {
       position: relative;
-      width: 0; height: 0;
-      transform-style: preserve-3d;
-      animation: rotateSphere 32s linear infinite,
-                 breathe 8s ease-in-out infinite;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      color: inherit;
+      text-decoration: none;
     }
 
-    #fade-overlay {
+    #cento-overlay {
       position: absolute;
       inset: 0;
-      background: var(--paper);
-      opacity: 1;
-      pointer-events: none;
-      transition: opacity 0.55s ease-in-out;
-      z-index: 5;
-    }
-
-    #poster-text {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
+      z-index: 3;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      pointer-events: none;
+      gap: 0.4rem;
+      background: rgba(243, 242, 240, 0.90);
       opacity: 0;
-      transition: opacity 0.55s ease-in-out;
-      z-index: 4;
-      gap: 1rem;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
     }
 
-    #poster-text span {
-      font-family: 'Chakra Petch', sans-serif;
-      font-weight: 600;
-      font-size: clamp(32px, 6vw, 90px);
-      line-height: 1;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.90);
-      text-align: center;
+    /* Touch devices have no hover, so the veil never shows — the tap just
+       follows the link, and the cube's video is never fetched. */
+    @media (hover: hover) {
+      #weave-link:hover #cento-overlay { opacity: 1; }
     }
 
-    @keyframes rotateSphere {
+    #cento-logo {
+      font-family: 'Spectral', serif;
+      font-style: italic;
+      font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+      letter-spacing: 0.2em;
+      text-indent: 0.2em; /* offset the trailing letter-space so it reads centred */
+      white-space: nowrap;
+    }
+
+    /* Same four voice hues Cento uses, in the same order as its own wordmark */
+    #cento-logo span:nth-child(1) { color: #c07a2b; }
+    #cento-logo span:nth-child(2) { color: #8b3d6b; }
+    #cento-logo span:nth-child(3) { color: #2b6e8b; }
+    #cento-logo span:nth-child(4) { color: #4a7a46; }
+    #cento-logo span:nth-child(5) { color: #c07a2b; }
+
+    #cube-scene {
+      position: relative;
+      width: clamp(210px, 24vw, 300px);
+      height: clamp(210px, 24vw, 300px);
+      perspective: 900px;
+    }
+
+    #cube {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      animation: cubeSpin 32s linear infinite,
+                 cubeBreathe 8s ease-in-out infinite;
+    }
+
+    @keyframes cubeSpin {
       from { transform: rotateY(0deg) rotateX(12deg); }
       to   { transform: rotateY(360deg) rotateX(12deg); }
     }
 
-    @keyframes breathe {
-      0%, 100% { scale: 0.92; }
-      50%       { scale: 0.82; }
+    /* Sized here rather than with a transform — cubeSpin owns `transform`,
+       so the breathe animation drives the standalone `scale` property. */
+    @keyframes cubeBreathe {
+      0%, 100% { scale: 0.60; }
+      50%      { scale: 0.53; }
     }
 
-
-    .tile {
+    #cube .tile {
       position: absolute;
-      background-size: cover;
-      background-position: center;
       backface-visibility: visible;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
       will-change: transform;
       overflow: hidden;
     }
 
-    [data-pool="torus"] .tile-video {
-      filter: brightness(1.15);
-    }
-
-    .tile-video {
+    #cube .tile-video {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
-      display: none;
       pointer-events: none;
       background: transparent;
     }
 
-    /* ── COVER IMAGE ── */
-    .cover { display: none; }
+    /* ── Left: the woven text ── */
+    #weave-pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 0 2rem 0 2rem;
+      border-right: 1px solid var(--rule);
+    }
 
-    /* ── MOBILE ── */
+    #weave {
+      flex: 1;
+      min-height: 0;
+      /* Deliberately clipped, not scrollable — the weave runs past the bottom
+         edge mid-sentence so the page reads as an excerpt of something larger. */
+      overflow: hidden;
+      padding: 1.6rem 0 1.2rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.02rem, 1.15vw, 1.24rem);
+      line-height: 1.85;
+    }
+
+    #weave.loading {
+      display: flex;
+      align-items: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
+    #weave.loading p { animation: pulse 2s ease-in-out infinite; }
+
+    /* ── Left: attributions ── */
+    #sources {
+      flex-shrink: 0;
+      border-top: 1px solid var(--rule);
+      padding: 0.9rem 0 1.1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem 1.5rem;
+    }
+
+    /* Plain text, not links — the whole preview block is one link to Cento. */
+    #sources span {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.83rem;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+
+    /* ── Right: Issue-01 cover ── */
+    #cover-pane {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      min-height: 0;
+    }
+
+    #cover-pane a {
+      display: block;
+      max-height: 100%;
+      line-height: 0;
+      transition: transform 0.4s ease;
+    }
+    #cover-pane a:hover { transform: translateY(-4px); }
+
+    #cover-pane img {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto; height: auto;
+      object-fit: contain;
+    }
+
+    /* ── Footer / audio player ── */
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: var(--foot-h);
+      border-top: 1px solid var(--rule);
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      gap: 2rem;
+    }
+
+    #player-slot {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .foot-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+
+    /* ── MOBILE: stack weave over cover ── */
     @media (max-width: 768px) {
+      :root { --nav-h: 110px; --foot-h: 104px; }
+
       nav {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 110px;
         gap: 0.6rem;
       }
+      .nav-links { gap: 1.4rem; justify-content: center; }
+      .nav-links a { font-size: 0.75rem; }
 
-      .nav-links {
-        gap: 1.4rem;
-        justify-content: center;
-      }
+      main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
 
-      .nav-links a {
-        font-size: 0.75rem;
-      }
+      #weave-pane { border-right: none; padding: 0 1.4rem; }
+      #weave { font-size: 1.02rem; }
 
-      #stage {
-        top: 110px;
-      }
+      #sources { grid-template-columns: 1fr; }
+      #sources span { font-size: 0.78rem; }
 
-      .scene {
-        left: 50%;
-        top: 45%;
-      }
+      /* The cover would crowd the weave on a phone; the nav still reaches it. */
+      #cover-pane { display: none; }
 
-      .sphere {
-        scale: 0.55;
-      }
-
-      .cover {
-        display: none;
-      }
-
-      @keyframes breathe {
-        0%, 100% { scale: 0.55; }
-        50%       { scale: 0.48; }
-      }
+      footer { padding: 0 1.4rem; }
+      .foot-meta { display: none; }
     }
 
     /* ── GRAIN ── */
@@ -233,354 +334,227 @@
     </ul>
   </nav>
 
-  <div id="stage" data-pool="torus">
-    <div id="fade-overlay"></div>
-    <div id="poster-text"></div>
-    <div class="scene">
-      <div class="sphere" id="sphere"></div>
+  <main>
+    <div id="weave-pane">
+      <a id="weave-link" href="/cento/" aria-label="Open Cento">
+        <div id="weave" class="loading"><p>gathering voices</p></div>
+        <div id="sources"></div>
+        <div id="cento-overlay" aria-hidden="true">
+          <div id="cento-logo"><span>C</span><span>E</span><span>N</span><span>T</span><span>O</span></div>
+          <div id="cube-scene"><div id="cube"></div></div>
+        </div>
+      </a>
     </div>
-    <div class="cover">
-      <img src="images/issue-01-placeholder.png" alt="Issue 01 — Summer 2026" />
+
+    <div id="cover-pane">
+      <a href="/periodical/">
+        <img src="/images/issue-01-placeholder.png" alt="Issue 01 — Summer 2026" />
+      </a>
     </div>
-  </div>
+  </main>
+
+  <footer>
+    <div id="player-slot"><!-- audio player --></div>
+    <div class="foot-meta">Close Up Far Out</div>
+  </footer>
 
   <div class="grain"></div>
 
   <script>
-    // Per-shape media pools — swapped during the fade alongside position snaps
-    const SHAPE_TYPES  = { torus: 'video', cube: 'video', poster: 'video' };
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
-    const SHAPE_IMAGES = {
-      torus: isMobile ? [
-        'videos/torus/torus-vid-01-mobile.webm',
-        'videos/torus/torus-vid-02-mobile.webm',
-        'videos/torus/torus-vid-03-mobile.webm',
-        'videos/torus/torus-vid-04-mobile.webm',
-      ] : [
-        'videos/torus/torus-vid-01.webm',
-        'videos/torus/torus-vid-02.webm',
-        'videos/torus/torus-vid-03.webm',
-        'videos/torus/torus-vid-04.webm',
-      ],
-      cube: isMobile ? [
-        'videos/cube/cube-vid-01-mobile.webm',
-        'videos/cube/cube-vid-02-mobile.webm',
-        'videos/cube/cube-vid-03-mobile.webm',
-        'videos/cube/cube-vid-04-mobile.webm',
-      ] : [
-        'videos/cube/cube-vid-01.webm',
-        'videos/cube/cube-vid-02.webm',
-        'videos/cube/cube-vid-03.webm',
-        'videos/cube/cube-vid-04.webm',
-      ],
-      poster: [
-        'videos/poster/poster-vid-01.webm',
-        'videos/poster/poster-vid-02.webm',
-        'videos/poster/poster-vid-03.webm',
-      ],
-    };
+  (function () {
+    'use strict';
 
-    const TILE_COUNT = 54;
-    const RADIUS     = 260;
-    const TILE_SIZE  = 88;
+    // A small, read-only Cento: one fresh weave per page load. No corners, no
+    // controls — just the aggregate text and who it came from. The full
+    // instrument lives at /cento/.
+    const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
+    // Deliberately more than any screen shows. The pane clips rather than
+    // scrolls, so this just has to guarantee the text runs past the bottom
+    // edge on a tall display instead of stopping short with dead space.
+    const SENTENCES = 44;
 
-    // All transforms use the same 5-function structure so CSS can interpolate smoothly:
-    // rotateY(rY) rotateX(rX) translateZ(tZ) translateX(tX) translateY(tY)
-    function tf(rY, rX, tZ, tX, tY) {
-      return `rotateY(${rY}deg) rotateX(${rX}deg) translateZ(${tZ}px) translateX(${tX}px) translateY(${tY}px)`;
+    // Only a few dozen sentences are needed here, so ask the API for a small
+    // slice of each book rather than the whole text.
+    const PARAGRAPH_WINDOW = 12;
+
+    // ── Sentence splitting (mirrors /cento) ──────────────────
+    const ABBR_PERIOD = '\uE000';
+    const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\./g;
+
+    function protectAbbrev(text) {
+      return text
+        .replace(/\b(?:[A-Za-z]\.){2,}/g, m => m.replace(/\./g, ABBR_PERIOD))
+        .replace(/\b[A-Za-z]\.(?:\s+[A-Za-z]\.)+/g, m => m.replace(/\./g, ABBR_PERIOD))
+        .replace(/\b[IVXLCDM]{2,}\./g, m => m.replace(/\./g, ABBR_PERIOD))
+        .replace(ABBR_WORDS, (m, w) => w + ABBR_PERIOD);
     }
 
-    function shuffle(arr) {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
+    function splitSentences(text) {
+      const re = /[\s\S]+?[.!?…]+["”'’)\]]*(?=\s+["“'‘(]*[A-Z0-9]|\s*$)|[\s\S]+$/g;
+      const matches = protectAbbrev(text).match(re);
+      if (!matches) return [];
+      return matches
+        .map(s => s.split(ABBR_PERIOD).join('.').trim())
+        .filter(s =>
+          s.split(/\s+/).length >= 3 &&
+          !/\S+@\S+\.\S+/.test(s) &&
+          !/^[IVXLCDM]+\.?\s*—/.test(s)
+        );
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Weave: round-robin one sentence per voice ────────────
+    function weave(voices) {
+      const live = voices.filter(v => v.sentences.length);
+      if (!live.length) return '';
+      const perVoice = Math.ceil(SENTENCES / live.length);
+      const rows = live.map(v => v.sentences.slice(0, perVoice));
+      const maxLen = Math.max(...rows.map(r => r.length));
+
+      const spans = [];
+      for (let i = 0; i < maxLen && spans.length < SENTENCES; i++) {
+        for (let j = 0; j < live.length && spans.length < SENTENCES; j++) {
+          if (i < rows[j].length) {
+            spans.push(
+              '<span style="color:' + live[j].color + '">' + esc(rows[j][i]) + '</span>'
+            );
+          }
+        }
       }
-      return a;
+      return '<p>' + spans.join(' ') + '</p>';
     }
 
-    // ── SPHERE: 60 tiles via Fibonacci distribution ──────────────────────────
-    function spherePositions() {
-      const golden = Math.PI * (3 - Math.sqrt(5));
-      return Array.from({ length: TILE_COUNT }, (_, i) => {
-        const y     = 1 - (i / (TILE_COUNT - 1)) * 2;
-        const theta = golden * i;
-        const lat   = Math.asin(y) * (180 / Math.PI);
-        const lon   = (theta * 180 / Math.PI) % 360;
-        return { rY: lon, rX: -lat, tZ: RADIUS, tX: 0, tY: 0 };
-      });
+    function renderSources(voices) {
+      document.getElementById('sources').innerHTML = voices
+        .filter(v => v.sentences.length && v.title)
+        .map(v =>
+          '<span style="color:' + v.color + '" title="' +
+          esc(v.title) + (v.author ? ' — ' + esc(v.author) : '') + '">' +
+          esc(v.title) + '</span>'
+        )
+        .join('');
     }
 
-    // ── POSTER: 9×6 flat grid of video panels with subtle Z separation ────────
-    function posterPositions() {
-      const COLS = 9, ROWS = 6, GAP = 5;
-      const navH = isMobile ? 110 : 80;
-      const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
-      const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
-      const totalW = COLS * tileW + (COLS - 1) * GAP;
-      const totalH = ROWS * tileH + (ROWS - 1) * GAP;
-      return Array.from({ length: 54 }, (_, i) => {
-        const c  = i % COLS, r = Math.floor(i / COLS);
-        const tX = -totalW / 2 + c * (tileW + GAP) + tileW / 2;
-        const tY = -totalH / 2 + r * (tileH + GAP) + tileH / 2;
-        return { rY: 0, rX: 0, tZ: 0, tX, tY };
-      });
+    async function load() {
+      const weaveEl = document.getElementById('weave');
+      try {
+        const res = await fetch('/api/instrument-01?window=' + PARAGRAPH_WINDOW);
+        if (!res.ok) throw new Error('API ' + res.status);
+        const data = await res.json();
+
+        const voices = (data.voices || []).map((v, i) => ({
+          title: v.title,
+          author: v.author,
+          color: VOICE_COLORS[i],
+          sentences: splitSentences((v.paragraphs || []).join(' ')),
+        }));
+
+        const html = weave(voices);
+        if (!html) throw new Error('no text');
+
+        weaveEl.classList.remove('loading');
+        weaveEl.innerHTML = html;
+        renderSources(voices);
+      } catch (err) {
+        weaveEl.innerHTML = '<p>voices unavailable</p>';
+        console.error('Cento weave:', err);
+      }
     }
 
-    // ── CUBE: 6 faces × 9 tiles (3×3 grid) = 54 — perfect cube ─────────────
+    load();
+
+    // ── Hover cube (carried over from the old stage design) ──
+    // Built on first hover rather than at load, so the landing page stays light
+    // until someone actually reaches for it. Uses the -mobile encodes on every
+    // device: the tiles render at 88px, where the full-size files are wasted.
+    const CUBE_VIDEOS = [
+      '/videos/cube/cube-vid-01-mobile.webm',
+      '/videos/cube/cube-vid-02-mobile.webm',
+      '/videos/cube/cube-vid-03-mobile.webm',
+      '/videos/cube/cube-vid-04-mobile.webm',
+    ];
+    const RADIUS = 260;
+    const TILE_SIZE = 88;
+
+    function tf(rY, rX, tZ, tX, tY) {
+      return 'rotateY(' + rY + 'deg) rotateX(' + rX + 'deg) translateZ(' + tZ +
+             'px) translateX(' + tX + 'px) translateY(' + tY + 'px)';
+    }
+
+    // 6 faces x a 3x3 grid = 54 tiles.
     function cubePositions() {
       const S = RADIUS * 0.46; // face half-extent — ~8px gap between tiles
       const FACES = [
-        [0,    0],   // front  (+Z)
-        [-90,  0],   // right  (+X)
-        [180,  0],   // back   (-Z)
-        [90,   0],   // left   (-X)
-        [0,  -90],   // top    (+Y)
-        [0,   90],   // bottom (-Y)
+        [0, 0], [-90, 0], [180, 0], [90, 0], [0, -90], [0, 90],
       ];
-      const COLS = 3, ROWS = 3; // perfect 3×3 grid per face
       const out = [];
       FACES.forEach(([rY, rX]) => {
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            const tX = S * (-1 + (c / (COLS - 1)) * 2);
-            const tY = S * (-1 + (r / (ROWS - 1)) * 2) - 20;
-            out.push({ rY, rX, tZ: S + TILE_SIZE / 2 + 18, tX, tY });
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            out.push({
+              rY, rX,
+              tZ: S + TILE_SIZE / 2 + 18,
+              tX: S * (-1 + c),
+              tY: S * (-1 + r) - 20,
+            });
           }
         }
       });
-      return out; // 54 positions
+      return out;
     }
 
-    // ── CONE: 5 lateral rings + circular base = 54 ──────────────────────────
-    // Ring sizes obey 2π·r / count ≥ TILE_SIZE so tiles never overlap within a ring.
-    // tZ = √(r²+Y²), rX = atan2(-Y,r) places each ring at world pos (r·sinφ, Y, r·cosφ)
-    function conePositions() {
-      const out = [];
+    let cubeTiles = null;
 
-      // Lateral rings — count and radius chosen so spacing ≥ 88px per tile
-      // Surface dist between adjacent rings = √(Δr²+ΔY²) ≥ 88px
-      const rings = [
-        { count:  3, r:  65, Y: -155 }, // apex      — 2π·65/3   = 136px ✓
-        { count:  5, r: 110, Y: -100 }, //            2π·110/5   = 138px ✓
-        { count:  8, r: 175, Y:  -35 }, // surf→ring2 = 92px ✓   2π·175/8  = 137px ✓
-        { count: 11, r: 230, Y:  +40 }, // surf→ring3 = 93px ✓   2π·230/11 = 131px ✓
-        { count: 12, r: 265, Y: +125 }, // surf→ring4 = 92px ✓   2π·265/12 = 139px ✓
-      ]; // 39 tiles
+    function buildCube() {
+      if (cubeTiles) return;
+      const cube = document.getElementById('cube');
+      const frag = document.createDocumentFragment();
 
-      rings.forEach(({ count, r, Y }) => {
-        const tZ = Math.sqrt(r * r + Y * Y);
-        const rX = Math.atan2(-Y, r) * (180 / Math.PI);
-        for (let i = 0; i < count; i++) {
-          const rY = (i / count) * 360;
-          out.push({ rY, rX, tZ, tX: 0, tY: 0 });
-        }
-      });
-
-      // Flat base: 15 tiles lying horizontal (rX=-90), each rotated to its own
-      // angle (rY=a) so tiles are consistently oriented radially around the disk.
-      // Ring radii spaced 90px apart so tiles don't overlap between rings.
-      const tZ_base = 165;
-      [{ count: 3, r: 75 }, { count: 5, r: 165 }, { count: 7, r: 253 }]
-        .forEach(({ count, r }) => {
-          for (let i = 0; i < count; i++) {
-            const a = (i / count) * 360; // degrees
-            out.push({ rY: a, rX: -90, tZ: tZ_base, tX: r, tY: 0 });
-          }
-        }); // 15 tiles
-
-      return out; // 54 positions
-    }
-
-    // ── TORUS: 5 θ-rings around the tube × φ tiles around the torus = 54 ────
-    // rX=0 for all; tZ = R + r·cos(θ) positions each ring's depth;
-    // tY = r·sin(θ) positions each ring vertically on the tube.
-    function torusPositions() {
-      const R = 175; // major radius (torus center to tube center)
-      const r =  76; // tube radius — sized so inner rings are ≥88px apart vertically
-      const out = [];
-
-      // Rings: θ evenly spaced, φ count chosen so 2π·(R+r·cosθ)/count ≥ 88px
-      const rings = [
-        { theta:   0, count: 14 }, // outer       — spacing 113px ✓
-        { theta:  72, count: 13 }, // upper-outer  — spacing  96px ✓
-        { theta: 144, count:  7 }, // upper-inner  — spacing 102px ✓
-        { theta: 216, count:  7 }, // lower-inner  — spacing 102px ✓
-        { theta: 288, count: 13 }, // lower-outer  — spacing  96px ✓
-      ]; // 54 total — inner rings 89.4px apart vertically ✓
-
-      rings.forEach(({ theta, count }) => {
-        const th = theta * Math.PI / 180;
-        const tZ = R + r * Math.cos(th);
-        const tY = r * Math.sin(th);
-        for (let i = 0; i < count; i++) {
-          const rY = (i / count) * 360;
-          out.push({ rY, rX: 0, tZ, tX: 0, tY });
-        }
-      });
-
-      return out; // 54 positions
-    }
-
-    // ── SWAP TILE MEDIA ──────────────────────────────────────────────────────
-    function applyImages(key, pool) {
-      const isVideo = SHAPE_TYPES[key] === 'video';
-      const tiles   = document.querySelectorAll('.tile');
-      if (isVideo) {
-        tiles.forEach((tile, i) => {
-          tile.style.backgroundImage = '';
-          const vid = tile.querySelector('.tile-video');
-          vid.src = pool[i % pool.length];
-          vid.style.display = 'block';
-          vid.play().catch(() => {});
-        });
-      } else {
-        const shuffled = shuffle(pool);
-        tiles.forEach((tile, i) => {
-          const vid = tile.querySelector('.tile-video');
-          vid.pause(); vid.src = ''; vid.style.display = 'none';
-          tile.style.backgroundImage = `url('${shuffled[i % shuffled.length]}')`;
-        });
-      }
-    }
-
-    // ── SWAP TILE SIZE ────────────────────────────────────────────────────────
-    function applyTileSize(w, h) {
-      if (h === undefined) h = w;
-      document.querySelectorAll('.tile').forEach(tile => {
-        tile.style.width      = w + 'px';
-        tile.style.height     = h + 'px';
-        tile.style.marginLeft = -w / 2 + 'px';
-        tile.style.marginTop  = -h / 2 + 'px';
-      });
-    }
-
-    // ── PRELOAD ALL IMAGES ───────────────────────────────────────────────────
-    function preloadImages() {
-      // no image-based shapes currently
-    }
-
-    function preloadVideos() {
-      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube, ...SHAPE_IMAGES.poster];
-      allSrcs.forEach(src => {
-        const v = document.createElement('video');
-        v.src = src;
-        v.preload = 'auto';
-        v.muted = true;
-        v.playsInline = true;
-        v.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
-        document.body.appendChild(v);
-      });
-    }
-
-    // ── BUILD TILES ──────────────────────────────────────────────────────────
-    function buildTiles() {
-      const sphere = document.getElementById('sphere');
-      const pool   = SHAPE_IMAGES.torus; // starts on torus (video)
-      const pos    = torusPositions();
-
-      for (let i = 0; i < TILE_COUNT; i++) {
-        const p    = pos[i];
+      cubePositions().forEach((p, i) => {
         const tile = document.createElement('div');
-        tile.className        = 'tile';
-        tile.style.width      = TILE_SIZE + 'px';
-        tile.style.height     = TILE_SIZE + 'px';
-        tile.style.marginLeft = -TILE_SIZE / 2 + 'px';
-        tile.style.marginTop  = -TILE_SIZE / 2 + 'px';
+        tile.className = 'tile';
+        tile.style.width = TILE_SIZE + 'px';
+        tile.style.height = TILE_SIZE + 'px';
+        tile.style.marginLeft = (-TILE_SIZE / 2) + 'px';
+        tile.style.marginTop = (-TILE_SIZE / 2) + 'px';
+        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
 
-        // Video element — used for video-based shapes (torus)
         const vid = document.createElement('video');
-        vid.className   = 'tile-video';
-        vid.autoplay    = true;
-        vid.muted       = true;
-        vid.loop        = true;
+        vid.className = 'tile-video';
+        vid.muted = true;
+        vid.loop = true;
         vid.playsInline = true;
-        vid.src         = SHAPE_IMAGES.torus[i % SHAPE_IMAGES.torus.length];
-        vid.style.display = 'block'; // torus is first shape
+        vid.preload = 'auto';
+        vid.src = CUBE_VIDEOS[i % CUBE_VIDEOS.length];
         tile.appendChild(vid);
 
-        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
-        sphere.appendChild(tile);
-      }
+        frag.appendChild(tile);
+      });
+
+      cube.appendChild(frag);
+      cubeTiles = cube.querySelectorAll('video');
     }
 
-    // ── APPLY SHAPE ──────────────────────────────────────────────────────────
-    function applyShape(positions) {
-      document.querySelectorAll('.tile').forEach((tile, i) => {
-        const p = positions[i];
-        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
+    if (window.matchMedia('(hover: hover)').matches) {
+      const link = document.getElementById('weave-link');
+
+      link.addEventListener('pointerenter', () => {
+        buildCube();
+        // Only decode while the veil is actually up — 54 tiles is a lot to
+        // leave running behind an invisible overlay.
+        cubeTiles.forEach(v => { const p = v.play(); if (p) p.catch(() => {}); });
+      });
+
+      link.addEventListener('pointerleave', () => {
+        if (cubeTiles) cubeTiles.forEach(v => v.pause());
       });
     }
-
-    // ── MORPH CYCLE: fade out → snap to new shape + images → fade in ─────────
-    const SHAPES      = [torusPositions, cubePositions, posterPositions];
-    const SHAPE_KEYS  = ['torus',        'cube',        'poster'];
-    const SHAPE_SIZES = { torus: 88,     cube: 88,      poster: 88 };
-    let shapeIdx = 0;
-    let roundIdx = 0;
-    const FADE_MS = 550; // must match CSS transition on #fade-overlay
-
-    function cycleShape() {
-      shapeIdx = (shapeIdx + 1) % SHAPES.length;
-      if (shapeIdx === 0) roundIdx = (roundIdx + 1) % 3;
-      const overlay = document.getElementById('fade-overlay');
-      const posterText = document.getElementById('poster-text');
-
-      // 1. Fade overlay in — also immediately hide poster text so it's gone before reveal
-      overlay.style.opacity = '1';
-      posterText.style.opacity = '0';
-
-      setTimeout(() => {
-        // 2. Snap positions, swap images, and resize tiles while hidden
-        const key = SHAPE_KEYS[shapeIdx];
-        // Rotate video pools each round: round 0 = own pool, round 1 = shifted by 1, etc.
-        const poolKey = SHAPE_KEYS[(shapeIdx + roundIdx) % SHAPE_KEYS.length];
-        const pool = SHAPE_IMAGES[poolKey];
-        document.getElementById('stage').dataset.pool = poolKey;
-        applyShape(SHAPES[shapeIdx]());
-        applyImages(key, pool);
-        // Pause rotation + breathe for poster; restore for all other shapes
-        const container = document.querySelector('.sphere');
-        const scene = document.querySelector('.scene');
-        if (key === 'poster') {
-          const COLS = 9, ROWS = 6, GAP = 5;
-          const navH = isMobile ? 110 : 80;
-          const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
-          const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
-          applyTileSize(tileW, tileH);
-          container.style.animation = 'none';
-          container.style.transform = 'none';
-          container.style.scale = '1';
-          scene.style.top = '50%';
-          posterText.style.opacity = '1';
-        } else {
-          applyTileSize(SHAPE_SIZES[key]);
-          container.style.animation = '';
-          container.style.transform = '';
-          container.style.scale = '';
-          scene.style.top = '';
-        }
-        // 3. On mobile give decoders extra time to spin up before revealing
-        setTimeout(() => { overlay.style.opacity = '0'; }, isMobile ? 1200 : 0);
-      }, FADE_MS);
-
-      setTimeout(cycleShape, 10500);
-    }
-
-    buildTiles();
-    preloadImages();
-    preloadVideos();
-
-    // Wait for videos to buffer, then snap fade in (longer on mobile)
-    const overlay = document.getElementById('fade-overlay');
-    setTimeout(() => {
-      overlay.style.transition = 'opacity 0.2s ease-in-out';
-      overlay.style.opacity = '0';
-      setTimeout(() => overlay.style.transition = '', 200);
-    }, isMobile ? 1500 : 1000);
-
-    setTimeout(cycleShape, 10500);
-
+  })();
   </script>
 
 </body>

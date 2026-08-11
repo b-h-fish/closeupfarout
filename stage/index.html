@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>closeupfarout — stage</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Chakra+Petch:wght@600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1008;
+      --paper: #ffffff;
+      --accent: #1a1008;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 80px;
+      background: var(--paper);
+    }
+
+    .nav-wordmark {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 100;
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover { opacity: 1; }
+
+    /* ── STAGE ── */
+    #stage {
+      position: fixed;
+      top: 80px; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    /* ── SPHERE SCENE ── */
+    .scene {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      perspective: 900px;
+    }
+
+    .sphere {
+      position: relative;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      animation: rotateSphere 32s linear infinite,
+                 breathe 8s ease-in-out infinite;
+    }
+
+    #fade-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+      opacity: 1;
+      pointer-events: none;
+      transition: opacity 0.55s ease-in-out;
+      z-index: 5;
+    }
+
+    #poster-text {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.55s ease-in-out;
+      z-index: 4;
+      gap: 1rem;
+    }
+
+    #poster-text span {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 600;
+      font-size: clamp(32px, 6vw, 90px);
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.90);
+      text-align: center;
+    }
+
+    @keyframes rotateSphere {
+      from { transform: rotateY(0deg) rotateX(12deg); }
+      to   { transform: rotateY(360deg) rotateX(12deg); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { scale: 0.92; }
+      50%       { scale: 0.82; }
+    }
+
+
+    .tile {
+      position: absolute;
+      background-size: cover;
+      background-position: center;
+      backface-visibility: visible;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+      will-change: transform;
+      overflow: hidden;
+    }
+
+    [data-pool="torus"] .tile-video {
+      filter: brightness(1.15);
+    }
+
+    .tile-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      pointer-events: none;
+      background: transparent;
+    }
+
+    /* ── COVER IMAGE ── */
+    .cover { display: none; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 110px;
+        gap: 0.6rem;
+      }
+
+      .nav-links {
+        gap: 1.4rem;
+        justify-content: center;
+      }
+
+      .nav-links a {
+        font-size: 0.75rem;
+      }
+
+      #stage {
+        top: 110px;
+      }
+
+      .scene {
+        left: 50%;
+        top: 45%;
+      }
+
+      .sphere {
+        scale: 0.55;
+      }
+
+      .cover {
+        display: none;
+      }
+
+      @keyframes breathe {
+        0%, 100% { scale: 0.55; }
+        50%       { scale: 0.48; }
+      }
+    }
+
+    /* ── GRAIN ── */
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+  </style>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+
+  <nav>
+    <a class="nav-wordmark" href="/">closeupfarout</a>
+    <ul class="nav-links">
+      <li><a href="/cento/">Cento</a></li>
+      <li><a href="/periodical/">Issue-01</a></li>
+    </ul>
+  </nav>
+
+  <div id="stage" data-pool="torus">
+    <div id="fade-overlay"></div>
+    <div id="poster-text"></div>
+    <div class="scene">
+      <div class="sphere" id="sphere"></div>
+    </div>
+    <div class="cover">
+      <img src="/images/issue-01-placeholder.png" alt="Issue 01 — Summer 2026" />
+    </div>
+  </div>
+
+  <div class="grain"></div>
+
+  <script>
+    // Per-shape media pools — swapped during the fade alongside position snaps
+    const SHAPE_TYPES  = { torus: 'video', cube: 'video', poster: 'video' };
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const SHAPE_IMAGES = {
+      torus: isMobile ? [
+        '/videos/torus/torus-vid-01-mobile.webm',
+        '/videos/torus/torus-vid-02-mobile.webm',
+        '/videos/torus/torus-vid-03-mobile.webm',
+        '/videos/torus/torus-vid-04-mobile.webm',
+      ] : [
+        '/videos/torus/torus-vid-01.webm',
+        '/videos/torus/torus-vid-02.webm',
+        '/videos/torus/torus-vid-03.webm',
+        '/videos/torus/torus-vid-04.webm',
+      ],
+      cube: isMobile ? [
+        '/videos/cube/cube-vid-01-mobile.webm',
+        '/videos/cube/cube-vid-02-mobile.webm',
+        '/videos/cube/cube-vid-03-mobile.webm',
+        '/videos/cube/cube-vid-04-mobile.webm',
+      ] : [
+        '/videos/cube/cube-vid-01.webm',
+        '/videos/cube/cube-vid-02.webm',
+        '/videos/cube/cube-vid-03.webm',
+        '/videos/cube/cube-vid-04.webm',
+      ],
+      poster: [
+        '/videos/poster/poster-vid-01.webm',
+        '/videos/poster/poster-vid-02.webm',
+        '/videos/poster/poster-vid-03.webm',
+      ],
+    };
+
+    const TILE_COUNT = 54;
+    const RADIUS     = 260;
+    const TILE_SIZE  = 88;
+
+    // All transforms use the same 5-function structure so CSS can interpolate smoothly:
+    // rotateY(rY) rotateX(rX) translateZ(tZ) translateX(tX) translateY(tY)
+    function tf(rY, rX, tZ, tX, tY) {
+      return `rotateY(${rY}deg) rotateX(${rX}deg) translateZ(${tZ}px) translateX(${tX}px) translateY(${tY}px)`;
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // ── SPHERE: 60 tiles via Fibonacci distribution ──────────────────────────
+    function spherePositions() {
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      return Array.from({ length: TILE_COUNT }, (_, i) => {
+        const y     = 1 - (i / (TILE_COUNT - 1)) * 2;
+        const theta = golden * i;
+        const lat   = Math.asin(y) * (180 / Math.PI);
+        const lon   = (theta * 180 / Math.PI) % 360;
+        return { rY: lon, rX: -lat, tZ: RADIUS, tX: 0, tY: 0 };
+      });
+    }
+
+    // ── POSTER: 9×6 flat grid of video panels with subtle Z separation ────────
+    function posterPositions() {
+      const COLS = 9, ROWS = 6, GAP = 5;
+      const navH = isMobile ? 110 : 80;
+      const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
+      const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
+      const totalW = COLS * tileW + (COLS - 1) * GAP;
+      const totalH = ROWS * tileH + (ROWS - 1) * GAP;
+      return Array.from({ length: 54 }, (_, i) => {
+        const c  = i % COLS, r = Math.floor(i / COLS);
+        const tX = -totalW / 2 + c * (tileW + GAP) + tileW / 2;
+        const tY = -totalH / 2 + r * (tileH + GAP) + tileH / 2;
+        return { rY: 0, rX: 0, tZ: 0, tX, tY };
+      });
+    }
+
+    // ── CUBE: 6 faces × 9 tiles (3×3 grid) = 54 — perfect cube ─────────────
+    function cubePositions() {
+      const S = RADIUS * 0.46; // face half-extent — ~8px gap between tiles
+      const FACES = [
+        [0,    0],   // front  (+Z)
+        [-90,  0],   // right  (+X)
+        [180,  0],   // back   (-Z)
+        [90,   0],   // left   (-X)
+        [0,  -90],   // top    (+Y)
+        [0,   90],   // bottom (-Y)
+      ];
+      const COLS = 3, ROWS = 3; // perfect 3×3 grid per face
+      const out = [];
+      FACES.forEach(([rY, rX]) => {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const tX = S * (-1 + (c / (COLS - 1)) * 2);
+            const tY = S * (-1 + (r / (ROWS - 1)) * 2) - 20;
+            out.push({ rY, rX, tZ: S + TILE_SIZE / 2 + 18, tX, tY });
+          }
+        }
+      });
+      return out; // 54 positions
+    }
+
+    // ── CONE: 5 lateral rings + circular base = 54 ──────────────────────────
+    // Ring sizes obey 2π·r / count ≥ TILE_SIZE so tiles never overlap within a ring.
+    // tZ = √(r²+Y²), rX = atan2(-Y,r) places each ring at world pos (r·sinφ, Y, r·cosφ)
+    function conePositions() {
+      const out = [];
+
+      // Lateral rings — count and radius chosen so spacing ≥ 88px per tile
+      // Surface dist between adjacent rings = √(Δr²+ΔY²) ≥ 88px
+      const rings = [
+        { count:  3, r:  65, Y: -155 }, // apex      — 2π·65/3   = 136px ✓
+        { count:  5, r: 110, Y: -100 }, //            2π·110/5   = 138px ✓
+        { count:  8, r: 175, Y:  -35 }, // surf→ring2 = 92px ✓   2π·175/8  = 137px ✓
+        { count: 11, r: 230, Y:  +40 }, // surf→ring3 = 93px ✓   2π·230/11 = 131px ✓
+        { count: 12, r: 265, Y: +125 }, // surf→ring4 = 92px ✓   2π·265/12 = 139px ✓
+      ]; // 39 tiles
+
+      rings.forEach(({ count, r, Y }) => {
+        const tZ = Math.sqrt(r * r + Y * Y);
+        const rX = Math.atan2(-Y, r) * (180 / Math.PI);
+        for (let i = 0; i < count; i++) {
+          const rY = (i / count) * 360;
+          out.push({ rY, rX, tZ, tX: 0, tY: 0 });
+        }
+      });
+
+      // Flat base: 15 tiles lying horizontal (rX=-90), each rotated to its own
+      // angle (rY=a) so tiles are consistently oriented radially around the disk.
+      // Ring radii spaced 90px apart so tiles don't overlap between rings.
+      const tZ_base = 165;
+      [{ count: 3, r: 75 }, { count: 5, r: 165 }, { count: 7, r: 253 }]
+        .forEach(({ count, r }) => {
+          for (let i = 0; i < count; i++) {
+            const a = (i / count) * 360; // degrees
+            out.push({ rY: a, rX: -90, tZ: tZ_base, tX: r, tY: 0 });
+          }
+        }); // 15 tiles
+
+      return out; // 54 positions
+    }
+
+    // ── TORUS: 5 θ-rings around the tube × φ tiles around the torus = 54 ────
+    // rX=0 for all; tZ = R + r·cos(θ) positions each ring's depth;
+    // tY = r·sin(θ) positions each ring vertically on the tube.
+    function torusPositions() {
+      const R = 175; // major radius (torus center to tube center)
+      const r =  76; // tube radius — sized so inner rings are ≥88px apart vertically
+      const out = [];
+
+      // Rings: θ evenly spaced, φ count chosen so 2π·(R+r·cosθ)/count ≥ 88px
+      const rings = [
+        { theta:   0, count: 14 }, // outer       — spacing 113px ✓
+        { theta:  72, count: 13 }, // upper-outer  — spacing  96px ✓
+        { theta: 144, count:  7 }, // upper-inner  — spacing 102px ✓
+        { theta: 216, count:  7 }, // lower-inner  — spacing 102px ✓
+        { theta: 288, count: 13 }, // lower-outer  — spacing  96px ✓
+      ]; // 54 total — inner rings 89.4px apart vertically ✓
+
+      rings.forEach(({ theta, count }) => {
+        const th = theta * Math.PI / 180;
+        const tZ = R + r * Math.cos(th);
+        const tY = r * Math.sin(th);
+        for (let i = 0; i < count; i++) {
+          const rY = (i / count) * 360;
+          out.push({ rY, rX: 0, tZ, tX: 0, tY });
+        }
+      });
+
+      return out; // 54 positions
+    }
+
+    // ── SWAP TILE MEDIA ──────────────────────────────────────────────────────
+    function applyImages(key, pool) {
+      const isVideo = SHAPE_TYPES[key] === 'video';
+      const tiles   = document.querySelectorAll('.tile');
+      if (isVideo) {
+        tiles.forEach((tile, i) => {
+          tile.style.backgroundImage = '';
+          const vid = tile.querySelector('.tile-video');
+          vid.src = pool[i % pool.length];
+          vid.style.display = 'block';
+          vid.play().catch(() => {});
+        });
+      } else {
+        const shuffled = shuffle(pool);
+        tiles.forEach((tile, i) => {
+          const vid = tile.querySelector('.tile-video');
+          vid.pause(); vid.src = ''; vid.style.display = 'none';
+          tile.style.backgroundImage = `url('${shuffled[i % shuffled.length]}')`;
+        });
+      }
+    }
+
+    // ── SWAP TILE SIZE ────────────────────────────────────────────────────────
+    function applyTileSize(w, h) {
+      if (h === undefined) h = w;
+      document.querySelectorAll('.tile').forEach(tile => {
+        tile.style.width      = w + 'px';
+        tile.style.height     = h + 'px';
+        tile.style.marginLeft = -w / 2 + 'px';
+        tile.style.marginTop  = -h / 2 + 'px';
+      });
+    }
+
+    // ── PRELOAD ALL IMAGES ───────────────────────────────────────────────────
+    function preloadImages() {
+      // no image-based shapes currently
+    }
+
+    function preloadVideos() {
+      const allSrcs = [...SHAPE_IMAGES.torus, ...SHAPE_IMAGES.cube, ...SHAPE_IMAGES.poster];
+      allSrcs.forEach(src => {
+        const v = document.createElement('video');
+        v.src = src;
+        v.preload = 'auto';
+        v.muted = true;
+        v.playsInline = true;
+        v.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+        document.body.appendChild(v);
+      });
+    }
+
+    // ── BUILD TILES ──────────────────────────────────────────────────────────
+    function buildTiles() {
+      const sphere = document.getElementById('sphere');
+      const pool   = SHAPE_IMAGES.torus; // starts on torus (video)
+      const pos    = torusPositions();
+
+      for (let i = 0; i < TILE_COUNT; i++) {
+        const p    = pos[i];
+        const tile = document.createElement('div');
+        tile.className        = 'tile';
+        tile.style.width      = TILE_SIZE + 'px';
+        tile.style.height     = TILE_SIZE + 'px';
+        tile.style.marginLeft = -TILE_SIZE / 2 + 'px';
+        tile.style.marginTop  = -TILE_SIZE / 2 + 'px';
+
+        // Video element — used for video-based shapes (torus)
+        const vid = document.createElement('video');
+        vid.className   = 'tile-video';
+        vid.autoplay    = true;
+        vid.muted       = true;
+        vid.loop        = true;
+        vid.playsInline = true;
+        vid.src         = SHAPE_IMAGES.torus[i % SHAPE_IMAGES.torus.length];
+        vid.style.display = 'block'; // torus is first shape
+        tile.appendChild(vid);
+
+        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
+        sphere.appendChild(tile);
+      }
+    }
+
+    // ── APPLY SHAPE ──────────────────────────────────────────────────────────
+    function applyShape(positions) {
+      document.querySelectorAll('.tile').forEach((tile, i) => {
+        const p = positions[i];
+        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
+      });
+    }
+
+    // ── MORPH CYCLE: fade out → snap to new shape + images → fade in ─────────
+    const SHAPES      = [torusPositions, cubePositions, posterPositions];
+    const SHAPE_KEYS  = ['torus',        'cube',        'poster'];
+    const SHAPE_SIZES = { torus: 88,     cube: 88,      poster: 88 };
+    let shapeIdx = 0;
+    let roundIdx = 0;
+    const FADE_MS = 550; // must match CSS transition on #fade-overlay
+
+    function cycleShape() {
+      shapeIdx = (shapeIdx + 1) % SHAPES.length;
+      if (shapeIdx === 0) roundIdx = (roundIdx + 1) % 3;
+      const overlay = document.getElementById('fade-overlay');
+      const posterText = document.getElementById('poster-text');
+
+      // 1. Fade overlay in — also immediately hide poster text so it's gone before reveal
+      overlay.style.opacity = '1';
+      posterText.style.opacity = '0';
+
+      setTimeout(() => {
+        // 2. Snap positions, swap images, and resize tiles while hidden
+        const key = SHAPE_KEYS[shapeIdx];
+        // Rotate video pools each round: round 0 = own pool, round 1 = shifted by 1, etc.
+        const poolKey = SHAPE_KEYS[(shapeIdx + roundIdx) % SHAPE_KEYS.length];
+        const pool = SHAPE_IMAGES[poolKey];
+        document.getElementById('stage').dataset.pool = poolKey;
+        applyShape(SHAPES[shapeIdx]());
+        applyImages(key, pool);
+        // Pause rotation + breathe for poster; restore for all other shapes
+        const container = document.querySelector('.sphere');
+        const scene = document.querySelector('.scene');
+        if (key === 'poster') {
+          const COLS = 9, ROWS = 6, GAP = 5;
+          const navH = isMobile ? 110 : 80;
+          const tileW = (window.innerWidth - (COLS - 1) * GAP) / COLS;
+          const tileH = (window.innerHeight - navH - (ROWS - 1) * GAP) / ROWS;
+          applyTileSize(tileW, tileH);
+          container.style.animation = 'none';
+          container.style.transform = 'none';
+          container.style.scale = '1';
+          scene.style.top = '50%';
+          posterText.style.opacity = '1';
+        } else {
+          applyTileSize(SHAPE_SIZES[key]);
+          container.style.animation = '';
+          container.style.transform = '';
+          container.style.scale = '';
+          scene.style.top = '';
+        }
+        // 3. On mobile give decoders extra time to spin up before revealing
+        setTimeout(() => { overlay.style.opacity = '0'; }, isMobile ? 1200 : 0);
+      }, FADE_MS);
+
+      setTimeout(cycleShape, 10500);
+    }
+
+    buildTiles();
+    preloadImages();
+    preloadVideos();
+
+    // Wait for videos to buffer, then snap fade in (longer on mobile)
+    const overlay = document.getElementById('fade-overlay');
+    setTimeout(() => {
+      overlay.style.transition = 'opacity 0.2s ease-in-out';
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.style.transition = '', 200);
+    }, isMobile ? 1500 : 1000);
+
+    setTimeout(cycleShape, 10500);
+
+  </script>
+
+</body>
+</html>
