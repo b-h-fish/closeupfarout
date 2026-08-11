@@ -1001,13 +1001,22 @@
     // closing quote followed by a lowercase word is a dialogue tag
     // (“There is!” roared Grampa…) and stays part of the same sentence.
     // Abbreviation periods are protected first so “Mr. Smith” never splits.
+    // Heavily semicoloned sentences are usually catalogues or run-on lists that
+    // swamp the weave — one of them can outrun every other voice on screen.
+    const MAX_SEMICOLONS = 3;
+
     function splitSentences(text) {
       const re = /[\s\S]+?[.!?…]+["”'’)\]]*(?=\s+["“'‘(]*[A-Z0-9]|\s*$)|[\s\S]+$/g;
       const matches = protectAbbrev(text).match(re);
       if (!matches) return [];
       return matches
         .map(s => s.split(ABBR_PERIOD).join('.').trim())
-        .filter(s => s.split(/\s+/).length >= 3 && !/\S+@\S+\.\S+/.test(s) && !/^[IVXLCDM]+\.?\s*—/.test(s));
+        .filter(s =>
+          s.split(/\s+/).length >= 3 &&
+          (s.match(/;/g) || []).length <= MAX_SEMICOLONS &&
+          !/\S+@\S+\.\S+/.test(s) &&
+          !/^[IVXLCDM]+\.?\s*—/.test(s)
+        );
     }
 
     // Center-text color for a voice — its own hue, or uniform white when the

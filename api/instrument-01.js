@@ -190,11 +190,21 @@ async function fetchGutenbergText(id) {
   return null;
 }
 
+// Reference works are lists, not prose — one drawn into a corner fills the
+// weave with headwords and entry fragments. Skipped on random draws only: Find
+// and direct id loads still reach them, so Bierce's Devil's Dictionary or
+// Johnson's Preface are there for anyone who asks for them by name.
+const REFERENCE_TITLE = /\b(dictionar(y|ies)|encyclopa?edias?|catalogues?|catalogs?)\b/i;
+
+function isReferenceWork(book) {
+  return REFERENCE_TITLE.test(book.title || '');
+}
+
 function pickRandomBook(usedIds) {
   let book;
   do {
     book = BOOKS[Math.floor(Math.random() * BOOKS.length)];
-  } while (usedIds.has(book.id));
+  } while (usedIds.has(book.id) || isReferenceWork(book));
   return book;
 }
 

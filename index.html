@@ -29,7 +29,9 @@
     }
 
     /* ── NAV ── */
-    nav {
+    /* Scoped to the direct child so these fixed-position rules stay on the site
+       header and can't reach a <nav> nested anywhere else in the page. */
+    body > nav {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
@@ -75,7 +77,7 @@
       grid-template-columns: 1fr 1fr;
     }
 
-    /* ── Left: hover veil with the cube from the old stage ── */
+    /* ── Left: hover veil over the preview block ── */
     #weave-link {
       position: relative;
       flex: 1;
@@ -103,7 +105,7 @@
     }
 
     /* Touch devices have no hover, so the veil never shows — the tap just
-       follows the link, and the cube's video is never fetched. */
+       follows the link through to Cento. */
     @media (hover: hover) {
       #weave-link:hover #cento-overlay { opacity: 1; }
     }
@@ -111,7 +113,7 @@
     #cento-logo {
       font-family: 'Spectral', serif;
       font-style: italic;
-      font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+      font-size: clamp(2.1rem, 3.2vw, 3.2rem);
       letter-spacing: 0.2em;
       text-indent: 0.2em; /* offset the trailing letter-space so it reads centred */
       white-space: nowrap;
@@ -124,49 +126,10 @@
     #cento-logo span:nth-child(4) { color: #4a7a46; }
     #cento-logo span:nth-child(5) { color: #c07a2b; }
 
-    #cube-scene {
-      position: relative;
-      width: clamp(210px, 24vw, 300px);
-      height: clamp(210px, 24vw, 300px);
-      perspective: 900px;
-    }
-
-    #cube {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: 0; height: 0;
-      transform-style: preserve-3d;
-      animation: cubeSpin 32s linear infinite,
-                 cubeBreathe 8s ease-in-out infinite;
-    }
-
+    /* Shared by the right-pane cube. */
     @keyframes cubeSpin {
       from { transform: rotateY(0deg) rotateX(12deg); }
       to   { transform: rotateY(360deg) rotateX(12deg); }
-    }
-
-    /* Sized here rather than with a transform — cubeSpin owns `transform`,
-       so the breathe animation drives the standalone `scale` property. */
-    @keyframes cubeBreathe {
-      0%, 100% { scale: 0.60; }
-      50%      { scale: 0.53; }
-    }
-
-    #cube .tile {
-      position: absolute;
-      backface-visibility: visible;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
-      will-change: transform;
-      overflow: hidden;
-    }
-
-    #cube .tile-video {
-      position: absolute;
-      inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      pointer-events: none;
-      background: transparent;
     }
 
     /* ── Left: the woven text ── */
@@ -175,7 +138,6 @@
       flex-direction: column;
       min-height: 0;
       padding: 0 2rem 0 2rem;
-      border-right: 1px solid var(--rule);
     }
 
     #weave {
@@ -190,18 +152,27 @@
       line-height: 1.85;
     }
 
-    #weave.loading {
-      display: flex;
-      align-items: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.78rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+    /* Loading is silent — the pane simply stays empty until the weave lands.
+       This is only for the failure case, kept quiet so it doesn't shout. */
+    .weave-msg {
+      font-style: italic;
       color: var(--dim);
     }
 
-    @keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
-    #weave.loading p { animation: pulse 2s ease-in-out infinite; }
+    /* The cento idea, made visible: the weave settles from four borrowed
+       voices into one poem in a single hand, then separates again. Colour
+       comes from a class rather than an inline style so `.mono` can win. */
+    #weave span { transition: color 1.6s ease-in-out; }
+    #weave span.v0 { color: #c07a2b; }
+    #weave span.v1 { color: #8b3d6b; }
+    #weave span.v2 { color: #2b6e8b; }
+    #weave span.v3 { color: #4a7a46; }
+    #weave.mono span { color: var(--ink); }
+
+    /* Indefinite colour cycling is exactly what this preference is for. */
+    @media (prefers-reduced-motion: reduce) {
+      #weave span { transition: none; }
+    }
 
     /* ── Left: attributions ── */
     #sources {
@@ -224,29 +195,57 @@
       opacity: 0.9;
     }
 
-    /* ── Right: Issue-01 cover ── */
+    /* ── Right: spinning cube ── */
     #cover-pane {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 2rem;
       min-height: 0;
+      overflow: hidden;
     }
 
-    #cover-pane a {
-      display: block;
-      max-height: 100%;
-      line-height: 0;
-      transition: transform 0.4s ease;
+    #cover-cube-scene {
+      position: relative;
+      width: clamp(260px, 27vw, 400px);
+      height: clamp(260px, 27vw, 400px);
+      perspective: 900px;
     }
-    #cover-pane a:hover { transform: translateY(-4px); }
 
-    #cover-pane img {
-      display: block;
-      max-width: 100%;
-      max-height: 100%;
-      width: auto; height: auto;
-      object-fit: contain;
+    #cover-cube {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      animation: cubeSpin 32s linear infinite,
+                 coverCubeBreathe 8s ease-in-out infinite;
+    }
+
+    /* cubeSpin owns `transform`, so the breathe drives the standalone `scale`. */
+    @keyframes coverCubeBreathe {
+      0%, 100% { scale: 0.66; }
+      50%      { scale: 0.58; }
+    }
+
+    #cover-cube .tile {
+      position: absolute;
+      backface-visibility: visible;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+      will-change: transform;
+      overflow: hidden;
+    }
+
+    #cover-cube .tile-video {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      background: transparent;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #cover-cube { animation: none; scale: 0.62; }
     }
 
     /* ── Footer / audio player ── */
@@ -284,7 +283,7 @@
     @media (max-width: 768px) {
       :root { --nav-h: 110px; --foot-h: 104px; }
 
-      nav {
+      body > nav {
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -295,13 +294,14 @@
 
       main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
 
-      #weave-pane { border-right: none; padding: 0 1.4rem; }
+      #weave-pane { padding: 0 1.4rem; }
       #weave { font-size: 1.02rem; }
 
       #sources { grid-template-columns: 1fr; }
       #sources span { font-size: 0.78rem; }
 
-      /* The cover would crowd the weave on a phone; the nav still reaches it. */
+      /* 54 decoding videos is not a phone's problem to have, and the weave is
+         the point on a small screen. JS skips building the cube entirely here. */
       #cover-pane { display: none; }
 
       footer { padding: 0 1.4rem; }
@@ -337,19 +337,16 @@
   <main>
     <div id="weave-pane">
       <a id="weave-link" href="/cento/" aria-label="Open Cento">
-        <div id="weave" class="loading"><p>gathering voices</p></div>
+        <div id="weave"></div>
         <div id="sources"></div>
         <div id="cento-overlay" aria-hidden="true">
           <div id="cento-logo"><span>C</span><span>E</span><span>N</span><span>T</span><span>O</span></div>
-          <div id="cube-scene"><div id="cube"></div></div>
         </div>
       </a>
     </div>
 
     <div id="cover-pane">
-      <a href="/periodical/">
-        <img src="/images/issue-01-placeholder.png" alt="Issue 01 — Summer 2026" />
-      </a>
+      <div id="cover-cube-scene" aria-hidden="true"><div id="cover-cube"></div></div>
     </div>
   </main>
 
@@ -377,7 +374,15 @@
     // slice of each book rather than the whole text.
     const PARAGRAPH_WINDOW = 12;
 
+    // How long the weave holds each state before crossing to the other. The
+    // fade itself lives on the `#weave span` transition in the CSS.
+    const MONO_INTERVAL = 7000;
+
     // ── Sentence splitting (mirrors /cento) ──────────────────
+    // Kept in step with Cento's own splitter \u2014 heavily semicoloned sentences
+    // are usually catalogues that swamp the weave.
+    const MAX_SEMICOLONS = 3;
+
     const ABBR_PERIOD = '\uE000';
     const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\./g;
 
@@ -397,6 +402,7 @@
         .map(s => s.split(ABBR_PERIOD).join('.').trim())
         .filter(s =>
           s.split(/\s+/).length >= 3 &&
+          (s.match(/;/g) || []).length <= MAX_SEMICOLONS &&
           !/\S+@\S+\.\S+/.test(s) &&
           !/^[IVXLCDM]+\.?\s*—/.test(s)
         );
@@ -421,7 +427,7 @@
         for (let j = 0; j < live.length && spans.length < SENTENCES; j++) {
           if (i < rows[j].length) {
             spans.push(
-              '<span style="color:' + live[j].color + '">' + esc(rows[j][i]) + '</span>'
+              '<span class="v' + live[j].vi + '">' + esc(rows[j][i]) + '</span>'
             );
           }
         }
@@ -450,6 +456,7 @@
         const voices = (data.voices || []).map((v, i) => ({
           title: v.title,
           author: v.author,
+          vi: i,
           color: VOICE_COLORS[i],
           sentences: splitSentences((v.paragraphs || []).join(' ')),
         }));
@@ -457,20 +464,24 @@
         const html = weave(voices);
         if (!html) throw new Error('no text');
 
-        weaveEl.classList.remove('loading');
         weaveEl.innerHTML = html;
         renderSources(voices);
+
+        // Alternate between the four voices and one black hand. Started only
+        // after a successful render so it never runs against the error state.
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          setInterval(() => weaveEl.classList.toggle('mono'), MONO_INTERVAL);
+        }
       } catch (err) {
-        weaveEl.innerHTML = '<p>voices unavailable</p>';
+        weaveEl.innerHTML = '<p class="weave-msg">voices unavailable</p>';
         console.error('Cento weave:', err);
       }
     }
 
     load();
 
-    // ── Hover cube (carried over from the old stage design) ──
-    // Built on first hover rather than at load, so the landing page stays light
-    // until someone actually reaches for it. Uses the -mobile encodes on every
+    // ── Cube geometry (from the old stage design) ────────────
+    // Shared by the right-pane cube below. Uses the -mobile encodes on every
     // device: the tiles render at 88px, where the full-size files are wasted.
     const CUBE_VIDEOS = [
       '/videos/cube/cube-vid-01-mobile.webm',
@@ -508,12 +519,18 @@
       return out;
     }
 
-    let cubeTiles = null;
+    // ── Right-pane cube ──────────────────────────────────────
+    // The old stage's cube, now the standing occupant of the right pane. Shares
+    // the geometry helpers and the four -mobile encodes with the hover cube
+    // above, but stands on its own element so neither can disturb the other.
+    // Skipped below 768px, where the pane is display:none and the videos would
+    // be fetched and decoded for nothing.
+    function buildCoverCube() {
+      const cube = document.getElementById('cover-cube');
+      if (!cube) return;
 
-    function buildCube() {
-      if (cubeTiles) return;
-      const cube = document.getElementById('cube');
       const frag = document.createDocumentFragment();
+      const videos = [];
 
       cubePositions().forEach((p, i) => {
         const tile = document.createElement('div');
@@ -533,27 +550,25 @@
         vid.src = CUBE_VIDEOS[i % CUBE_VIDEOS.length];
         tile.appendChild(vid);
 
+        videos.push(vid);
         frag.appendChild(tile);
       });
 
       cube.appendChild(frag);
-      cubeTiles = cube.querySelectorAll('video');
-    }
 
-    if (window.matchMedia('(hover: hover)').matches) {
-      const link = document.getElementById('weave-link');
-
-      link.addEventListener('pointerenter', () => {
-        buildCube();
-        // Only decode while the veil is actually up — 54 tiles is a lot to
-        // leave running behind an invisible overlay.
-        cubeTiles.forEach(v => { const p = v.play(); if (p) p.catch(() => {}); });
+      const playAll = () => videos.forEach(v => {
+        const p = v.play(); if (p) p.catch(() => {});
       });
+      playAll();
 
-      link.addEventListener('pointerleave', () => {
-        if (cubeTiles) cubeTiles.forEach(v => v.pause());
+      // 54 decoders is enough to be worth stopping when nobody is looking.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) videos.forEach(v => v.pause());
+        else playAll();
       });
     }
+
+    if (!window.matchMedia('(max-width: 768px)').matches) buildCoverCube();
   })();
   </script>
 
