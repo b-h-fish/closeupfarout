@@ -113,12 +113,6 @@
     #cento-logo span:nth-child(4) { color: #4a7a46; }
     #cento-logo span:nth-child(5) { color: #c07a2b; }
 
-    /* Shared by the right-pane cube. */
-    @keyframes cubeSpin {
-      from { transform: rotateY(0deg) rotateX(12deg); }
-      to   { transform: rotateY(360deg) rotateX(12deg); }
-    }
-
     /* ── Left: the woven text ── */
     #weave-pane {
       display: flex;
@@ -131,12 +125,16 @@
       flex: 1;
       min-height: 0;
       /* Deliberately clipped, not scrollable — the weave runs past the bottom
-         edge mid-sentence so the page reads as an excerpt of something larger. */
+         edge mid-sentence so the page reads as an excerpt of something larger.
+         The script trims this to a whole number of lines so the cut always
+         falls cleanly between them, never through one. */
       overflow: hidden;
       padding: 1.6rem 0 1.2rem;
       font-family: 'Cormorant Garamond', serif;
       font-size: clamp(1.02rem, 1.15vw, 1.24rem);
-      line-height: 1.85;
+      /* Single source of truth: the script reads this back to size a line. */
+      --line-ratio: 1.85;
+      line-height: var(--line-ratio);
     }
 
     /* Loading is silent — the pane simply stays empty until the weave lands.
@@ -148,13 +146,19 @@
 
     /* The cento idea, made visible: the weave settles from four borrowed
        voices into one poem in a single hand, then separates again. Colour
-       comes from a class rather than an inline style so `.mono` can win. */
-    #weave span { transition: color 1.6s ease-in-out; }
-    #weave span.v0 { color: #c07a2b; }
-    #weave span.v1 { color: #8b3d6b; }
-    #weave span.v2 { color: #2b6e8b; }
-    #weave span.v3 { color: #4a7a46; }
-    #weave.mono span { color: var(--ink); }
+       comes from a class rather than an inline style so `.mono` can win.
+       The class is toggled on the pane so the text and its attributions
+       cross together — one toggle, no chance of the two drifting apart. */
+    #weave span,
+    #sources span { transition: color 1.6s ease-in-out; }
+
+    #weave-pane .v0 { color: #c07a2b; }
+    #weave-pane .v1 { color: #8b3d6b; }
+    #weave-pane .v2 { color: #2b6e8b; }
+    #weave-pane .v3 { color: #4a7a46; }
+
+    #weave-pane.mono #weave span,
+    #weave-pane.mono #sources span { color: var(--ink); }
 
     /* Indefinite colour cycling is exactly what this preference is for. */
     @media (prefers-reduced-motion: reduce) {
@@ -164,6 +168,9 @@
     /* ── Left: attributions ── */
     #sources {
       flex-shrink: 0;
+      /* The weave above is trimmed to whole lines, so it no longer fills the
+         pane. Hold this at the bottom and let the slack sit above the rule. */
+      margin-top: auto;
       border-top: 1px solid var(--rule);
       padding: 0.9rem 0 1.1rem;
       display: grid;
@@ -182,65 +189,37 @@
       opacity: 0.9;
     }
 
-    /* ── Right: spinning cube ── */
+    /* ── Right: video poster ── */
     #cover-pane {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: 2rem 2.5rem;
       min-height: 0;
       overflow: hidden;
     }
 
-    #cover-cube-scene {
-      position: relative;
-      width: clamp(200px, 24vw, 380px);
-      height: clamp(200px, 24vw, 380px);
-      perspective: 900px;
+    /* Square, so the cells stop cropping the clips to portrait, and capped so
+       the poster sits inside its third instead of filling it. */
+    #cover-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 16px;
+      /* Widened alongside the gap so the extra air comes out of the gutters
+         rather than the cells — they stay ~116px either way. */
+      width: min(100%, 380px);
+      max-height: 100%;
+      aspect-ratio: 1;
     }
 
-    #cover-cube {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: 0; height: 0;
-      transform-style: preserve-3d;
-      /* The tile positions are fixed px, so the cube spans ~612px corner-on no
-         matter how wide its column is — it can only be fitted by scaling. These
-         steps keep it inside the narrower third instead of being clipped by
-         #cover-pane's overflow. */
-      --cube-scale: 0.56;
-      animation: cubeSpin 32s linear infinite,
-                 coverCubeBreathe 8s ease-in-out infinite;
-    }
-
-    @media (max-width: 1200px) { #cover-cube { --cube-scale: 0.46; } }
-    @media (max-width: 1000px) { #cover-cube { --cube-scale: 0.38; } }
-
-    /* cubeSpin owns `transform`, so the breathe drives the standalone `scale`. */
-    @keyframes coverCubeBreathe {
-      0%, 100% { scale: var(--cube-scale); }
-      50%      { scale: calc(var(--cube-scale) * 0.88); }
-    }
-
-    #cover-cube .tile {
-      position: absolute;
-      backface-visibility: visible;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
-      will-change: transform;
-      overflow: hidden;
-    }
-
-    #cover-cube .tile-video {
-      position: absolute;
-      inset: 0;
-      width: 100%; height: 100%;
+    #cover-grid video {
+      display: block;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       pointer-events: none;
       background: transparent;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      #cover-cube { animation: none; scale: 0.62; }
     }
 
     /* ── Footer / audio player ── */
@@ -322,7 +301,7 @@
     </div>
 
     <div id="cover-pane">
-      <div id="cover-cube-scene" aria-hidden="true"><div id="cover-cube"></div></div>
+      <div id="cover-grid" aria-hidden="true"></div>
     </div>
   </main>
 
@@ -339,7 +318,8 @@
     // A small, read-only Cento: one fresh weave per page load. No corners, no
     // controls — just the aggregate text and who it came from. The full
     // instrument lives at /cento/.
-    const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
+    // Voice colours live in the CSS (`#weave-pane .v0`–`.v3`), not here — the
+    // colour cycle needs them in classes so `.mono` can override them.
     // Deliberately more than any screen shows. The pane clips rather than
     // scrolls, so this just has to guarantee the text runs past the bottom
     // edge on a tall display instead of stopping short with dead space.
@@ -410,11 +390,56 @@
       return '<p>' + spans.join(' ') + '</p>';
     }
 
+    // `overflow: hidden` clips at the padding box, so the bottom line is
+    // normally sliced through. Trim the pane to a whole number of lines instead
+    // and the cut lands cleanly between them.
+    //
+    // The line box is derived from font-size, not line-height: getComputedStyle
+    // is entitled to hand back the raw number (1.85) rather than a pixel length,
+    // and flooring against 1.85 quietly does nothing. font-size is always px.
+    function snapToWholeLines() {
+      const el = document.getElementById('weave');
+      const pane = document.getElementById('weave-pane');
+      const sources = document.getElementById('sources');
+      const cs = getComputedStyle(el);
+
+      const ratio = parseFloat(cs.getPropertyValue('--line-ratio')) || 1.85;
+      const line = parseFloat(cs.fontSize) * ratio;
+      if (!line) return;
+
+      // Two things this has to get right:
+      //
+      // Measure the room the pane offers, never the weave's own height — that
+      // is the value being set, so reading it back makes each run depend on
+      // the last.
+      //
+      // And the visible band is everything below padding-top, bottom padding
+      // included: the clip is at the padding box, so text runs on through
+      // padding-bottom and shows there. Sizing the content box instead leaves
+      // that padding free to reveal a slice of one more line.
+      const padTop = parseFloat(cs.paddingTop);
+      const band = pane.clientHeight - sources.offsetHeight - padTop;
+      if (band < line) return;
+
+      el.style.maxHeight = (Math.floor(band / line) * line + padTop) + 'px';
+    }
+
+    // The pane settles late: the webfont swap resizes the attributions beneath
+    // it, and any window resize moves it again. Watching the pane rather than
+    // the weave means the trim can't retrigger this.
+    let snapTimer = null;
+    function scheduleSnap() {
+      clearTimeout(snapTimer);
+      snapTimer = setTimeout(snapToWholeLines, 60);
+    }
+    new ResizeObserver(scheduleSnap).observe(document.getElementById('weave-pane'));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleSnap);
+
     function renderSources(voices) {
       document.getElementById('sources').innerHTML = voices
         .filter(v => v.sentences.length && v.title)
         .map(v =>
-          '<span style="color:' + v.color + '" title="' +
+          '<span class="v' + v.vi + '" title="' +
           esc(v.title) + (v.author ? ' — ' + esc(v.author) : '') + '">' +
           esc(v.title) + '</span>'
         )
@@ -432,7 +457,6 @@
           title: v.title,
           author: v.author,
           vi: i,
-          color: VOICE_COLORS[i],
           sentences: splitSentences((v.paragraphs || []).join(' ')),
         }));
 
@@ -441,11 +465,14 @@
 
         weaveEl.innerHTML = html;
         renderSources(voices);
+        snapToWholeLines();
 
-        // Alternate between the four voices and one black hand. Started only
+        // Alternate between the four voices and one black hand. Toggled on the
+        // pane so the weave and its attributions cross together. Started only
         // after a successful render so it never runs against the error state.
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          setInterval(() => weaveEl.classList.toggle('mono'), MONO_INTERVAL);
+          const pane = document.getElementById('weave-pane');
+          setInterval(() => pane.classList.toggle('mono'), MONO_INTERVAL);
         }
       } catch (err) {
         weaveEl.innerHTML = '<p class="weave-msg">voices unavailable</p>';
@@ -455,95 +482,59 @@
 
     load();
 
-    // ── Cube geometry (from the old stage design) ────────────
-    // Shared by the right-pane cube below. Uses the -mobile encodes on every
-    // device: the tiles render at 88px, where the full-size files are wasted.
+    // ── Right-pane poster ────────────────────────────────────
+    // A flat 3x3 of the old stage's cube clips. Clip 03 is the green one; the
+    // rest are near-black.
     const CUBE_VIDEOS = [
       '/videos/cube/cube-vid-01-mobile.webm',
       '/videos/cube/cube-vid-02-mobile.webm',
-      '/videos/cube/cube-vid-03-mobile.webm',
+      '/videos/cube/cube-vid-03-mobile.webm', // green
       '/videos/cube/cube-vid-04-mobile.webm',
     ];
-    const RADIUS = 260;
-    const TILE_SIZE = 88;
 
-    function tf(rY, rX, tZ, tX, tY) {
-      return 'rotateY(' + rY + 'deg) rotateX(' + rX + 'deg) translateZ(' + tZ +
-             'px) translateX(' + tX + 'px) translateY(' + tY + 'px)';
-    }
+    // Which clip sits in which cell, read left-to-right, top-to-bottom. Plain
+    // `i % 4` put the two greens at top-right and bottom-left; this adds a third
+    // in the bottom-right corner.
+    const GRID_LAYOUT = [
+      0, 1, 2,
+      3, 0, 1,
+      2, 3, 2,
+    ];
 
-    // 6 faces x a 3x3 grid = 54 tiles.
-    function cubePositions() {
-      const S = RADIUS * 0.46; // face half-extent — ~8px gap between tiles
-      const FACES = [
-        [0, 0], [-90, 0], [180, 0], [90, 0], [0, -90], [0, 90],
-      ];
-      const out = [];
-      FACES.forEach(([rY, rX]) => {
-        for (let r = 0; r < 3; r++) {
-          for (let c = 0; c < 3; c++) {
-            out.push({
-              rY, rX,
-              tZ: S + TILE_SIZE / 2 + 18,
-              tX: S * (-1 + c),
-              tY: S * (-1 + r) - 20,
-            });
-          }
-        }
-      });
-      return out;
-    }
-
-    // ── Right-pane cube ──────────────────────────────────────
-    // The old stage's cube, now the standing occupant of the right pane. Shares
-    // the geometry helpers and the four -mobile encodes with the hover cube
-    // above, but stands on its own element so neither can disturb the other.
     // Skipped below 768px, where the pane is display:none and the videos would
     // be fetched and decoded for nothing.
-    function buildCoverCube() {
-      const cube = document.getElementById('cover-cube');
-      if (!cube) return;
+    function buildCoverGrid() {
+      const grid = document.getElementById('cover-grid');
+      if (!grid) return;
 
       const frag = document.createDocumentFragment();
       const videos = [];
 
-      cubePositions().forEach((p, i) => {
-        const tile = document.createElement('div');
-        tile.className = 'tile';
-        tile.style.width = TILE_SIZE + 'px';
-        tile.style.height = TILE_SIZE + 'px';
-        tile.style.marginLeft = (-TILE_SIZE / 2) + 'px';
-        tile.style.marginTop = (-TILE_SIZE / 2) + 'px';
-        tile.style.transform = tf(p.rY, p.rX, p.tZ, p.tX, p.tY);
-
+      GRID_LAYOUT.forEach(clip => {
         const vid = document.createElement('video');
-        vid.className = 'tile-video';
         vid.muted = true;
         vid.loop = true;
         vid.playsInline = true;
         vid.preload = 'auto';
-        vid.src = CUBE_VIDEOS[i % CUBE_VIDEOS.length];
-        tile.appendChild(vid);
-
+        vid.src = CUBE_VIDEOS[clip];
         videos.push(vid);
-        frag.appendChild(tile);
+        frag.appendChild(vid);
       });
 
-      cube.appendChild(frag);
+      grid.appendChild(frag);
 
       const playAll = () => videos.forEach(v => {
         const p = v.play(); if (p) p.catch(() => {});
       });
       playAll();
 
-      // 54 decoders is enough to be worth stopping when nobody is looking.
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) videos.forEach(v => v.pause());
         else playAll();
       });
     }
 
-    if (!window.matchMedia('(max-width: 768px)').matches) buildCoverCube();
+    if (!window.matchMedia('(max-width: 768px)').matches) buildCoverGrid();
   })();
   </script>
 
