@@ -1,4 +1,8 @@
 .vercel
-images/
+# Contents rather than the directory itself — git won't descend into an
+# excluded directory, so `images/` would make the negation below a no-op.
+images/*
+# Player cover art is small, versioned WebP the front page depends on.
+!images/audio/
 scripts/pg_catalog.csv
 .DS_Store
