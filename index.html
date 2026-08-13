@@ -54,7 +54,7 @@
     }
 
 
-    /* ── MAIN: weave left, cover right ── */
+    /* ── MAIN: weave in the left two thirds; right third now empty ── */
     main {
       position: fixed;
       top: var(--nav-h);
@@ -189,39 +189,6 @@
       opacity: 0.9;
     }
 
-    /* ── Right: video poster ── */
-    #cover-pane {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 2.5rem;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    /* Square, so the cells stop cropping the clips to portrait, and capped so
-       the poster sits inside its third instead of filling it. */
-    #cover-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 16px;
-      /* Widened alongside the gap so the extra air comes out of the gutters
-         rather than the cells — they stay ~116px either way. */
-      width: min(100%, 380px);
-      max-height: 100%;
-      aspect-ratio: 1;
-    }
-
-    #cover-grid video {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      pointer-events: none;
-      background: transparent;
-    }
-
     /* ── Footer / audio player ── */
     footer {
       position: fixed;
@@ -236,13 +203,137 @@
       gap: 2rem;
     }
 
-    #player-slot {
-      flex: 1;
-      min-width: 0;
-      height: 100%;
+    #player {
       display: flex;
       align-items: center;
+      gap: 1.75rem;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
     }
+
+    /* ── Player: transport ── */
+    #transport-block {
+      flex: 0 0 clamp(200px, 21vw, 275px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .transport { display: flex; align-items: center; gap: 0.55rem; }
+
+    .transport button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--ink);
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.2s;
+    }
+    .transport button:hover { opacity: 1; }
+    .transport button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; opacity: 1; }
+    .transport svg { display: block; fill: currentColor; }
+
+    #np-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .scrub-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Range inputs can't be styled from one rule, so track and thumb are set
+       per-engine. --played carries the fill point to both. */
+    #scrub {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      min-width: 0;
+      height: 12px;
+      background: none;
+      cursor: pointer;
+    }
+    #scrub::-webkit-slider-runnable-track {
+      height: 2px;
+      background: linear-gradient(to right,
+        var(--ink) var(--played, 0%), var(--rule) var(--played, 0%));
+    }
+    #scrub::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 9px; height: 9px;
+      margin-top: -3.5px;
+      border-radius: 50%;
+      background: var(--ink);
+    }
+    #scrub::-moz-range-track { height: 2px; background: var(--rule); }
+    #scrub::-moz-range-progress { height: 2px; background: var(--ink); }
+    #scrub::-moz-range-thumb {
+      width: 9px; height: 9px;
+      border: none; border-radius: 50%;
+      background: var(--ink);
+    }
+    #scrub:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+    /* ── Player: cover shelf ── */
+    #shelf {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule) transparent;
+      padding-bottom: 6px; /* room for the scrollbar without clipping the art */
+    }
+    #shelf::-webkit-scrollbar { height: 4px; }
+    #shelf::-webkit-scrollbar-track { background: transparent; }
+    #shelf::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+
+    .cover {
+      position: relative;
+      flex: 0 0 auto;
+      width: 84px; height: 84px;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      scroll-snap-align: start;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
+    }
+    .cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .cover:hover { opacity: 0.85; }
+    .cover[aria-pressed="true"] { opacity: 1; }
+    .cover[aria-pressed="true"]::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      outline: 1px solid var(--ink);
+      outline-offset: 2px;
+    }
+    .cover:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; opacity: 1; }
 
     /* ── MOBILE: stack weave over cover ── */
     @media (max-width: 768px) {
@@ -260,11 +351,15 @@
       #sources { grid-template-columns: 1fr; }
       #sources span { font-size: 0.78rem; }
 
-      /* 54 decoding videos is not a phone's problem to have, and the weave is
-         the point on a small screen. JS skips building the cube entirely here. */
-      #cover-pane { display: none; }
-
       footer { padding: 0 1.4rem; }
+
+      /* 104px of footer: the shelf keeps its scroll, the transport gives up its
+         elapsed/duration labels and some width. */
+      #player { gap: 1rem; }
+      #transport-block { flex: 0 0 clamp(140px, 40vw, 190px); }
+      .scrub-row .t { display: none; }
+      #np-title { font-size: 0.6rem; }
+      .cover { width: 62px; height: 62px; }
     }
 
     /* ── GRAIN ── */
@@ -300,13 +395,32 @@
       </a>
     </div>
 
-    <div id="cover-pane">
-      <div id="cover-grid" aria-hidden="true"></div>
-    </div>
   </main>
 
   <footer>
-    <div id="player-slot"><!-- audio player --></div>
+    <div id="player">
+      <div id="transport-block">
+        <div class="transport">
+          <button type="button" id="prev" aria-label="Previous track">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14l-11-7z"/><rect x="5" y="5" width="2.2" height="14"/></svg>
+          </button>
+          <button type="button" id="pp" aria-label="Play">
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button type="button" id="next" aria-label="Next track">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7z"/><rect x="16.8" y="5" width="2.2" height="14"/></svg>
+          </button>
+        </div>
+        <div id="np-title">—</div>
+        <div class="scrub-row">
+          <span class="t" id="t-cur">0:00</span>
+          <input id="scrub" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek">
+          <span class="t" id="t-dur">0:00</span>
+        </div>
+      </div>
+      <div id="shelf"></div>
+    </div>
+    <audio id="player-audio" preload="none"></audio>
   </footer>
 
   <div class="grain"></div>
@@ -482,59 +596,148 @@
 
     load();
 
-    // ── Right-pane poster ────────────────────────────────────
-    // A flat 3x3 of the old stage's cube clips. Clip 03 is the green one; the
-    // rest are near-black.
-    const CUBE_VIDEOS = [
-      '/videos/cube/cube-vid-01-mobile.webm',
-      '/videos/cube/cube-vid-02-mobile.webm',
-      '/videos/cube/cube-vid-03-mobile.webm', // green
-      '/videos/cube/cube-vid-04-mobile.webm',
+  })();
+  </script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ── Footer audio player ──────────────────────────────────
+    // Cover art is real; the audio is not there yet. Drop files at these paths
+    // (or repoint `src`) and nothing else here has to change. `title` is what
+    // shows in the transport while a track is selected.
+    const TRACKS = [
+      { title: 'Track 01', art: '/images/audio/cover-01.webp', src: '/audio/tracks/track-01.mp3' },
+      { title: 'Track 02', art: '/images/audio/cover-02.webp', src: '/audio/tracks/track-02.mp3' },
+      { title: 'Track 03', art: '/images/audio/cover-03.webp', src: '/audio/tracks/track-03.mp3' },
+      { title: 'Track 04', art: '/images/audio/cover-04.webp', src: '/audio/tracks/track-04.mp3' },
+      { title: 'Track 05', art: '/images/audio/cover-05.webp', src: '/audio/tracks/track-05.mp3' },
+      { title: 'Track 06', art: '/images/audio/cover-06.webp', src: '/audio/tracks/track-06.mp3' },
     ];
 
-    // Which clip sits in which cell, read left-to-right, top-to-bottom. Plain
-    // `i % 4` put the two greens at top-right and bottom-left; this adds a third
-    // in the bottom-right corner.
-    const GRID_LAYOUT = [
-      0, 1, 2,
-      3, 0, 1,
-      2, 3, 2,
-    ];
+    const ICON_PLAY  = '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    const ICON_PAUSE = '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14"/><rect x="13.6" y="5" width="3.4" height="14"/></svg>';
 
-    // Skipped below 768px, where the pane is display:none and the videos would
-    // be fetched and decoded for nothing.
-    function buildCoverGrid() {
-      const grid = document.getElementById('cover-grid');
-      if (!grid) return;
+    const audio   = document.getElementById('player-audio');
+    const shelf   = document.getElementById('shelf');
+    const ppBtn   = document.getElementById('pp');
+    const titleEl = document.getElementById('np-title');
+    const scrub   = document.getElementById('scrub');
+    const curEl   = document.getElementById('t-cur');
+    const durEl   = document.getElementById('t-dur');
+    if (!audio || !shelf || !ppBtn) return;
 
-      const frag = document.createDocumentFragment();
-      const videos = [];
+    const covers = [];
+    let index = 0;
+    let loaded = -1; // which track's file is actually attached to the element
 
-      GRID_LAYOUT.forEach(clip => {
-        const vid = document.createElement('video');
-        vid.muted = true;
-        vid.loop = true;
-        vid.playsInline = true;
-        vid.preload = 'auto';
-        vid.src = CUBE_VIDEOS[clip];
-        videos.push(vid);
-        frag.appendChild(vid);
-      });
-
-      grid.appendChild(frag);
-
-      const playAll = () => videos.forEach(v => {
-        const p = v.play(); if (p) p.catch(() => {});
-      });
-      playAll();
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) videos.forEach(v => v.pause());
-        else playAll();
-      });
+    function fmt(s) {
+      if (!isFinite(s) || s < 0) return '0:00';
+      return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
     }
 
-    if (!window.matchMedia('(max-width: 768px)').matches) buildCoverGrid();
+    function setPlayed(pct) {
+      scrub.value = pct;
+      scrub.style.setProperty('--played', pct + '%');
+    }
+
+    function setPlayIcon(playing) {
+      ppBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+      ppBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    }
+
+    function markCurrent() {
+      covers.forEach((c, i) =>
+        c.setAttribute('aria-pressed', i === index ? 'true' : 'false'));
+    }
+
+    // Deliberately not touching audio.src until something is actually played —
+    // otherwise every page load would fire an error for files that don't exist
+    // yet and the transport would boot into a failure state.
+    function attach() {
+      if (loaded === index) return;
+      audio.src = TRACKS[index].src;
+      loaded = index;
+    }
+
+    function play() {
+      attach();
+      const p = audio.play();
+      if (p) p.catch(() => setPlayIcon(false));
+    }
+
+    function select(i, autoplay) {
+      index = (i + TRACKS.length) % TRACKS.length;
+      titleEl.textContent = TRACKS[index].title;
+      markCurrent();
+      setPlayed(0);
+      curEl.textContent = '0:00';
+      durEl.textContent = '0:00';
+      if (loaded !== index) { audio.pause(); loaded = -1; setPlayIcon(false); }
+      covers[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      if (autoplay) play();
+    }
+
+    TRACKS.forEach((t, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cover';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Play ' + t.title);
+
+      const img = document.createElement('img');
+      img.src = t.art;
+      img.alt = '';
+      img.loading = 'lazy';
+      btn.appendChild(img);
+
+      // Re-clicking the current track toggles it rather than restarting.
+      btn.addEventListener('click', () => {
+        if (i === index && loaded === index) {
+          if (audio.paused) play(); else audio.pause();
+        } else {
+          select(i, true);
+        }
+      });
+
+      covers.push(btn);
+      shelf.appendChild(btn);
+    });
+
+    ppBtn.addEventListener('click', () => {
+      if (audio.paused) play(); else audio.pause();
+    });
+    document.getElementById('prev')
+      .addEventListener('click', () => select(index - 1, !audio.paused));
+    document.getElementById('next')
+      .addEventListener('click', () => select(index + 1, !audio.paused));
+
+    audio.addEventListener('play',  () => setPlayIcon(true));
+    audio.addEventListener('pause', () => setPlayIcon(false));
+    audio.addEventListener('ended', () => select(index + 1, true));
+    audio.addEventListener('loadedmetadata', () => {
+      durEl.textContent = fmt(audio.duration);
+    });
+    audio.addEventListener('timeupdate', () => {
+      if (!audio.duration) return;
+      setPlayed((audio.currentTime / audio.duration) * 100);
+      curEl.textContent = fmt(audio.currentTime);
+    });
+    audio.addEventListener('error', () => {
+      // Say so rather than sitting silently on a dead transport.
+      titleEl.textContent = TRACKS[index].title + ' — unavailable';
+      setPlayIcon(false);
+    });
+
+    scrub.addEventListener('input', () => {
+      const pct = Number(scrub.value);
+      scrub.style.setProperty('--played', pct + '%');
+      if (audio.duration) audio.currentTime = (pct / 100) * audio.duration;
+    });
+
+    setPlayIcon(false);
+    select(0, false);
   })();
   </script>
 
