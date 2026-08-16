@@ -19,6 +19,9 @@
       --dim: rgba(26, 16, 8, 0.45);
       --nav-h: 80px;
       --foot-h: 132px;
+      /* The strip between the two halves. Widen or narrow here — the teaser
+         and the Issue 01 column each take an equal share of what is left. */
+      --strip-w: clamp(5rem, 8vw, 10rem);
     }
 
     html, body {
@@ -61,7 +64,9 @@
       left: 0; right: 0;
       bottom: var(--foot-h);
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      /* Teaser | strip | Issue 01 — the outer two split what the strip leaves,
+         so each lands a little under half. */
+      grid-template-columns: 1fr var(--strip-w) 1fr;
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -343,7 +348,10 @@
 
       body > nav { justify-content: center; }
 
+      /* Phones keep the single-column teaser they already had; the strip and
+         Issue 01 column are the other thread's to place here. */
       main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      #game-pane, #issue-pane { display: none; }
 
       #weave-pane { padding: 0 1.4rem; }
       #weave { font-size: 1.02rem; }
@@ -395,6 +403,10 @@
       </a>
     </div>
 
+    <!-- Empty slots for the CUFO General thread: the middle strip takes the
+         interactive game, the right column the Issue 01 menu. -->
+    <div id="game-pane"></div>
+    <div id="issue-pane"></div>
   </main>
 
   <footer>
