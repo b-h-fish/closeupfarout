@@ -22,6 +22,9 @@
       /* The strip between the two halves. Widen or narrow here — the teaser
          and the Issue 01 column each take an equal share of what is left. */
       --strip-w: clamp(5rem, 8vw, 10rem);
+      /* Half of the 1.6s crossing when a new set of books swaps in. The script
+         reads this back so the pause between fades matches the transition. */
+      --swap-fade: 800ms;
     }
 
     html, body {
@@ -164,6 +167,13 @@
 
     #weave-pane.mono #weave span,
     #weave-pane.mono #sources span { color: var(--ink); }
+
+    /* Crossing into a new set of books. Opacity is independent of the colour
+       cycle above, so the two run over each other without interfering. */
+    #weave,
+    #sources { transition: opacity var(--swap-fade) ease-in-out; }
+    #weave-pane.fading #weave,
+    #weave-pane.fading #sources { opacity: 0; }
 
     /* Indefinite colour cycling is exactly what this preference is for. */
     @media (prefers-reduced-motion: reduce) {
@@ -459,6 +469,15 @@
     // fade itself lives on the `#weave span` transition in the CSS.
     const MONO_INTERVAL = 9000;
 
+    // How long a set of four books stays up before being replaced.
+    const SWAP_INTERVAL = 48000;
+
+    // Half the crossing: out over this, swap, back in over the same again.
+    // Read from the stylesheet so the timing is defined in exactly one place.
+    const SWAP_FADE = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--swap-fade')
+    ) || 800;
+
     // ── Sentence splitting (mirrors /cento) ──────────────────
     // Kept in step with Cento's own splitter \u2014 heavily semicoloned sentences
     // are usually catalogues that swamp the weave.
@@ -572,38 +591,73 @@
         .join('');
     }
 
+    async function fetchWeave() {
+      const res = await fetch('/api/instrument-01?window=' + PARAGRAPH_WINDOW);
+      if (!res.ok) throw new Error('API ' + res.status);
+      const data = await res.json();
+
+      const voices = (data.voices || []).map((v, i) => ({
+        title: v.title,
+        author: v.author,
+        vi: i,
+        sentences: splitSentences((v.paragraphs || []).join(' ')),
+      }));
+
+      const html = weave(voices);
+      if (!html) throw new Error('no text');
+      return { voices, html };
+    }
+
+    function paint(next) {
+      document.getElementById('weave').innerHTML = next.html;
+      renderSources(next.voices);
+      snapToWholeLines();
+    }
+
+    // Draw four new books and cross into them. The fetch happens before the
+    // fade, so a failed request costs nothing visible — the pane never empties
+    // to reveal an error, it simply keeps the voices it already has.
+    //
+    // Nothing here touches `.mono`, so the colour cycle carries on across the
+    // swap uninterrupted; text arriving mid-cycle inherits whichever state the
+    // pane is in and is already black or coloured on arrival.
+    let swapping = false;
+    async function swapWeave() {
+      if (swapping) return;
+      swapping = true;
+      try {
+        const next = await fetchWeave();
+        const pane = document.getElementById('weave-pane');
+        pane.classList.add('fading');
+        await new Promise(r => setTimeout(r, SWAP_FADE));
+        paint(next);
+        pane.classList.remove('fading');
+      } catch (err) {
+        console.error('Cento weave refresh:', err);
+      } finally {
+        swapping = false;
+      }
+    }
+
     async function load() {
       const weaveEl = document.getElementById('weave');
       try {
-        const res = await fetch('/api/instrument-01?window=' + PARAGRAPH_WINDOW);
-        if (!res.ok) throw new Error('API ' + res.status);
-        const data = await res.json();
-
-        const voices = (data.voices || []).map((v, i) => ({
-          title: v.title,
-          author: v.author,
-          vi: i,
-          sentences: splitSentences((v.paragraphs || []).join(' ')),
-        }));
-
-        const html = weave(voices);
-        if (!html) throw new Error('no text');
-
-        weaveEl.innerHTML = html;
-        renderSources(voices);
-        snapToWholeLines();
-
-        // Alternate between the four voices and one black hand. Toggled on the
-        // pane so the weave and its attributions cross together. Started only
-        // after a successful render so it never runs against the error state.
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          const pane = document.getElementById('weave-pane');
-          setInterval(() => pane.classList.toggle('mono'), MONO_INTERVAL);
-        }
+        paint(await fetchWeave());
       } catch (err) {
         weaveEl.innerHTML = '<p class="weave-msg">voices unavailable</p>';
         console.error('Cento weave:', err);
+        return;
       }
+
+      // Alternate between the four voices and one black hand. Toggled on the
+      // pane so the weave and its attributions cross together. Started only
+      // after a successful render so it never runs against the error state.
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const pane = document.getElementById('weave-pane');
+        setInterval(() => pane.classList.toggle('mono'), MONO_INTERVAL);
+      }
+
+      setInterval(swapWeave, SWAP_INTERVAL);
     }
 
     load();
