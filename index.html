@@ -22,9 +22,9 @@
       /* The strip between the two halves. Widen or narrow here — the teaser
          and the Issue 01 column each take an equal share of what is left. */
       --strip-w: clamp(5rem, 8vw, 10rem);
-      /* Half of the 1.6s crossing when a new set of books swaps in. The script
-         reads this back so the pause between fades matches the transition. */
-      --swap-fade: 800ms;
+      /* How long one set of books takes to melt into the next. The script reads
+         this back, so the timing is defined only here. */
+      --melt: 3s;
     }
 
     html, body {
@@ -129,7 +129,7 @@
       padding: 0 2rem 0 2rem;
     }
 
-    #weave {
+    .weave {
       flex: 1;
       min-height: 0;
       /* Deliberately clipped, not scrollable — the weave runs past the bottom
@@ -157,31 +157,43 @@
        comes from a class rather than an inline style so `.mono` can win.
        The class is toggled on the pane so the text and its attributions
        cross together — one toggle, no chance of the two drifting apart. */
-    #weave span,
-    #sources span { transition: color 1.6s ease-in-out; }
+    .weave span,
+    .sources span { transition: color 1.6s ease-in-out; }
 
     #weave-pane .v0 { color: #c07a2b; }
     #weave-pane .v1 { color: #8b3d6b; }
     #weave-pane .v2 { color: #2b6e8b; }
     #weave-pane .v3 { color: #4a7a46; }
 
-    #weave-pane.mono #weave span,
-    #weave-pane.mono #sources span { color: var(--ink); }
+    #weave-pane.mono .weave span,
+    #weave-pane.mono .sources span { color: var(--ink); }
 
-    /* Crossing into a new set of books. Opacity is independent of the colour
-       cycle above, so the two run over each other without interfering. */
-    #weave,
-    #sources { transition: opacity var(--swap-fade) ease-in-out; }
-    #weave-pane.fading #weave,
-    #weave-pane.fading #sources { opacity: 0; }
+    /* Melting into a new set of books. The outgoing text is cloned into #ghost,
+       stacked over the live pane, and the two cross in opposite directions at
+       once — so the old text is still dissolving as the new one surfaces,
+       rather than the pane emptying between them.
+
+       Opacity is independent of the colour cycle above, so a melt and a colour
+       crossing can overlap without either disturbing the other. The ghost sits
+       under #cento-overlay (z-index 3) so hovering still works mid-melt. */
+    #ghost {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none;
+    }
+
+    .weave, .sources, #ghost { transition: opacity var(--melt) ease-in-out; }
 
     /* Indefinite colour cycling is exactly what this preference is for. */
     @media (prefers-reduced-motion: reduce) {
-      #weave span { transition: none; }
+      .weave span { transition: none; }
     }
 
     /* ── Left: attributions ── */
-    #sources {
+    .sources {
       flex-shrink: 0;
       /* The weave above is trimmed to whole lines, so it no longer fills the
          pane. Hold this at the bottom and let the slack sit above the rule. */
@@ -194,7 +206,7 @@
     }
 
     /* Plain text, not links — the whole preview block is one link to Cento. */
-    #sources span {
+    .sources span {
       font-family: 'EB Garamond', serif;
       font-size: 0.83rem;
       line-height: 1.4;
@@ -364,10 +376,10 @@
       #game-pane, #issue-pane { display: none; }
 
       #weave-pane { padding: 0 1.4rem; }
-      #weave { font-size: 1.02rem; }
+      .weave { font-size: 1.02rem; }
 
-      #sources { grid-template-columns: 1fr; }
-      #sources span { font-size: 0.78rem; }
+      .sources { grid-template-columns: 1fr; }
+      .sources span { font-size: 0.78rem; }
 
       footer { padding: 0 1.4rem; }
 
@@ -405,8 +417,8 @@
   <main>
     <div id="weave-pane">
       <a id="weave-link" href="/cento/" aria-label="Open Cento">
-        <div id="weave"></div>
-        <div id="sources"></div>
+        <div id="weave" class="weave"></div>
+        <div id="sources" class="sources"></div>
         <div id="cento-overlay" aria-hidden="true">
           <div id="cento-logo"><span>C</span><span>E</span><span>N</span><span>T</span><span>O</span></div>
         </div>
@@ -472,11 +484,12 @@
     // How long a set of four books stays up before being replaced.
     const SWAP_INTERVAL = 48000;
 
-    // Half the crossing: out over this, swap, back in over the same again.
-    // Read from the stylesheet so the timing is defined in exactly one place.
-    const SWAP_FADE = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--swap-fade')
-    ) || 800;
+    // How long one set melts into the next. Read from the stylesheet, where the
+    // matching transition lives, so the two cannot drift apart. Note the CSS is
+    // in seconds and this is milliseconds.
+    const MELT = (parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--melt')
+    ) || 3) * 1000;
 
     // ── Sentence splitting (mirrors /cento) ──────────────────
     // Kept in step with Cento's own splitter \u2014 heavily semicoloned sentences
@@ -625,16 +638,57 @@
     async function swapWeave() {
       if (swapping) return;
       swapping = true;
+
+      const link = document.getElementById('weave-link');
+      const weaveEl = document.getElementById('weave');
+      const sourcesEl = document.getElementById('sources');
+
       try {
         const next = await fetchWeave();
-        const pane = document.getElementById('weave-pane');
-        pane.classList.add('fading');
-        await new Promise(r => setTimeout(r, SWAP_FADE));
+
+        // Photograph the outgoing set and hang it over the pane. The clones
+        // drop their ids — the styling they need comes from .weave/.sources —
+        // and the weave clone keeps its trimmed height so it trails the live
+        // pane exactly rather than reflowing as it dissolves.
+        const ghost = document.createElement('div');
+        ghost.id = 'ghost';
+        ghost.setAttribute('aria-hidden', 'true');
+        for (const el of [weaveEl, sourcesEl]) {
+          const copy = el.cloneNode(true);
+          copy.removeAttribute('id');
+          copy.style.maxHeight = el.style.maxHeight;
+          ghost.appendChild(copy);
+        }
+        link.appendChild(ghost);
+
+        // New text goes in underneath at zero opacity, then both are released
+        // in the same frame so they cross rather than queue.
+        weaveEl.style.transition = 'none';
+        sourcesEl.style.transition = 'none';
+        weaveEl.style.opacity = '0';
+        sourcesEl.style.opacity = '0';
         paint(next);
-        pane.classList.remove('fading');
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          weaveEl.style.transition = '';
+          sourcesEl.style.transition = '';
+          weaveEl.style.opacity = '1';
+          sourcesEl.style.opacity = '1';
+          ghost.style.opacity = '0';
+        }));
+
+        await new Promise(r => setTimeout(r, MELT + 100));
       } catch (err) {
         console.error('Cento weave refresh:', err);
       } finally {
+        // Whatever happened, leave nothing hanging over the pane and no inline
+        // opacity behind — a stranded ghost would sit there for good.
+        const stale = link.querySelector('#ghost');
+        if (stale) stale.remove();
+        for (const el of [weaveEl, sourcesEl]) {
+          el.style.transition = '';
+          el.style.opacity = '';
+        }
         swapping = false;
       }
     }
