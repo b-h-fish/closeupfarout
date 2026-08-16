@@ -403,6 +403,9 @@
       background-size: 200px 200px;
     }
   </style>
+  <!-- The middle strip's game keeps its own stylesheet and script so this
+       file stays small enough for two threads to edit at once. -->
+  <link rel="stylesheet" href="/game/game.css">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -425,8 +428,8 @@
       </a>
     </div>
 
-    <!-- Empty slots for the CUFO General thread: the middle strip takes the
-         interactive game, the right column the Issue 01 menu. -->
+    <!-- The middle strip is Bounce; it builds itself into this pane. The right
+         column stays an empty slot for the CUFO General thread's Issue 01 menu. -->
     <div id="game-pane"></div>
     <div id="issue-pane"></div>
   </main>
@@ -860,6 +863,8 @@
     select(0, false);
   })();
   </script>
+
+  <script src="/game/game.js" defer></script>
 
 </body>
 </html>
