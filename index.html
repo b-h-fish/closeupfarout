@@ -17,10 +17,10 @@
       --accent: #1a1008;
       --rule: rgba(26, 16, 8, 0.10);
       --dim: rgba(26, 16, 8, 0.45);
-      --nav-h: 60px; /* 25% down from 80px */
-      /* The top bar. Warm light grey rather than a neutral one, so it sits in
-         the same family as --ink instead of reading cool beside it. */
-      --bar: #a5a19a;
+      /* Slim bar across the top. A shade off the #090909 page so it separates
+         without becoming a band of colour. */
+      --nav-h: 50px; /* 25% up from 40px */
+      --hdr: #171717;
       /* Only used on phones, where the player docks below the teaser at a set
          height instead of taking half a column. */
       --foot-h: 104px;
@@ -36,31 +36,30 @@
       color: var(--ink);
     }
 
-    /* ── NAV ── */
-    /* Scoped to the direct child so these fixed-position rules stay on the site
-       header and can't reach a <nav> nested anywhere else in the page. */
-    body > nav {
+
+    /* ── HEADER ── */
+    body > header {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
+      height: var(--nav-h);
+      background: var(--hdr);
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      /* Same 2rem the teaser uses, so the wordmark starts on the page's left
+         margin rather than a margin of its own. */
       padding: 0 2rem;
-      height: var(--nav-h);
-      background: var(--bar);
     }
 
-    .nav-wordmark {
+    #brand {
       font-family: 'Josefin Sans', sans-serif;
       font-weight: 100;
-      font-size: 1.4rem;
+      font-size: 1.19rem; /* 25% up from 0.95rem */
       letter-spacing: 0.15em;
       text-transform: lowercase;
-      color: var(--ink);
-      text-decoration: none;
+      color: rgba(245, 242, 236, 0.78);
+      white-space: nowrap;
     }
-
 
     /* ── MAIN: Cento teaser left third, Issue 01 and player right two ── */
     main {
@@ -71,6 +70,10 @@
       display: grid;
       /* Teaser takes 40%, Issue 01 and the player share the remaining 60%. */
       grid-template-columns: 2fr 3fr;
+      /* The black lives here rather than on the panes so #waves can span the
+         whole viewport beneath them. Anything a pane does not cover shows the
+         field — which is what leaves it running across the top-left strip. */
+      background: #090909;
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -127,6 +130,18 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      /* Full height of its column, under the header. Opaque, so it masks the
+         field that spans main behind it — the waves read only in the right
+         column now. The weave re-trims itself to whole lines off this element's
+         height, so the taller pane simply fits more of them. */
+      grid-column: 1;
+      grid-row: 1;
+      position: relative;
+      z-index: 1;
+      /* On this pane rather than the right column: --rule inside here is still
+         the root's dark ink, which would draw black on black, whereas
+         --teaser-rule is the light grey the player's top border uses. */
+      border-right: 1px solid var(--teaser-rule);
       /* Full margin against the page edge, half of it facing the right column —
          the gutter between the two is this plus #issue-pane's matching inset. */
       padding: 0 1rem 0 2rem;
@@ -233,6 +248,8 @@
 
     /* ── Right column: Issue 01 listing above, audio player below ── */
     #issue-pane {
+      grid-column: 2;
+      grid-row: 1;
       display: grid;
       /* Listing 60%, player 40%. */
       grid-template-rows: 3fr 2fr;
@@ -251,21 +268,11 @@
       --ink: #f5f2ec;
       --rule: rgba(245, 242, 236, 0.14);
       --dim: rgba(245, 242, 236, 0.42);
-      background: #090909;
+      /* No background — the field behind shows through the whole column. */
       color: var(--ink);
+      z-index: 1;
 
-      /* Sits on the column boundary — border is outside padding, so it lands
-         with 1rem of this pane's inset on one side and the teaser's on the
-         other, centred in the gutter. Same --rule as #player-dock's top border.
-         Put here rather than on #weave-pane, which scopes its greys as
-         --teaser-rule and would need reaching into the Cento thread's block. */
-      border-left: 1px solid var(--rule);
-
-      /* Containing block for #waves, which spans the whole column behind both
-         halves. An absolutely positioned child resolves against the padding
-         box, so inset:0 reaches into this pane's padding — the field runs to
-         the divider and the screen edge rather than stopping at the text
-         margins. */
+      /* Only to make z-index apply — the canvas lives on main now, not here. */
       position: relative;
     }
 
@@ -286,20 +293,17 @@
       padding: 1.5rem 1rem;
     }
 
-    /* Cormorant Garamond throughout — already loaded for the weave, italic
-       included, so the hover state costs no extra font request. Caps get more
-       tracking than the lowercase settings did; letterforms of one height need
-       the air to stay legible. */
+    /* EB Garamond, mixed case. Already loaded for the attributions, so it costs
+       no extra request, and its lining figures keep the "1" a digit rather than
+       the roman numeral Cormorant's oldstyle set made of it. */
     #issue-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(2.4rem, 3.7vw, 3.9rem);
-      line-height: 1.05;
-      letter-spacing: 0.13em;
-      text-transform: uppercase;
-      text-indent: 0.13em; /* offset the trailing letter-space so it sits centred */
-      color: var(--ink);
-      margin-bottom: 1.9rem;
+      font-family: 'EB Garamond', serif;
+      font-weight: 500;
+      font-size: clamp(2.2rem, 3.3vw, 3.5rem);
+      line-height: 1.2;
+      letter-spacing: 0.03em;
+      color: transparent; /* drawn into the field; see the canvas script */
+      margin-bottom: 1.6rem;
     }
 
     #issue-items {
@@ -312,36 +316,17 @@
 
     .issue-item {
       display: inline-block;
-      font-family: 'Cormorant Garamond', serif;
+      font-family: 'EB Garamond', serif;
       font-weight: 400;
-      font-size: clamp(1.4rem, 2.15vw, 2.05rem);
-      line-height: 1.25;
-      letter-spacing: 0.11em;
-      text-transform: uppercase;
-      text-indent: 0.11em;
-      color: var(--ink);
+      font-size: clamp(1.25rem, 1.9vw, 1.75rem);
+      line-height: 1.35;
+      letter-spacing: 0.04em;
+      /* Transparent because the glyphs are drawn into the field. opacity is
+         still the resting alpha the canvas reads off this element. */
+      color: transparent;
       opacity: 0.82;
       text-decoration: none;
-      /* Scaled rather than resized: font-size would reflow the rows below and
-         shunt the whole list on every hover. transform costs no layout, and a
-         centre origin grows each title about its own middle, so it stays on the
-         list's centre line instead of drifting sideways. */
-      transform-origin: center;
-      transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1),
-                  opacity 0.28s ease;
-    }
-
-    .issue-item:hover,
-    .issue-item:focus-visible {
-      font-style: italic;
-      opacity: 1;
-      transform: scale(1.09);
-    }
-
-    .issue-item:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .issue-item { transition: none; }
+      user-select: none;
     }
 
     #waves {
@@ -501,9 +486,7 @@
     @media (max-width: 768px) {
       /* The header was 110px to stack the wordmark over the links; with the
          links gone it only has to hold one line. */
-      :root { --nav-h: 60px; --foot-h: 104px; }
-
-      body > nav { justify-content: center; }
+      :root { --foot-h: 104px; }
 
       /* Phones keep the single-column teaser, with the player docked beneath it
          at the height the footer used to have. The Issue 01 listing is
@@ -548,11 +531,11 @@
 </head>
 <body>
 
-  <nav>
-    <a class="nav-wordmark" href="/">closeupfarout</a>
-  </nav>
+  <header><h1 id="brand">closeupfarout</h1></header>
 
   <main>
+    <canvas id="waves" aria-hidden="true"></canvas>
+
     <div id="weave-pane">
       <a id="weave-link" href="/cento/" aria-label="Open Cento">
         <div id="weave" class="weave"></div>
@@ -564,17 +547,17 @@
     </div>
 
     <div id="issue-pane">
-      <canvas id="waves" aria-hidden="true"></canvas>
-      <!-- Every piece points at /issue-01/ for now; swap in per-piece hrefs
-           once those pages exist. -->
+      <!-- Plain spans, not links: the pieces are listed but deliberately not
+           reachable yet. Restore <a href="..."> per piece when the pages are
+           ready — the hover styling keys off .issue-item either way. -->
       <div id="issue-list">
         <h2 id="issue-title">Issue 1</h2>
         <ul id="issue-items">
-          <li><a class="issue-item" href="/issue-01/">Rhiannon</a></li>
-          <li><a class="issue-item" href="/issue-01/">3fer</a></li>
-          <li><a class="issue-item" href="/issue-01/">Over the Hill</a></li>
-          <li><a class="issue-item" href="/issue-01/">299-100</a></li>
-          <li><a class="issue-item" href="/issue-01/">Dust Settled</a></li>
+          <li><span class="issue-item">Rhiannon</span></li>
+          <li><span class="issue-item">3fer</span></li>
+          <li><span class="issue-item">Over the Hill</span></li>
+          <li><span class="issue-item">299-100</span></li>
+          <li><span class="issue-item">Dust Settled</span></li>
         </ul>
       </div>
       <div id="player-dock">
@@ -1033,7 +1016,7 @@
     // read as a field, with neighbours moving almost together and the whole
     // thing shearing slowly. The progressive `phase` is what makes the crests
     // travel down the block rather than each line pulsing in place.
-    const host = document.getElementById('issue-pane');
+    const host = document.querySelector('main');
     const canvas = document.getElementById('waves');
     if (!host || !canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1065,24 +1048,44 @@
 
     let lines = [];
 
+    // Split out so the wordmark can take the parameters belonging to its own
+    // height in the field. It rides a curve that is a real member of the family
+    // rather than an imitation of one, which is what keeps it in step with the
+    // lines immediately above and below it.
+    function lineParams(f) {
+      return {
+        y: 0.02 + f * 0.96,
+        amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
+        // Neighbouring lines sit slightly further through the same waveform,
+        // which is what turns a stack of curves into a travelling swell.
+        phase: f * 12.0,
+        k1: 1.10 + 0.45 * Math.sin(f * 3.3),
+        k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
+        k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
+        speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
+      };
+    }
+
     function buildLines(n) {
       lines = Array.from({ length: n }, (_, i) => {
-        const f = i / (n - 1); // 0 at the top of the column, 1 at the bottom
-        return {
-          y: 0.02 + f * 0.96,
-          amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
-          // Neighbouring lines sit slightly further through the same waveform,
-          // which is what turns a stack of curves into a travelling swell.
-          phase: f * 12.0,
-          k1: 1.10 + 0.45 * Math.sin(f * 3.3),
-          k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
-          k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
-          speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
-          bucket: i % COLOURS.length,
-        };
+        const p = lineParams(i / (n - 1));
+        p.bucket = i % COLOURS.length;
+        return p;
       });
     }
     const NORM = 1.00 + 0.42 + 0.65;
+
+    // The same displacement draw() computes inline. Kept separate rather than
+    // shared because draw() runs it ~165k times a frame and the wordmark runs
+    // it forty-odd, so the hot loop keeps its inlined copy.
+    function offsetAt(p, px, t) {
+      const u = px / w;
+      const d = p.phase + t * p.speed;
+      const v = fsin(u * p.k1 * TAU + d)
+              + 0.42 * fsin(u * p.k2 * TAU + d * 1.3)
+              + 0.65 * fsin(u * p.k3 * TAU + d * 0.7);
+      return (v / NORM) * (p.amp * h);
+    }
 
     // Flat colour, edge to edge — no end fade, so the lines carry their full
     // weight right to both sides of the block. Independent of size, so unlike
@@ -1095,16 +1098,173 @@
 
     let w = 0, h = 0;
 
+    // ── Text drawn into the field ────────────────────────────
+    // These elements stay in the DOM for layout, hit-testing, focus and screen
+    // readers; CSS makes their text transparent and the glyphs are drawn here
+    // instead, displaced by the same wave the lines use. Each takes the
+    // parameters belonging to its own height, so it rides a curve that is a
+    // real member of the family rather than an imitation of one.
+    //
+    // Because the DOM boxes are what get measured, their CSS must not move
+    // them — the hover growth is applied here instead, or the box and the
+    // glyphs would drift apart.
+    const FIELD_INK = '#f5f2ec';
+    const HOVER_SCALE = 1.09;
+    let texts = [];
+
+    // Kept on the element so it survives re-measuring on resize.
+    function hoverState(el) {
+      if (!el._field) el._field = { target: 0, t: 0 };
+      return el._field;
+    }
+    document.querySelectorAll('.issue-item').forEach(el => {
+      const st = hoverState(el);
+      el.addEventListener('pointerenter', () => { st.target = 1; });
+      el.addEventListener('pointerleave', () => { st.target = 0; });
+    });
+
+    function measureTexts() {
+      texts = [];
+      if (!w || !h) return;
+      const m = canvas.getBoundingClientRect();
+
+      const add = (el, align, hoverable) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        const fs = parseFloat(cs.fontSize);
+        if (!fs || !r.width) return null;
+
+        let text = el.textContent.trim();
+        if (cs.textTransform === 'uppercase') text = text.toUpperCase();
+
+        const cy = (r.top - m.top) + r.height / 2;
+        const entry = {
+          el, align, fs, cy,
+          chars: Array.from(text),
+          x0: (r.left - m.left) + (parseFloat(cs.paddingLeft) || 0),
+          cx: (r.left - m.left) + r.width / 2,
+          weight: cs.fontWeight || '400',
+          family: cs.fontFamily,
+          tracking: parseFloat(cs.letterSpacing) || 0,
+          alpha: parseFloat(cs.opacity) || 1,
+          params: lineParams(cy / h),
+          hover: hoverable ? hoverState(el) : null,
+        };
+
+        // Measured once here rather than every frame — advances only change
+        // when the font or size does, which is exactly when this reruns.
+        ctx.font = entry.weight + ' ' + fs + 'px ' + entry.family;
+        entry.widths = entry.chars.map(c => ctx.measureText(c).width);
+
+        texts.push(entry);
+        return entry;
+      };
+
+      const listing = [];
+      const title = add(document.getElementById('issue-title'), 'center');
+      if (title) { title.underline = true; listing.push(title); }
+      document.querySelectorAll('.issue-item').forEach(el => {
+        const e = add(el, 'center', true);
+        if (e) listing.push(e);
+      });
+
+      // Rows sit close together and neighbouring lines carry slightly different
+      // phase, so at full amplitude they would swing into each other. Cap every
+      // row at a share of the tightest gap in the stack.
+      let gap = Infinity;
+      for (let i = 1; i < listing.length; i++) {
+        gap = Math.min(gap, Math.abs(listing[i].cy - listing[i - 1].cy));
+      }
+      if (isFinite(gap)) {
+        const cap = (gap * 0.3) / h;
+        listing.forEach(e => { e.params.amp = Math.min(e.params.amp, cap); });
+      }
+    }
+
+    function drawTexts(t) {
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+
+      for (const e of texts) {
+        // Eased here rather than in CSS: the DOM box has to stay still, so the
+        // growth can only happen on the canvas. Advances scale linearly with
+        // size, so the widths measured once at base size just multiply.
+        let scale = 1, alpha = e.alpha;
+        if (e.hover) {
+          e.hover.t += (e.hover.target - e.hover.t) * 0.18;
+          if (e.hover.t < 0.001) e.hover.t = 0;
+          scale = 1 + (HOVER_SCALE - 1) * e.hover.t;
+          alpha = e.alpha + (1 - e.alpha) * e.hover.t;
+        }
+
+        const fs = e.fs * scale;
+        const tracking = e.tracking * scale;
+        const base = e.widths;
+
+        ctx.font = e.weight + ' ' + fs + 'px ' + e.family;
+        ctx.fillStyle = FIELD_INK;
+        ctx.globalAlpha = alpha;
+
+        let total = 0;
+        for (let i = 0; i < base.length; i++) total += base[i] * scale;
+        total += tracking * (base.length - 1);
+
+        const startX = e.align === 'left' ? e.x0 : e.cx - total / 2;
+
+        let x = startX;
+        for (let i = 0; i < e.chars.length; i++) {
+          const cw = base[i] * scale;
+          const gx = x + cw / 2;
+          const dy = offsetAt(e.params, gx, t);
+          // Tilt to the curve's local slope, so letters lie along it rather
+          // than standing upright on a moving baseline.
+          const slope = (offsetAt(e.params, gx + 2, t) -
+                         offsetAt(e.params, gx - 2, t)) / 4;
+          ctx.save();
+          ctx.translate(gx, e.cy + dy);
+          ctx.rotate(Math.atan(slope));
+          ctx.fillText(e.chars[i], -cw / 2, 0);
+          ctx.restore();
+          x += cw + tracking;
+        }
+
+        // Follows the same curve as the glyphs above it — a straight rule under
+        // curved text reads as a separate object sitting behind the words.
+        if (e.underline) {
+          const y = e.cy + fs * 0.52;
+          ctx.beginPath();
+          for (let px = startX; px <= startX + total; px += 4) {
+            const py = y + offsetAt(e.params, px, t);
+            if (px === startX) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.lineWidth = Math.max(1, fs * 0.026);
+          ctx.strokeStyle = FIELD_INK;
+          ctx.stroke();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+    }
+
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = host.clientWidth;
       h = host.clientHeight;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
+      // Required, not belt-and-braces: <canvas> is a replaced element, so
+      // `inset: 0` with `width: auto` resolves to its intrinsic size (the
+      // attributes just set, in CSS px) rather than to the container. Without
+      // these the element is dpr times too large on a retina display and every
+      // getBoundingClientRect measured against it is off by the same factor.
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const n = Math.max(N_MIN, Math.min(N_MAX, Math.round(h / SPACING)));
       if (n !== lines.length) buildLines(n);
+      measureTexts();
     }
 
     function draw(t) {
@@ -1133,6 +1293,8 @@
         ctx.strokeStyle = STROKES[b];
         ctx.stroke();
       }
+
+      drawTexts(t);
     }
 
     let raf = null;
@@ -1157,6 +1319,11 @@
     document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
 
     resize();
+    // Josefin Sans arrives after first paint, and the fallback's metrics are
+    // not its metrics — re-measure once it is actually available.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { measureTexts(); if (REDUCED) draw(0); });
+    }
     if (REDUCED) draw(0); else start();
   })();
   </script>
