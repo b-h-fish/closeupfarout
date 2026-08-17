@@ -21,9 +21,6 @@
       /* Only used on phones, where the player docks below the teaser at a set
          height instead of taking half a column. */
       --foot-h: 104px;
-      /* The strip between the two halves. Widen or narrow here — the teaser
-         and the Issue 01 column each take an equal share of what is left. */
-      --strip-w: clamp(5rem, 8vw, 10rem);
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
@@ -62,16 +59,15 @@
     }
 
 
-    /* ── MAIN: weave in the left two thirds; right third now empty ── */
+    /* ── MAIN: Cento teaser left third, Issue 01 and player right two ── */
     main {
       position: fixed;
       top: var(--nav-h);
       left: 0; right: 0;
       bottom: 0;
       display: grid;
-      /* Teaser | strip | Issue 01 — the outer two split what the strip leaves,
-         so each lands a little under half. */
-      grid-template-columns: 1fr var(--strip-w) 1fr;
+      /* Teaser on the left third, Issue 01 and the player across the rest. */
+      grid-template-columns: 1fr 2fr;
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -383,7 +379,6 @@
          at the height the footer used to have. The Issue 01 listing is
          desktop-only until the other thread decides how it stacks here. */
       main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-      #game-pane { display: none; }
       #issue-pane { grid-template-rows: auto; padding: 0 1.4rem; }
       #issue-list { display: none; }
       #player-dock { height: var(--foot-h); }
@@ -436,9 +431,6 @@
       </a>
     </div>
 
-    <!-- Empty slots for the CUFO General thread: the middle strip takes the
-         interactive game, the right column the Issue 01 menu. -->
-    <div id="game-pane"></div>
     <div id="issue-pane">
       <!-- Top half: the Issue 01 listing, for the CUFO General thread. -->
       <div id="issue-list"></div>
