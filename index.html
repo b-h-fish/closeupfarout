@@ -91,7 +91,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
-      background: rgba(243, 242, 240, 0.90);
+      background: rgba(9, 9, 9, 0.88);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.4s ease;
@@ -127,6 +127,18 @@
       /* Full margin against the page edge, half of it facing the right column —
          the gutter between the two is this plus #issue-pane's matching inset. */
       padding: 0 1rem 0 2rem;
+
+      /* Cento's own dark colourway, kept to this block so the rest of the page
+         stays on paper. Scoped as variables rather than overriding --ink and
+         --rule directly, which the player in the right column also reads.
+         The voice hues need no adjustment — they were chosen against this
+         background in the first place. */
+      --teaser-bg: #090909;
+      --teaser-fg: #f5f2ec;
+      --teaser-rule: rgba(245, 242, 236, 0.14);
+      --teaser-dim: rgba(245, 242, 236, 0.42);
+      background: var(--teaser-bg);
+      color: var(--teaser-fg);
     }
 
     .weave {
@@ -149,7 +161,7 @@
        This is only for the failure case, kept quiet so it doesn't shout. */
     .weave-msg {
       font-style: italic;
-      color: var(--dim);
+      color: var(--teaser-dim);
     }
 
     /* The cento idea, made visible: the weave settles from four borrowed
@@ -166,7 +178,7 @@
     #weave-pane .v3 { color: #4a7a46; }
 
     #weave-pane.mono .weave span,
-    #weave-pane.mono .sources span { color: var(--ink); }
+    #weave-pane.mono .sources span { color: var(--teaser-fg); }
 
     /* Melting into a new set of books. The outgoing text is cloned into #ghost,
        stacked over the live pane, and the two cross in opposite directions at
@@ -198,7 +210,7 @@
       /* The weave above is trimmed to whole lines, so it no longer fills the
          pane. Hold this at the bottom and let the slack sit above the rule. */
       margin-top: auto;
-      border-top: 1px solid var(--rule);
+      border-top: 1px solid var(--teaser-rule);
       padding: 0.9rem 0 1.1rem;
       display: grid;
       grid-template-columns: 1fr 1fr;
