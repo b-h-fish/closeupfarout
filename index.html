@@ -18,7 +18,9 @@
       --rule: rgba(26, 16, 8, 0.10);
       --dim: rgba(26, 16, 8, 0.45);
       --nav-h: 80px;
-      --foot-h: 132px;
+      /* Only used on phones, where the player docks below the teaser at a set
+         height instead of taking half a column. */
+      --foot-h: 104px;
       /* The strip between the two halves. Widen or narrow here — the teaser
          and the Issue 01 column each take an equal share of what is left. */
       --strip-w: clamp(5rem, 8vw, 10rem);
@@ -65,7 +67,7 @@
       position: fixed;
       top: var(--nav-h);
       left: 0; right: 0;
-      bottom: var(--foot-h);
+      bottom: 0;
       display: grid;
       /* Teaser | strip | Issue 01 — the outer two split what the strip leaves,
          so each lands a little under half. */
@@ -216,18 +218,25 @@
       opacity: 0.9;
     }
 
-    /* ── Footer / audio player ── */
-    footer {
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      height: var(--foot-h);
-      border-top: 1px solid var(--rule);
-      background: var(--paper);
+    /* ── Right column: Issue 01 listing above, audio player below ── */
+    #issue-pane {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      min-height: 0;
+      padding: 0 2rem;
+    }
+
+    /* Empty for now — the Issue 01 listing belongs to the CUFO General thread. */
+    #issue-list { min-height: 0; }
+
+    /* The player kept the horizontal transport-and-shelf layout it had in the
+       footer; it just lives in the lower half of this column now, centred in
+       whatever height that gives it. */
+    #player-dock {
+      min-height: 0;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 2rem;
-      gap: 2rem;
+      border-top: 1px solid var(--rule);
     }
 
     #player {
@@ -370,10 +379,14 @@
 
       body > nav { justify-content: center; }
 
-      /* Phones keep the single-column teaser they already had; the strip and
-         Issue 01 column are the other thread's to place here. */
+      /* Phones keep the single-column teaser, with the player docked beneath it
+         at the height the footer used to have. The Issue 01 listing is
+         desktop-only until the other thread decides how it stacks here. */
       main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-      #game-pane, #issue-pane { display: none; }
+      #game-pane { display: none; }
+      #issue-pane { grid-template-rows: auto; padding: 0 1.4rem; }
+      #issue-list { display: none; }
+      #player-dock { height: var(--foot-h); }
 
       #weave-pane { padding: 0 1.4rem; }
       .weave { font-size: 1.02rem; }
@@ -381,9 +394,7 @@
       .sources { grid-template-columns: 1fr; }
       .sources span { font-size: 0.78rem; }
 
-      footer { padding: 0 1.4rem; }
-
-      /* 104px of footer: the shelf keeps its scroll, the transport gives up its
+      /* 104px of dock: the shelf keeps its scroll, the transport gives up its
          elapsed/duration labels and some width. */
       #player { gap: 1rem; }
       #transport-block { flex: 0 0 clamp(140px, 40vw, 190px); }
@@ -428,34 +439,37 @@
     <!-- Empty slots for the CUFO General thread: the middle strip takes the
          interactive game, the right column the Issue 01 menu. -->
     <div id="game-pane"></div>
-    <div id="issue-pane"></div>
+    <div id="issue-pane">
+      <!-- Top half: the Issue 01 listing, for the CUFO General thread. -->
+      <div id="issue-list"></div>
+      <div id="player-dock">
+      <div id="player">
+        <div id="transport-block">
+          <div class="transport">
+            <button type="button" id="prev" aria-label="Previous track">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14l-11-7z"/><rect x="5" y="5" width="2.2" height="14"/></svg>
+            </button>
+            <button type="button" id="pp" aria-label="Play">
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button type="button" id="next" aria-label="Next track">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7z"/><rect x="16.8" y="5" width="2.2" height="14"/></svg>
+            </button>
+          </div>
+          <div id="np-title">—</div>
+          <div class="scrub-row">
+            <span class="t" id="t-cur">0:00</span>
+            <input id="scrub" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek">
+            <span class="t" id="t-dur">0:00</span>
+          </div>
+        </div>
+        <div id="shelf"></div>
+      </div>
+      <audio id="player-audio" preload="none"></audio>
+      </div>
+    </div>
   </main>
 
-  <footer>
-    <div id="player">
-      <div id="transport-block">
-        <div class="transport">
-          <button type="button" id="prev" aria-label="Previous track">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14l-11-7z"/><rect x="5" y="5" width="2.2" height="14"/></svg>
-          </button>
-          <button type="button" id="pp" aria-label="Play">
-            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-          <button type="button" id="next" aria-label="Next track">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7z"/><rect x="16.8" y="5" width="2.2" height="14"/></svg>
-          </button>
-        </div>
-        <div id="np-title">—</div>
-        <div class="scrub-row">
-          <span class="t" id="t-cur">0:00</span>
-          <input id="scrub" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek">
-          <span class="t" id="t-dur">0:00</span>
-        </div>
-      </div>
-      <div id="shelf"></div>
-    </div>
-    <audio id="player-audio" preload="none"></audio>
-  </footer>
 
   <div class="grain"></div>
 
