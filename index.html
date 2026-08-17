@@ -517,6 +517,12 @@
     // are usually catalogues that swamp the weave.
     const MAX_SEMICOLONS = 3;
 
+    // Teaser only — Cento itself keeps its long sentences. A single sprawling
+    // one can fill most of this small pane, which reads as one dense block
+    // rather than as four voices trading lines. The floor is Cento's own.
+    const MIN_WORDS = 3;
+    const MAX_WORDS = 50;
+
     const ABBR_PERIOD = '\uE000';
     const ABBR_WORDS = /\b(Mr|Mrs|Ms|Mmes|Messrs|Mme|Mlle|Dr|Drs|Prof|Profs|Sr|Jr|Sra|Srta|St|Ste|Ss|Rev|Revd|Fr|Bro|Br|Msgr|Mgr|Ven|Bp|Abp|Card|Rt|Hon|Gen|Col|Lt|Lieut|Maj|Capt|Cpl|Sgt|Cmdr|Cdr|Cmdre|Adm|Brig|Pvt|Pfc|Ens|Sfc|Gov|Sen|Rep|Pres|Supt|Det|Insp|Amb|Mt|Ft|No|Nos|Vol|Vols|pp|Ch|Fig|Figs|Ed|Eds|Inc|Ltd|Co|Corp|Bros|Ave|Rd|Blvd|etc|vs|viz|cf|al|ibid|op|esp|ca|fl|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\./g;
 
@@ -534,12 +540,13 @@
       if (!matches) return [];
       return matches
         .map(s => s.split(ABBR_PERIOD).join('.').trim())
-        .filter(s =>
-          s.split(/\s+/).length >= 3 &&
-          (s.match(/;/g) || []).length <= MAX_SEMICOLONS &&
-          !/\S+@\S+\.\S+/.test(s) &&
-          !/^[IVXLCDM]+\.?\s*—/.test(s)
-        );
+        .filter(s => {
+          const words = s.split(/\s+/).length;
+          return words >= MIN_WORDS && words <= MAX_WORDS &&
+            (s.match(/;/g) || []).length <= MAX_SEMICOLONS &&
+            !/\S+@\S+\.\S+/.test(s) &&
+            !/^[IVXLCDM]+\.?\s*—/.test(s);
+        });
     }
 
     function esc(str) {
