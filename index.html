@@ -21,9 +21,6 @@
          without becoming a band of colour. */
       --nav-h: 50px; /* 25% up from 40px */
       --hdr: #171717;
-      /* Only used on phones, where the player docks below the teaser at a set
-         height instead of taking half a column. */
-      --foot-h: 104px;
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
@@ -61,19 +58,30 @@
       white-space: nowrap;
     }
 
-    /* ── MAIN: Cento teaser left third, Issue 01 and player right two ── */
+    /* ── MAIN: teaser left, wave field right ── */
     main {
       position: fixed;
       top: var(--nav-h);
       left: 0; right: 0;
       bottom: 0;
       display: grid;
-      /* Teaser takes 40%, Issue 01 and the player share the remaining 60%. */
+      /* Teaser takes 40%; the remaining 60% is the field, uncovered. */
       grid-template-columns: 2fr 3fr;
-      /* The black lives here rather than on the panes so #waves can span the
-         whole viewport beneath them. Anything a pane does not cover shows the
-         field — which is what leaves it running across the top-left strip. */
+      /* The black lives here rather than on the teaser so #waves can span the
+         whole viewport beneath it. Whatever the teaser does not cover is
+         field. */
       background: #090909;
+    }
+
+    /* Spans main, behind everything. It must stay absolutely positioned: in
+       flow it becomes a grid item, auto-places into the free column, and its
+       full-viewport intrinsic width crushes the teaser's track. */
+    #waves {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: block;
+      pointer-events: none;
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -131,26 +139,17 @@
       flex-direction: column;
       min-height: 0;
       /* Full height of its column, under the header. Opaque, so it masks the
-         field that spans main behind it — the waves read only in the right
-         column now. The weave re-trims itself to whole lines off this element's
-         height, so the taller pane simply fits more of them. */
+         field that spans main behind it — the waves read only to its right. */
       grid-column: 1;
       grid-row: 1;
       position: relative;
       z-index: 1;
-      /* On this pane rather than the right column: --rule inside here is still
-         the root's dark ink, which would draw black on black, whereas
-         --teaser-rule is the light grey the player's top border uses. */
-      border-right: 1px solid var(--teaser-rule);
-      /* Full margin against the page edge, half of it facing the right column —
-         the gutter between the two is this plus #issue-pane's matching inset. */
+      /* Full margin against the page edge, half of it facing the field. */
       padding: 0 1rem 0 2rem;
 
       /* Cento's own dark colourway, kept to this block so the rest of the page
-         stays on paper. Scoped as variables rather than overriding --ink and
-         --rule directly, which the player in the right column also reads.
-         The voice hues need no adjustment — they were chosen against this
-         background in the first place. */
+         stays on paper. The voice hues need no adjustment — they were chosen
+         against this background in the first place. */
       --teaser-bg: #090909;
       --teaser-fg: #f5f2ec;
       --teaser-rule: rgba(245, 242, 236, 0.14);
@@ -246,271 +245,13 @@
       opacity: 0.9;
     }
 
-    /* ── Right column: Issue 01 listing above, audio player below ── */
-    #issue-pane {
-      grid-column: 2;
-      grid-row: 1;
-      display: grid;
-      /* Listing 60%, player 40%. */
-      grid-template-rows: 3fr 2fr;
-      min-height: 0;
-      /* Mirrors #weave-pane: half a margin facing the teaser, full one outboard. */
-      padding: 0 2rem 0 1rem;
-
-      /* The teaser's colourway, carried across so main reads as one dark field.
-         Values match #weave-pane's --teaser-* set; kept as literals here rather
-         than reaching into that block, which the Cento thread owns.
-
-         The player is styled entirely off --ink/--rule/--dim, so rebinding those
-         three turns over every control — transport, scrub track and fill, time
-         labels, shelf scrollbar, selected-cover outline — without touching a
-         single player rule. #player-dock's top border follows too. */
-      --ink: #f5f2ec;
-      --rule: rgba(245, 242, 236, 0.14);
-      --dim: rgba(245, 242, 236, 0.42);
-      /* No background — the field behind shows through the whole column. */
-      color: var(--ink);
-      z-index: 1;
-
-      /* Only to make z-index apply — the canvas lives on main now, not here. */
-      position: relative;
-    }
-
-    /* Empty for now — the Issue 01 listing belongs to the CUFO General thread. */
-    /* Positioned so the waves can sit behind whatever listing lands here later:
-       the canvas stays at z-index 0, content goes above it. */
-    /* Both halves ride above the wave field. They have no background of their
-       own, so it shows through behind the listing and the player alike. */
-    #issue-list {
-      min-height: 0;
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 1.5rem 1rem;
-    }
-
-    /* EB Garamond, mixed case. Already loaded for the attributions, so it costs
-       no extra request, and its lining figures keep the "1" a digit rather than
-       the roman numeral Cormorant's oldstyle set made of it. */
-    #issue-title {
-      font-family: 'EB Garamond', serif;
-      font-weight: 500;
-      font-size: clamp(2.2rem, 3.3vw, 3.5rem);
-      line-height: 1.2;
-      letter-spacing: 0.03em;
-      color: transparent; /* drawn into the field; see the canvas script */
-      margin-bottom: 1.6rem;
-    }
-
-    #issue-items {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .issue-item {
-      display: inline-block;
-      font-family: 'EB Garamond', serif;
-      font-weight: 400;
-      font-size: clamp(1.25rem, 1.9vw, 1.75rem);
-      line-height: 1.35;
-      letter-spacing: 0.04em;
-      /* Transparent because the glyphs are drawn into the field. opacity is
-         still the resting alpha the canvas reads off this element. */
-      color: transparent;
-      opacity: 0.82;
-      text-decoration: none;
-      user-select: none;
-    }
-
-    #waves {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      display: block;
-      pointer-events: none;
-    }
-
-
-    /* The player kept the horizontal transport-and-shelf layout it had in the
-       footer; it just lives in the lower half of this column now, centred in
-       whatever height that gives it. */
-    #player-dock {
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      border-top: 1px solid var(--rule);
-      position: relative;
-      z-index: 1;
-    }
-
-    #player {
-      display: flex;
-      align-items: center;
-      gap: 1.75rem;
-      width: 100%;
-      height: 100%;
-      min-width: 0;
-    }
-
-    /* ── Player: transport ── */
-    #transport-block {
-      flex: 0 0 clamp(200px, 21vw, 275px);
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      min-width: 0;
-    }
-
-    .transport { display: flex; align-items: center; gap: 0.55rem; }
-
-    .transport button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      border: none;
-      background: none;
-      color: var(--ink);
-      cursor: pointer;
-      opacity: 0.55;
-      transition: opacity 0.2s;
-    }
-    .transport button:hover { opacity: 1; }
-    .transport button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; opacity: 1; }
-    .transport svg { display: block; fill: currentColor; }
-
-    #np-title {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.68rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--ink);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .scrub-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
-      color: var(--dim);
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Range inputs can't be styled from one rule, so track and thumb are set
-       per-engine. --played carries the fill point to both. */
-    #scrub {
-      -webkit-appearance: none;
-      appearance: none;
-      flex: 1;
-      min-width: 0;
-      height: 12px;
-      background: none;
-      cursor: pointer;
-    }
-    #scrub::-webkit-slider-runnable-track {
-      height: 2px;
-      background: linear-gradient(to right,
-        var(--ink) var(--played, 0%), var(--rule) var(--played, 0%));
-    }
-    #scrub::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 9px; height: 9px;
-      margin-top: -3.5px;
-      border-radius: 50%;
-      background: var(--ink);
-    }
-    #scrub::-moz-range-track { height: 2px; background: var(--rule); }
-    #scrub::-moz-range-progress { height: 2px; background: var(--ink); }
-    #scrub::-moz-range-thumb {
-      width: 9px; height: 9px;
-      border: none; border-radius: 50%;
-      background: var(--ink);
-    }
-    #scrub:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-
-    /* ── Player: cover shelf ── */
-    #shelf {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-snap-type: x proximity;
-      scrollbar-width: thin;
-      scrollbar-color: var(--rule) transparent;
-      padding-bottom: 6px; /* room for the scrollbar without clipping the art */
-    }
-    #shelf::-webkit-scrollbar { height: 4px; }
-    #shelf::-webkit-scrollbar-track { background: transparent; }
-    #shelf::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
-
-    .cover {
-      position: relative;
-      flex: 0 0 auto;
-      width: 84px; height: 84px;
-      padding: 0;
-      border: none;
-      background: none;
-      cursor: pointer;
-      scroll-snap-align: start;
-      opacity: 0.5;
-      transition: opacity 0.3s ease;
-    }
-    .cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .cover:hover { opacity: 0.85; }
-    .cover[aria-pressed="true"] { opacity: 1; }
-    .cover[aria-pressed="true"]::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      outline: 1px solid var(--ink);
-      outline-offset: 2px;
-    }
-    .cover:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; opacity: 1; }
-
-    /* ── MOBILE: stack weave over cover ── */
+    /* ── MOBILE: one column ── */
     @media (max-width: 768px) {
-      /* The header was 110px to stack the wordmark over the links; with the
-         links gone it only has to hold one line. */
-      :root { --foot-h: 104px; }
-
-      /* Phones keep the single-column teaser, with the player docked beneath it
-         at the height the footer used to have. The Issue 01 listing is
-         desktop-only until the other thread decides how it stacks here. */
-      main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-      /* Stacked, not side by side — the divider would run down the left edge
-         of a full-width block. */
-      #issue-pane { grid-template-rows: auto; padding: 0 1.4rem; border-left: none; }
-      #issue-list { display: none; }
-      #player-dock { height: var(--foot-h); }
-
+      main { grid-template-columns: 1fr; }
       #weave-pane { padding: 0 1.4rem; }
       .weave { font-size: 1.02rem; }
-
       .sources { grid-template-columns: 1fr; }
       .sources span { font-size: 0.78rem; }
-
-      /* 104px of dock: the shelf keeps its scroll, the transport gives up its
-         elapsed/duration labels and some width. */
-      #player { gap: 1rem; }
-      #transport-block { flex: 0 0 clamp(140px, 40vw, 190px); }
-      .scrub-row .t { display: none; }
-      #np-title { font-size: 0.6rem; }
-      .cover { width: 62px; height: 62px; }
     }
 
     /* ── GRAIN ── */
@@ -546,46 +287,6 @@
       </a>
     </div>
 
-    <div id="issue-pane">
-      <!-- Plain spans, not links: the pieces are listed but deliberately not
-           reachable yet. Restore <a href="..."> per piece when the pages are
-           ready — the hover styling keys off .issue-item either way. -->
-      <div id="issue-list">
-        <h2 id="issue-title">Issue 1</h2>
-        <ul id="issue-items">
-          <li><span class="issue-item">Rhiannon</span></li>
-          <li><span class="issue-item">3fer</span></li>
-          <li><span class="issue-item">Over the Hill</span></li>
-          <li><span class="issue-item">299-100</span></li>
-          <li><span class="issue-item">Dust Settled</span></li>
-        </ul>
-      </div>
-      <div id="player-dock">
-      <div id="player">
-        <div id="transport-block">
-          <div class="transport">
-            <button type="button" id="prev" aria-label="Previous track">
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14l-11-7z"/><rect x="5" y="5" width="2.2" height="14"/></svg>
-            </button>
-            <button type="button" id="pp" aria-label="Play">
-              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <button type="button" id="next" aria-label="Next track">
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7z"/><rect x="16.8" y="5" width="2.2" height="14"/></svg>
-            </button>
-          </div>
-          <div id="np-title">—</div>
-          <div class="scrub-row">
-            <span class="t" id="t-cur">0:00</span>
-            <input id="scrub" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek">
-            <span class="t" id="t-dur">0:00</span>
-          </div>
-        </div>
-        <div id="shelf"></div>
-      </div>
-      <audio id="player-audio" preload="none"></audio>
-      </div>
-    </div>
   </main>
 
 
@@ -862,148 +563,6 @@
   (function () {
     'use strict';
 
-    // ── Audio player ─────────────────────────────────────────
-    // Cover art is real; the audio is not there yet. Drop files at these paths
-    // (or repoint `src`) and nothing else here has to change. `title` is what
-    // shows in the transport while a track is selected.
-    const TRACKS = [
-      { title: 'Track 01', art: '/images/audio/cover-01.webp', src: '/audio/tracks/track-01.mp3' },
-      { title: 'Track 02', art: '/images/audio/cover-02.webp', src: '/audio/tracks/track-02.mp3' },
-      { title: 'Track 03', art: '/images/audio/cover-03.webp', src: '/audio/tracks/track-03.mp3' },
-      { title: 'Track 04', art: '/images/audio/cover-04.webp', src: '/audio/tracks/track-04.mp3' },
-      { title: 'Track 05', art: '/images/audio/cover-05.webp', src: '/audio/tracks/track-05.mp3' },
-      { title: 'Track 06', art: '/images/audio/cover-06.webp', src: '/audio/tracks/track-06.mp3' },
-    ];
-
-    const ICON_PLAY  = '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
-    const ICON_PAUSE = '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14"/><rect x="13.6" y="5" width="3.4" height="14"/></svg>';
-
-    const audio   = document.getElementById('player-audio');
-    const shelf   = document.getElementById('shelf');
-    const ppBtn   = document.getElementById('pp');
-    const titleEl = document.getElementById('np-title');
-    const scrub   = document.getElementById('scrub');
-    const curEl   = document.getElementById('t-cur');
-    const durEl   = document.getElementById('t-dur');
-    if (!audio || !shelf || !ppBtn) return;
-
-    const covers = [];
-    let index = 0;
-    let loaded = -1; // which track's file is actually attached to the element
-
-    function fmt(s) {
-      if (!isFinite(s) || s < 0) return '0:00';
-      return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-    }
-
-    function setPlayed(pct) {
-      scrub.value = pct;
-      scrub.style.setProperty('--played', pct + '%');
-    }
-
-    function setPlayIcon(playing) {
-      ppBtn.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
-      ppBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    }
-
-    function markCurrent() {
-      covers.forEach((c, i) =>
-        c.setAttribute('aria-pressed', i === index ? 'true' : 'false'));
-    }
-
-    // Deliberately not touching audio.src until something is actually played —
-    // otherwise every page load would fire an error for files that don't exist
-    // yet and the transport would boot into a failure state.
-    function attach() {
-      if (loaded === index) return;
-      audio.src = TRACKS[index].src;
-      loaded = index;
-    }
-
-    function play() {
-      attach();
-      const p = audio.play();
-      if (p) p.catch(() => setPlayIcon(false));
-    }
-
-    function select(i, autoplay) {
-      index = (i + TRACKS.length) % TRACKS.length;
-      titleEl.textContent = TRACKS[index].title;
-      markCurrent();
-      setPlayed(0);
-      curEl.textContent = '0:00';
-      durEl.textContent = '0:00';
-      if (loaded !== index) { audio.pause(); loaded = -1; setPlayIcon(false); }
-      covers[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-      if (autoplay) play();
-    }
-
-    TRACKS.forEach((t, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'cover';
-      btn.setAttribute('aria-pressed', 'false');
-      btn.setAttribute('aria-label', 'Play ' + t.title);
-
-      const img = document.createElement('img');
-      img.src = t.art;
-      img.alt = '';
-      img.loading = 'lazy';
-      btn.appendChild(img);
-
-      // Re-clicking the current track toggles it rather than restarting.
-      btn.addEventListener('click', () => {
-        if (i === index && loaded === index) {
-          if (audio.paused) play(); else audio.pause();
-        } else {
-          select(i, true);
-        }
-      });
-
-      covers.push(btn);
-      shelf.appendChild(btn);
-    });
-
-    ppBtn.addEventListener('click', () => {
-      if (audio.paused) play(); else audio.pause();
-    });
-    document.getElementById('prev')
-      .addEventListener('click', () => select(index - 1, !audio.paused));
-    document.getElementById('next')
-      .addEventListener('click', () => select(index + 1, !audio.paused));
-
-    audio.addEventListener('play',  () => setPlayIcon(true));
-    audio.addEventListener('pause', () => setPlayIcon(false));
-    audio.addEventListener('ended', () => select(index + 1, true));
-    audio.addEventListener('loadedmetadata', () => {
-      durEl.textContent = fmt(audio.duration);
-    });
-    audio.addEventListener('timeupdate', () => {
-      if (!audio.duration) return;
-      setPlayed((audio.currentTime / audio.duration) * 100);
-      curEl.textContent = fmt(audio.currentTime);
-    });
-    audio.addEventListener('error', () => {
-      // Say so rather than sitting silently on a dead transport.
-      titleEl.textContent = TRACKS[index].title + ' — unavailable';
-      setPlayIcon(false);
-    });
-
-    scrub.addEventListener('input', () => {
-      const pct = Number(scrub.value);
-      scrub.style.setProperty('--played', pct + '%');
-      if (audio.duration) audio.currentTime = (pct / 100) * audio.duration;
-    });
-
-    setPlayIcon(false);
-    select(0, false);
-  })();
-  </script>
-
-  <script>
-  (function () {
-    'use strict';
-
     // ── Issue 01 block: waves ────────────────────────────────
     // A dense field of light-blue lines. Each is a sum of three sines at
     // unrelated frequencies rather than one clean sine, so the curve wanders
@@ -1048,44 +607,25 @@
 
     let lines = [];
 
-    // Split out so the wordmark can take the parameters belonging to its own
-    // height in the field. It rides a curve that is a real member of the family
-    // rather than an imitation of one, which is what keeps it in step with the
-    // lines immediately above and below it.
-    function lineParams(f) {
-      return {
-        y: 0.02 + f * 0.96,
-        amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
-        // Neighbouring lines sit slightly further through the same waveform,
-        // which is what turns a stack of curves into a travelling swell.
-        phase: f * 12.0,
-        k1: 1.10 + 0.45 * Math.sin(f * 3.3),
-        k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
-        k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
-        speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
-      };
-    }
-
     function buildLines(n) {
       lines = Array.from({ length: n }, (_, i) => {
-        const p = lineParams(i / (n - 1));
-        p.bucket = i % COLOURS.length;
-        return p;
+        const f = i / (n - 1); // 0 at the top of the field, 1 at the bottom
+        return {
+          y: 0.02 + f * 0.96,
+          amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
+          // Neighbouring lines sit slightly further through the same waveform,
+          // which is what turns a stack of curves into a travelling swell.
+          phase: f * 12.0,
+          k1: 1.10 + 0.45 * Math.sin(f * 3.3),
+          k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
+          k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
+          speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
+          bucket: i % COLOURS.length,
+        };
       });
     }
     const NORM = 1.00 + 0.42 + 0.65;
 
-    // The same displacement draw() computes inline. Kept separate rather than
-    // shared because draw() runs it ~165k times a frame and the wordmark runs
-    // it forty-odd, so the hot loop keeps its inlined copy.
-    function offsetAt(p, px, t) {
-      const u = px / w;
-      const d = p.phase + t * p.speed;
-      const v = fsin(u * p.k1 * TAU + d)
-              + 0.42 * fsin(u * p.k2 * TAU + d * 1.3)
-              + 0.65 * fsin(u * p.k3 * TAU + d * 0.7);
-      return (v / NORM) * (p.amp * h);
-    }
 
     // Flat colour, edge to edge — no end fade, so the lines carry their full
     // weight right to both sides of the block. Independent of size, so unlike
@@ -1097,155 +637,6 @@
     });
 
     let w = 0, h = 0;
-
-    // ── Text drawn into the field ────────────────────────────
-    // These elements stay in the DOM for layout, hit-testing, focus and screen
-    // readers; CSS makes their text transparent and the glyphs are drawn here
-    // instead, displaced by the same wave the lines use. Each takes the
-    // parameters belonging to its own height, so it rides a curve that is a
-    // real member of the family rather than an imitation of one.
-    //
-    // Because the DOM boxes are what get measured, their CSS must not move
-    // them — the hover growth is applied here instead, or the box and the
-    // glyphs would drift apart.
-    const FIELD_INK = '#f5f2ec';
-    const HOVER_SCALE = 1.09;
-    let texts = [];
-
-    // Kept on the element so it survives re-measuring on resize.
-    function hoverState(el) {
-      if (!el._field) el._field = { target: 0, t: 0 };
-      return el._field;
-    }
-    document.querySelectorAll('.issue-item').forEach(el => {
-      const st = hoverState(el);
-      el.addEventListener('pointerenter', () => { st.target = 1; });
-      el.addEventListener('pointerleave', () => { st.target = 0; });
-    });
-
-    function measureTexts() {
-      texts = [];
-      if (!w || !h) return;
-      const m = canvas.getBoundingClientRect();
-
-      const add = (el, align, hoverable) => {
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        const fs = parseFloat(cs.fontSize);
-        if (!fs || !r.width) return null;
-
-        let text = el.textContent.trim();
-        if (cs.textTransform === 'uppercase') text = text.toUpperCase();
-
-        const cy = (r.top - m.top) + r.height / 2;
-        const entry = {
-          el, align, fs, cy,
-          chars: Array.from(text),
-          x0: (r.left - m.left) + (parseFloat(cs.paddingLeft) || 0),
-          cx: (r.left - m.left) + r.width / 2,
-          weight: cs.fontWeight || '400',
-          family: cs.fontFamily,
-          tracking: parseFloat(cs.letterSpacing) || 0,
-          alpha: parseFloat(cs.opacity) || 1,
-          params: lineParams(cy / h),
-          hover: hoverable ? hoverState(el) : null,
-        };
-
-        // Measured once here rather than every frame — advances only change
-        // when the font or size does, which is exactly when this reruns.
-        ctx.font = entry.weight + ' ' + fs + 'px ' + entry.family;
-        entry.widths = entry.chars.map(c => ctx.measureText(c).width);
-
-        texts.push(entry);
-        return entry;
-      };
-
-      const listing = [];
-      const title = add(document.getElementById('issue-title'), 'center');
-      if (title) { title.underline = true; listing.push(title); }
-      document.querySelectorAll('.issue-item').forEach(el => {
-        const e = add(el, 'center', true);
-        if (e) listing.push(e);
-      });
-
-      // Rows sit close together and neighbouring lines carry slightly different
-      // phase, so at full amplitude they would swing into each other. Cap every
-      // row at a share of the tightest gap in the stack.
-      let gap = Infinity;
-      for (let i = 1; i < listing.length; i++) {
-        gap = Math.min(gap, Math.abs(listing[i].cy - listing[i - 1].cy));
-      }
-      if (isFinite(gap)) {
-        const cap = (gap * 0.3) / h;
-        listing.forEach(e => { e.params.amp = Math.min(e.params.amp, cap); });
-      }
-    }
-
-    function drawTexts(t) {
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
-
-      for (const e of texts) {
-        // Eased here rather than in CSS: the DOM box has to stay still, so the
-        // growth can only happen on the canvas. Advances scale linearly with
-        // size, so the widths measured once at base size just multiply.
-        let scale = 1, alpha = e.alpha;
-        if (e.hover) {
-          e.hover.t += (e.hover.target - e.hover.t) * 0.18;
-          if (e.hover.t < 0.001) e.hover.t = 0;
-          scale = 1 + (HOVER_SCALE - 1) * e.hover.t;
-          alpha = e.alpha + (1 - e.alpha) * e.hover.t;
-        }
-
-        const fs = e.fs * scale;
-        const tracking = e.tracking * scale;
-        const base = e.widths;
-
-        ctx.font = e.weight + ' ' + fs + 'px ' + e.family;
-        ctx.fillStyle = FIELD_INK;
-        ctx.globalAlpha = alpha;
-
-        let total = 0;
-        for (let i = 0; i < base.length; i++) total += base[i] * scale;
-        total += tracking * (base.length - 1);
-
-        const startX = e.align === 'left' ? e.x0 : e.cx - total / 2;
-
-        let x = startX;
-        for (let i = 0; i < e.chars.length; i++) {
-          const cw = base[i] * scale;
-          const gx = x + cw / 2;
-          const dy = offsetAt(e.params, gx, t);
-          // Tilt to the curve's local slope, so letters lie along it rather
-          // than standing upright on a moving baseline.
-          const slope = (offsetAt(e.params, gx + 2, t) -
-                         offsetAt(e.params, gx - 2, t)) / 4;
-          ctx.save();
-          ctx.translate(gx, e.cy + dy);
-          ctx.rotate(Math.atan(slope));
-          ctx.fillText(e.chars[i], -cw / 2, 0);
-          ctx.restore();
-          x += cw + tracking;
-        }
-
-        // Follows the same curve as the glyphs above it — a straight rule under
-        // curved text reads as a separate object sitting behind the words.
-        if (e.underline) {
-          const y = e.cy + fs * 0.52;
-          ctx.beginPath();
-          for (let px = startX; px <= startX + total; px += 4) {
-            const py = y + offsetAt(e.params, px, t);
-            if (px === startX) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.lineWidth = Math.max(1, fs * 0.026);
-          ctx.strokeStyle = FIELD_INK;
-          ctx.stroke();
-        }
-      }
-
-      ctx.globalAlpha = 1;
-    }
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1264,7 +655,6 @@
 
       const n = Math.max(N_MIN, Math.min(N_MAX, Math.round(h / SPACING)));
       if (n !== lines.length) buildLines(n);
-      measureTexts();
     }
 
     function draw(t) {
@@ -1293,8 +683,6 @@
         ctx.strokeStyle = STROKES[b];
         ctx.stroke();
       }
-
-      drawTexts(t);
     }
 
     let raf = null;
@@ -1319,11 +707,6 @@
     document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
 
     resize();
-    // Josefin Sans arrives after first paint, and the fallback's metrics are
-    // not its metrics — re-measure once it is actually available.
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => { measureTexts(); if (REDUCED) draw(0); });
-    }
     if (REDUCED) draw(0); else start();
   })();
   </script>
