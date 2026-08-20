@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hi Lo — closeupfarout</title>
+<meta name="description" content="Hi Lo: a card game about reading what is left in the deck.">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #07070c;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body { display: flex; align-items: center; justify-content: center; }
+  /* Integer-scaled pixels, never smoothed. The scale factor is chosen in JS so
+     one logical pixel is always a whole number of device pixels. */
+  #stage {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    touch-action: manipulation;
+  }
+  #stage:focus-visible { outline: 2px solid #f2ead6; outline-offset: 2px; }
+  .vh {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <canvas id="stage" width="640" height="400" tabindex="0"
+          aria-label="Hi Lo. Arrow keys move between piles, Enter selects, then H for higher, L for lower, S for split."></canvas>
+  <div id="say" class="vh" role="status" aria-live="polite"></div>
+
+  <script src="pixel.js"></script>
+  <script src="scenes.js"></script>
+  <script src="game.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
