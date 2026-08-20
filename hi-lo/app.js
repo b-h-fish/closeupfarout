@@ -15,6 +15,10 @@
   var screen = 'SETUP';
   var pickC = 3, pickR = 3, pickScene = 1;
   var g = null, fx = null, focus = 0, confirmMenu = false;
+  /* Keyboard focus is only drawn once the keyboard is in use — otherwise
+     pile 0 wears a ring from the moment the board is dealt, which reads as
+     a selection nobody made. Mirrors :focus-visible. */
+  var kbNav = false;
   var hits = [], mouse = { x: -1e5, y: -1e5 }, now = 0;
 
   function pal() { return SCENES[pickScene].pal; }
@@ -222,7 +226,7 @@
       if (g.selected === i) {
         fb.frame(b.x-1, b.y-1, CARD_W+2, CARD_H+2, p.hudInk);
         fb.frame(b.x-2, b.y-2, CARD_W+4, CARD_H+4, p.hudInk);
-      } else if (inside(b) || focus === i) {
+      } else if (inside(b) || (kbNav && focus === i)) {
         fb.frame(b.x-1, b.y-1, CARD_W+2, CARD_H+2, p.hudDim);
       }
       hit(b.x, b.y, CARD_W, CARD_H, { t:'select', pile:i });
@@ -429,7 +433,7 @@
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
   }
 
-  function onMove(e) { var q = toLogical(e); mouse.x = q.x; mouse.y = q.y; }
+  function onMove(e) { var q = toLogical(e); mouse.x = q.x; mouse.y = q.y; kbNav = false; }
 
   function onDown(e) {
     var q = toLogical(e); mouse.x = q.x; mouse.y = q.y;
@@ -466,6 +470,7 @@
       return;
     }
     var c = focus % g.cols, r = (focus / g.cols) | 0;
+    if (/^(Arrow(Right|Left|Down|Up)|Enter| |[hHlLsS])$/.test(k)) kbNav = true;
     if (k === 'ArrowRight') c = Math.min(g.cols-1, c+1);
     else if (k === 'ArrowLeft') c = Math.max(0, c-1);
     else if (k === 'ArrowDown') r = Math.min(g.rows-1, r+1);
