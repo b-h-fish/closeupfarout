@@ -359,9 +359,10 @@
 
     var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
     hudBig(head, px + ((pw - fb.textW(head,2)) >> 1), py + 12, p.hudInk, 2);
-    var sub = (52 - HiLo.stockLeft(g)) + ' OF 52 PLACED';
+    var left = HiLo.stockLeft(g);
+    var sub = left + (left === 1 ? ' CARD REMAINING' : ' CARDS REMAINING');
     hud(sub, px + ((pw - fb.textW(sub,1)) >> 1), py + 34, p.hudDim);
-    button(px + ((pw - 84) >> 1), py + 48, 84, 'AGAIN', { t:'again' }, true);
+    button(px + ((pw - 84) >> 1), py + 48, 84, 'AGAIN', { t:'replay' }, true);
   }
 
   /* Leaving mid-game throws the run away, so it asks first. Drawn last and it
@@ -398,8 +399,10 @@
 
   function describe() {
     if (!g) return;
-    if (g.phase === 'WON')  return say('Cleared the deck. ' + (52 - HiLo.stockLeft(g)) + ' of 52 placed.');
-    if (g.phase === 'LOST') return say('Out of piles. ' + (52 - HiLo.stockLeft(g)) + ' of 52 placed.');
+    var rem = HiLo.stockLeft(g);
+    var remTxt = rem + (rem === 1 ? ' card remaining.' : ' cards remaining.');
+    if (g.phase === 'WON')  return say('Cleared the deck. ' + remTxt);
+    if (g.phase === 'LOST') return say('Out of piles. ' + remTxt);
     if (g.phase === 'RESURRECT') return say('Split made. Choose a dead pile to revive.');
     var l = g.last, said = '';
     if (l) {
@@ -457,7 +460,13 @@
     }
     if (act.t === 'menu-yes') { toMenu(); return; }
     if (act.t === 'menu-no')  { confirmMenu = false; describe(); return; }
-    if (act.t === 'again')    { toMenu(); return; }
+    if (act.t === 'replay') {
+      // same grid and setting, a fresh shuffle. The board is the authority on
+      // the grid, not the menu picks, which a seeded link may have moved.
+      if (g) { pickC = g.cols; pickR = g.rows; }
+      begin((Math.random() * 0x7fffffff) | 0);
+      return;
+    }
     flushFx();
     if (act.t === 'select') { HiLo.apply(g, { t:'SELECT', pile:act.pile }); focus = act.pile; return; }
     if (act.t === 'call')   { doCall(act.call); return; }
@@ -522,7 +531,7 @@
     if (k === 'Escape') { dispatch({ t:'menu' }); e.preventDefault(); return; }
     flushFx();
     if (g.phase === 'WON' || g.phase === 'LOST') {
-      if (k === 'Enter' || k === ' ') { dispatch({ t:'again' }); e.preventDefault(); }
+      if (k === 'Enter' || k === ' ') { dispatch({ t:'replay' }); e.preventDefault(); }
       return;
     }
     var c = focus % g.cols, r = (focus / g.cols) | 0;
