@@ -24,9 +24,18 @@
      The logical canvas then fills the viewport exactly at that scale. */
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
-    scale = (screen === 'SETUP')
-      ? Math.max(1, Math.min(5, Math.floor(Math.min(vw / 380, vh / 300))))
-      : Math.max(1, Math.min(4, Math.floor(Math.min(vw / 420, vh / 400))));
+    if (screen === 'SETUP') {
+      scale = Math.max(1, Math.min(5, Math.floor(Math.min(vw / 380, vh / 300))));
+    } else {
+      /* Sized against the grid on the table rather than against a worst-case
+         4x4. Holding a 3x3 to the space a 4x4 needs is what made the cards
+         small: it was reserving room for six piles that aren't there. */
+      var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
+      var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
+      var needW = bw + 2*(CARD_W + 30);      // board, plus the stock beside it
+      var needH = bh + 78;                   // plus the calls and the HUD
+      scale = Math.max(1, Math.min(6, Math.floor(Math.min(vw / needW, vh / needH))));
+    }
     W = Math.max(300, Math.floor(vw / scale));
     H = Math.max(300, Math.floor(vh / scale));
     canvas.width = W; canvas.height = H;
@@ -40,12 +49,11 @@
     var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
     var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
     var blockH = bh + 14 + 18;
-    var y = Math.max(34, Math.round((H - blockH) / 2));
-    // When the stock sits beside the board, centre the pair of them rather
-    // than the board alone — otherwise the whole group reads as off-centre.
+    var y = Math.max(18, Math.round((H - blockH) / 2));
+    // The board is centred on its own, so it lines up with the calls beneath
+    // it. The stock is free to sit off to one side.
     var big = (W - bw) / 2 >= CARD_W + 44;
-    var off = big ? (CARD_W + 26) : 0;
-    return { x: Math.round((W - bw + off) / 2), y: y, w: bw, h: bh, big: big };
+    return { x: Math.round((W - bw) / 2), y: y, w: bw, h: bh, big: big };
   }
   function pileBox(i) {
     var b = boardBox();
@@ -242,9 +250,23 @@
     }
 
     // ── HUD ──
-    wordmark(9, 10, 1, p.hudInk);
-    var right = HiLo.stockLeft(g) + ' LEFT   ' + HiLo.aliveCount(g) + '/' + g.size + ' ALIVE';
-    hud(right, W - 9 - fb.textW(right,1), 9, p.hudDim);
+    // The wordmark is the way back to the menu. Nothing else lives up here:
+    // the stock count is already under the deck, and how many piles are alive
+    // is plain from the board.
+    var wmW = wordmarkW(2), wmR = { x: 6, y: 6, w: wmW + 14, h: 32 };
+    if (inside(wmR)) {
+      fb.rect(wmR.x, wmR.y, wmR.w, wmR.h, p.hudShadow);
+      fb.frame(wmR.x, wmR.y, wmR.w, wmR.h, p.hudInk);
+    }
+    wordmark(wmR.x + 7, wmR.y + 9, 2, p.hudInk);
+    hit(wmR.x, wmR.y, wmR.w, wmR.h, { t:'menu' });
+
+    // On a viewport too narrow for the stock to sit beside the board, the count
+    // has nowhere else to go.
+    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) {
+      var sl = HiLo.stockLeft(g) + ' LEFT';
+      hud(sl, W - 9 - fb.textW(sl,1), 10, p.hudDim);
+    }
 
     // ── the card in the air ──
     if (fx && fx.kind === 'deal') {
@@ -334,7 +356,7 @@
       begin((Math.random() * 0x7fffffff) | 0);
       return;
     }
-    if (act.t === 'again') {
+    if (act.t === 'again' || act.t === 'menu') {
       screen = 'SETUP'; g = null; fx = null;
       fit();
       if (history.replaceState) history.replaceState(null, '', location.pathname);
@@ -395,6 +417,7 @@
       e.preventDefault(); return;
     }
     if (!g) return;
+    if (k === 'Escape') { dispatch({ t:'menu' }); e.preventDefault(); return; }
     flushFx();
     if (g.phase === 'WON' || g.phase === 'LOST') {
       if (k === 'Enter' || k === ' ') { dispatch({ t:'again' }); e.preventDefault(); }
