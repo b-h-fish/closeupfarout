@@ -9,6 +9,7 @@
   'use strict';
 
   var CARD_W = 54, CARD_H = 74, GAP = 5;
+  var SIDE_W = 88;                       // width of the call column when beside
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
 
@@ -19,6 +20,10 @@
      pile 0 wears a ring from the moment the board is dealt, which reads as
      a selection nobody made. Mirrors :focus-visible. */
   var kbNav = false;
+  /* Calls beside the board rather than beneath it. The board's height is what
+     limits a tall grid, so moving the UI out of the vertical budget is worth a
+     whole scale step. */
+  var uiSide = false;
   var hits = [], mouse = { x: -1e5, y: -1e5 }, now = 0;
 
   function pal() { return SCENES[pickScene].pal; }
@@ -31,14 +36,18 @@
     if (screen === 'SETUP') {
       scale = Math.max(1, Math.min(5, Math.floor(Math.min(vw / 380, vh / 300))));
     } else {
-      /* Sized against the grid on the table rather than against a worst-case
-         4x4. Holding a 3x3 to the space a 4x4 needs is what made the cards
-         small: it was reserving room for six piles that aren't there. */
+      /* Sized against the grid actually on the table, and laid out whichever of
+         two ways leaves the cards bigger: calls stacked beneath the board, or
+         calls in a column beside it. Beside costs width — which is plentiful —
+         and buys height, which is what a four-row grid runs out of. */
       var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
       var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
-      var needW = bw + 2*(CARD_W + 30);      // board, plus the stock beside it
-      var needH = bh + 78;                   // plus the calls and the HUD
-      scale = Math.max(1, Math.min(6, Math.floor(Math.min(vw / needW, vh / needH))));
+      var stackW = bw + 2*(CARD_W + 26), stackH = bh + 64;
+      var sideW  = bw + (CARD_W + 26) + SIDE_W + 36, sideH = bh + 8;
+      var stackS = Math.floor(Math.min(vw / stackW, vh / stackH));
+      var sideS  = Math.floor(Math.min(vw / sideW,  vh / sideH));
+      uiSide = sideS > stackS;
+      scale = Math.max(1, Math.min(6, Math.max(stackS, sideS)));
     }
     W = Math.max(300, Math.floor(vw / scale));
     H = Math.max(300, Math.floor(vh / scale));
@@ -52,8 +61,8 @@
   function boardBox() {
     var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
     var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
-    var blockH = bh + 14 + 18;
-    var y = Math.max(18, Math.round((H - blockH) / 2));
+    var blockH = uiSide ? bh : bh + 14 + 18;
+    var y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
     // The board is centred on its own, so it lines up with the calls beneath
     // it. The stock is free to sit off to one side.
     var big = (W - bw) / 2 >= CARD_W + 44;
@@ -289,29 +298,62 @@
       cardFace(fb, ax, ay, CARD_W, CARD_H, HiLo.rankChar(fx.card), HiLo.suitChar(fx.card), p);
     }
 
-    // ── calls ──
-    var by = b.y + b.h + 14;
-    if (g.phase === 'PLAY' && !fx) {
-      var on = g.selected >= 0;
-      var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = (W - tot) >> 1;
-      button(bx, by, wid[0], 'HI', { t:'call', call:'HI' }, on);
-      button(bx+wid[0]+7, by, wid[1], 'LO', { t:'call', call:'LO' }, on);
-      button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on);
-      if (!on) {
-        var m = 'PICK A PILE';
-        hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
+    if (g.phase === 'WON' || g.phase === 'LOST') drawResult();
+    else if (!fx) drawCalls(b);
+  }
+
+  /* The calls, in whichever place the layout put them. */
+  function drawCalls(b) {
+    var p = pal(), on = g.selected >= 0;
+    var resurrecting = (g.phase === 'RESURRECT');
+
+    if (uiSide) {
+      var cw = SIDE_W, ch = 18, gp = 8;
+      var cx = b.x + b.w + 26;
+      var cy = b.y + ((b.h - (3*ch + 2*gp)) >> 1);
+      if (resurrecting) {
+        hud('SPLIT', cx, cy + 4, p.hudInk);
+        hud('REVIVE A PILE', cx, cy + 17, p.hudInk);
+        return;
       }
-    } else if (g.phase === 'RESURRECT' && !fx) {
+      button(cx, cy, cw, 'HI', { t:'call', call:'HI' }, on);
+      button(cx, cy + ch + gp, cw, 'LO', { t:'call', call:'LO' }, on);
+      button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on);
+      if (!on) hud('PICK A PILE', cx, cy + 3*(ch + gp) + 6, p.hudDim);
+      return;
+    }
+
+    var by = b.y + b.h + 14;
+    if (resurrecting) {
       var m2 = 'SPLIT - REVIVE A PILE';
       hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
-    } else if (g.phase === 'WON' || g.phase === 'LOST') {
-      var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
-      hudBig(head, (W - fb.textW(head,2)) >> 1, by - 2, p.hudInk, 2);
-      var placed = 52 - HiLo.stockLeft(g);
-      var sub = placed + ' OF 52 PLACED';
-      hud(sub, (W - fb.textW(sub,1)) >> 1, by + 20, p.hudDim);
-      button((W>>1) - 42, by + 34, 84, 'AGAIN', { t:'again' }, true);
+      return;
     }
+    var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = (W - tot) >> 1;
+    button(bx, by, wid[0], 'HI', { t:'call', call:'HI' }, on);
+    button(bx+wid[0]+7, by, wid[1], 'LO', { t:'call', call:'LO' }, on);
+    button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on);
+    if (!on) {
+      var m = 'PICK A PILE';
+      hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
+    }
+  }
+
+  /* The result reads as a card laid over the table, so it does not have to fit
+     whichever gap the layout happened to leave. */
+  function drawResult() {
+    var p = pal();
+    fb.shade(0, 0, W, H, 0.45);
+    var pw = Math.min(W - 20, 200), ph = 74;
+    var px = (W - pw) >> 1, py = (H - ph) >> 1;
+    fb.rect(px, py, pw, ph, p.hudShadow);
+    fb.frame(px, py, pw, ph, p.hudInk);
+
+    var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
+    hudBig(head, px + ((pw - fb.textW(head,2)) >> 1), py + 12, p.hudInk, 2);
+    var sub = (52 - HiLo.stockLeft(g)) + ' OF 52 PLACED';
+    hud(sub, px + ((pw - fb.textW(sub,1)) >> 1), py + 34, p.hudDim);
+    button(px + ((pw - 84) >> 1), py + 48, 84, 'AGAIN', { t:'again' }, true);
   }
 
   /* Leaving mid-game throws the run away, so it asks first. Drawn last and it
