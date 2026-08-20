@@ -12,9 +12,9 @@
 var HiLo = (function () {
   'use strict';
 
-  /* Ace plays low: A=1 … K=13. Flip this to make it the high card instead —
-     it is the single place the ranking is defined. */
-  var ACE_LOW = true;
+  /* Ace plays high: 2=2 … K=13, A=14. This is the single place the ranking is
+     defined; flip it to put the ace at the bottom instead. */
+  var ACE_LOW = false;
 
   var RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
   var SUITS = ['S','H','D','C'];
