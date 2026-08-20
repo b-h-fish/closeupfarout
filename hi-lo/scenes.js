@@ -32,7 +32,7 @@ var SCENES = [
       tower:'#151d40', towerFar:'#1b2450', lit:'#ffd489', litDim:'#c99a55',
       wall:'#191324', floor:'#221828', floorLit:'#3a2a34',
       ui:'#e8dcc0', uiDim:'#9b8a76', uiShadow:'#0b0812', btnBg:'#2e2438', btnInk:'#e8dcc0',
-      pick:'#6fd3ff'
+      pick:'#bfa0ff'
     })) },
   { key:'dusk', jp:'黄昏', name:'Dusk Terrace',
     blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
