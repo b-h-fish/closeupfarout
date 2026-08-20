@@ -314,18 +314,20 @@
     var resurrecting = (g.phase === 'RESURRECT');
 
     if (uiSide) {
-      var cw = SIDE_W, ch = 18, gp = 8;
+      var cw = SIDE_W, ch = 18, gp = 8, stackH = 3*ch + 2*gp;
       var cx = b.x + b.w + 26;
-      var cy = b.y + ((b.h - (3*ch + 2*gp)) >> 1);
+      // Bottom-aligned with the board, mirroring the deck on the other side.
+      var cy = b.y + b.h - stackH;
+      var mid = function (str) { return cx + ((cw - fb.textW(str,1)) >> 1); };
       if (resurrecting) {
-        hud('SPLIT', cx, cy + 4, p.hudInk);
-        hud('REVIVE A PILE', cx, cy + 17, p.hudInk);
+        hud('SPLIT', mid('SPLIT'), cy + 25, p.hudInk);
+        hud('REVIVE A PILE', mid('REVIVE A PILE'), cy + 38, p.hudInk);
         return;
       }
       button(cx, cy, cw, 'HI', { t:'call', call:'HI' }, on);
       button(cx, cy + ch + gp, cw, 'LO', { t:'call', call:'LO' }, on);
       button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on);
-      if (!on) hud('PICK A PILE', cx, cy + 3*(ch + gp) + 6, p.hudDim);
+      if (!on) hud('PICK A PILE', mid('PICK A PILE'), cy - 13, p.hudDim);
       return;
     }
 
