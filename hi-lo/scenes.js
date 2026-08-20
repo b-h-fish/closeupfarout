@@ -41,7 +41,7 @@ var SCENES = [
       tower:'#1a1030', towerFar:'#2e1a48', lit:'#ffe3a0', litDim:'#d8a05e',
       wall:'#1d1230', floor:'#241736', floorLit:'#43284a',
       ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
-      pick:'#5fe0c8'
+      pick:'#ff7a5c'
     })) },
   { key:'palms', jp:'常夏', name:'Palm Court',
     blurb:'Daylight, somewhere warm. Turquoise water, palms, and a sun that never quite sets.',
@@ -52,7 +52,7 @@ var SCENES = [
       lit:'#fff2c0', litDim:'#ffd98a',
       wall:'#2a5f66', floor:'#255760', floorLit:'#3d7a80',
       ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
-      pick:'#ff7a5c'
+      pick:'#5fe0c8'
     })) }
 ];
 

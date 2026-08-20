@@ -190,17 +190,13 @@
     var dealing = fx && fx.kind === 'deal' && fx.pile === i;
     var flipping = fx && (fx.kind === 'flip' || fx.kind === 'revive') && fx.pile === i;
 
-    /* A chosen pile is lifted off the table and keylined in the setting's
-       accent. The old treatment was a cream frame on a cream card, which read
-       as a slightly thicker edge rather than as a state. */
+    /* A chosen pile is keylined in the setting's accent. A cream frame on a
+       cream card read as a slightly thicker edge rather than as a state. */
     var sel = (g.phase === 'PLAY' && g.selected === i && !fx);
-    var lift = sel ? 5 : 0;
-    var ly = b.y - lift;
+    var ly = b.y;
 
     var depth = Math.min(cards.length, 5);
-    // the shadow stays down on the table and deepens, which is what sells the lift
-    fb.shade(b.x + (depth-1)*2 + 3 + lift, b.y + (depth-1)*2 + 4 + lift*2,
-             CARD_W, CARD_H, sel ? 0.42 : 0.55);
+    fb.shade(b.x + (depth-1)*2 + 3, b.y + (depth-1)*2 + 4, CARD_W, CARD_H, 0.55);
     for (var d = depth-1; d >= 1; d--) {
       fb.rect(b.x + d*2, ly + d*2, CARD_W, CARD_H, p.ink);
       fb.rect(b.x + d*2 + 1, ly + d*2 + 1, CARD_W-2, CARD_H-2, p.linen);
@@ -239,7 +235,7 @@
       } else if (inside(b) || (kbNav && focus === i)) {
         fb.frame(b.x-1, ly-1, CARD_W+2, CARD_H+2, p.hudDim);
       }
-      hit(b.x, ly, CARD_W, CARD_H + lift, { t:'select', pile:i });
+      hit(b.x, ly, CARD_W, CARD_H, { t:'select', pile:i });
     }
   }
 
