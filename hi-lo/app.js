@@ -10,6 +10,7 @@
 
   var CARD_W = 54, CARD_H = 74, GAP = 5;
   var SIDE_W = 88;                       // width of the call column when beside
+  var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
 
@@ -34,7 +35,7 @@
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
     if (screen === 'SETUP') {
-      scale = Math.max(1, Math.min(5, Math.floor(Math.min(vw / 380, vh / 300))));
+      scale = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / 380, vh / 300))));
     } else {
       /* Sized against the grid actually on the table, and laid out whichever of
          two ways leaves the cards bigger: calls stacked beneath the board, or
@@ -44,10 +45,15 @@
       var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
       var stackW = bw + 2*(CARD_W + 26), stackH = bh + 64;
       var sideW  = bw + (CARD_W + 26) + SIDE_W + 36, sideH = bh + 8;
-      var stackS = Math.floor(Math.min(vw / stackW, vh / stackH));
-      var sideS  = Math.floor(Math.min(vw / sideW,  vh / sideH));
+      /* Capped, because the scale zooms the setting as well as the cards. Left
+         uncapped a small grid pushed the world so close that the palms were cut
+         off and the water became a wall of dither. The cap also converges card
+         size across grids: most of them land on the same step. */
+      var stackS = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / stackW, vh / stackH))));
+      var sideS  = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / sideW,  vh / sideH))));
+      // only move the calls aside if doing so actually buys a bigger card
       uiSide = sideS > stackS;
-      scale = Math.max(1, Math.min(6, Math.max(stackS, sideS)));
+      scale = Math.max(stackS, sideS);
     }
     W = Math.max(300, Math.floor(vw / scale));
     H = Math.max(300, Math.floor(vh / scale));
