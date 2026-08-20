@@ -10,6 +10,7 @@
 
   var CARD_W = 54, CARD_H = 74, GAP = 5;
   var SIDE_W = 88;                       // width of the call column when beside
+  var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
@@ -44,20 +45,33 @@
          and buys height, which is what a four-row grid runs out of. */
       var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
       var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
-      var stackW = bw + 2*(CARD_W + 26), stackH = bh + 64;
-      var sideW  = bw + (CARD_W + 26) + SIDE_W + 36, sideH = bh + 8;
-      /* Capped, because the scale zooms the setting as well as the cards. Left
-         uncapped a small grid pushed the world so close that the palms were cut
-         off and the water became a wall of dither. The cap also converges card
-         size across grids: most of them land on the same step. */
-      var stackS = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / stackW, vh / stackH))));
-      var sideS  = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / sideW,  vh / sideH))));
-      // only move the calls aside if doing so actually buys a bigger card
-      uiSide = sideS > stackS;
-      scale = Math.max(stackS, sideS);
+
+      /* Three ways to arrange it, richest first. Whichever leaves the biggest
+         card wins, and ties go to the earlier — so the calls only move aside
+         when that genuinely buys a step, and the deck only leaves the table
+         when there is truly no room for it.
+
+         The last arrangement is what makes a phone work: it asks for the board
+         and nothing else. The old rule reserved deck width on both sides of a
+         board that only ever has a deck on one, and on a narrow screen that
+         phantom 160px was enough to force everything down to 1x. */
+      var plans = [
+        { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + 64 },
+        { side:false, w: Math.max(bw + 20,                 CALLS_W + 24), h: bh + 64 },
+        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8  }
+      ];
+      /* Capped, because scale zooms the setting as well as the cards: left
+         uncapped, a small grid pushed the world so close that the palms were
+         cut off and the water became a wall of dither. */
+      scale = 1; uiSide = false;
+      for (var pi = 0; pi < plans.length; pi++) {
+        var sc = Math.max(1, Math.min(WORLD_MAX,
+          Math.floor(Math.min(vw / plans[pi].w, vh / plans[pi].h))));
+        if (sc > scale) { scale = sc; uiSide = plans[pi].side; }
+      }
     }
-    W = Math.max(300, Math.floor(vw / scale));
-    H = Math.max(300, Math.floor(vh / scale));
+    W = Math.max(120, Math.floor(vw / scale));
+    H = Math.max(120, Math.floor(vh / scale));
     canvas.width = W; canvas.height = H;
     canvas.style.width = (W * scale) + 'px';
     canvas.style.height = (H * scale) + 'px';
@@ -144,7 +158,7 @@
     var blockH = 21 + 30 + gwid + 10 + 7 + 18 + 17 + 20 + 20 + 20;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
-    var pw = Math.min(W - 24, 340), ph = blockH + PAD*2;
+    var pw = Math.min(W - 16, 340), ph = blockH + PAD*2;
     fb.shade(cx - (pw>>1), top - PAD, pw, ph, 0.42);
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
@@ -184,7 +198,9 @@
 
     hud('SETTING', cx - (fb.textW('SETTING',1) >> 1), y, p.hudDim);
     y += 17;
-    var bw = 100, tot = 3*bw + 2*6, sx = cx - (tot >> 1);
+    // the three settings share whatever the panel can spare
+    var bw = Math.max(56, Math.min(100, Math.floor((pw - 24 - 12) / 3)));
+    var tot = 3*bw + 2*6, sx = cx - (tot >> 1);
     for (var i = 0; i < SCENES.length; i++) {
       var on = (i === pickScene);
       var bx3 = sx + i*(bw+6);
@@ -197,7 +213,7 @@
     }
     y += 20 + 20;
 
-    var dw = 100, dx = cx - (dw>>1);
+    var dw = Math.min(100, pw - 40), dx = cx - (dw>>1);
     var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+20;
     fb.rect(dx, y, dw, 20, dhot ? p.hudInk : p.hudShadow);
     fb.frame(dx, y, dw, 20, p.hudInk);
