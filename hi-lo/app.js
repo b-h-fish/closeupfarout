@@ -74,6 +74,25 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
+  /* The wordmark is drawn, not typed. Two reasons: a typed space either side
+     of the divider is far wider than the mark wants, and a divider set on the
+     cap height reads as a second letter I. This rule overshoots the caps top
+     and bottom, which no letter does, so it reads as a separator. */
+  var WM_GAP = 5, WM_OVER = 2, WM_TALL = 11;
+  function wordmarkW(k) { return (11 + WM_GAP + 1 + WM_GAP + 11) * k; }
+  function wordmark(x, y, k, col) {
+    var p = pal();
+    function put(str, sx) {
+      fb.textBig(str, sx + k, y + k, p.hudShadow, k);
+      fb.textBig(str, sx, y, col, k);
+    }
+    put('HI', x);
+    var rx = x + 11*k + WM_GAP*k;
+    fb.rect(rx + k, y - WM_OVER*k + k, k, WM_TALL*k, p.hudShadow);
+    fb.rect(rx,     y - WM_OVER*k,     k, WM_TALL*k, col);
+    put('LO', rx + k + WM_GAP*k);
+  }
+
   function button(x, y, w, label, act, on) {
     var p = pal();
     var r = { x:x, y:y, w:w, h:18 };
@@ -102,7 +121,7 @@
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    hudBig('HI | LO', cx - (fb.textW('HI | LO',3) >> 1), y, p.hudInk, 3);
+    wordmark(cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
     y += 21 + 20;
 
     hud('GRID', cx - (fb.textW('GRID',1) >> 1), y, p.hudDim);
@@ -226,7 +245,7 @@
     }
 
     // ── HUD ──
-    hud('HI | LO', 9, 9, p.hudInk);
+    wordmark(9, 10, 1, p.hudInk);
     var right = HiLo.stockLeft(g) + ' LEFT   ' + HiLo.aliveCount(g) + '/' + g.size + ' ALIVE';
     hud(right, W - 9 - fb.textW(right,1), 9, p.hudDim);
 
