@@ -113,7 +113,7 @@
 
     var cell = 14, cgap = 4, gwid = 4*cell + 3*cgap;
     var cx = W >> 1, PAD = 20;
-    var blockH = 21 + 20 + 17 + gwid + 10 + 7 + 18 + 17 + 20 + 20 + 20;
+    var blockH = 21 + 30 + gwid + 10 + 7 + 18 + 17 + 20 + 20 + 20;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
     var pw = Math.min(W - 24, 340), ph = blockH + PAD*2;
@@ -122,10 +122,7 @@
 
     var y = top;
     wordmark(cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
-    y += 21 + 20;
-
-    hud('GRID', cx - (fb.textW('GRID',1) >> 1), y, p.hudDim);
-    y += 17;
+    y += 21 + 30;
 
     /* Hovering a cell commits it. The preview used to fall back to the current
        selection whenever the pointer sat in a gap between cells, which read as
