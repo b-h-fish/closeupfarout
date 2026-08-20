@@ -14,7 +14,7 @@
 
   var screen = 'SETUP';
   var pickC = 3, pickR = 3, pickScene = 1;
-  var g = null, fx = null, focus = 0;
+  var g = null, fx = null, focus = 0, confirmMenu = false;
   var hits = [], mouse = { x: -1e5, y: -1e5 }, now = 0;
 
   function pal() { return SCENES[pickScene].pal; }
@@ -64,7 +64,7 @@
      which also gives the deal animation somewhere honest to fly from. */
   function stockBox() {
     var b = boardBox();
-    if (b.big) return { x: b.x - CARD_W - 26, y: b.y, w: CARD_W, h: CARD_H, big: true };
+    if (b.big) return { x: b.x - CARD_W - 26, y: b.y + b.h - CARD_H, w: CARD_W, h: CARD_H, big: true };
     return { x: W - 30, y: 10, w: 14, h: 19, big: false };
   }
 
@@ -243,9 +243,11 @@
       if (HiLo.stockLeft(g) > 0) cardBack(fb, s.x, s.y, CARD_W, CARD_H, p);
       else { fb.frame(s.x, s.y, CARD_W, CARD_H, p.hudDim); }
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
+        // above the deck now that it sits low, so the count stays clear of the
+        // call buttons on a narrow board
         var sc = String(HiLo.stockLeft(g));
-        hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), s.y + CARD_H + 8, p.hudInk);
-        hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), s.y + CARD_H + 19, p.hudDim);
+        hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), s.y - 21, p.hudInk);
+        hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), s.y - 11, p.hudDim);
       }
     }
 
@@ -253,12 +255,12 @@
     // The wordmark is the way back to the menu. Nothing else lives up here:
     // the stock count is already under the deck, and how many piles are alive
     // is plain from the board.
-    var wmW = wordmarkW(2), wmR = { x: 6, y: 6, w: wmW + 14, h: 32 };
+    var wmW = wordmarkW(1), wmR = { x: 6, y: 6, w: wmW + 12, h: 21 };
     if (inside(wmR)) {
       fb.rect(wmR.x, wmR.y, wmR.w, wmR.h, p.hudShadow);
       fb.frame(wmR.x, wmR.y, wmR.w, wmR.h, p.hudInk);
     }
-    wordmark(wmR.x + 7, wmR.y + 9, 2, p.hudInk);
+    wordmark(wmR.x + 6, wmR.y + 7, 1, p.hudInk);
     hit(wmR.x, wmR.y, wmR.w, wmR.h, { t:'menu' });
 
     // On a viewport too narrow for the stock to sit beside the board, the count
@@ -302,9 +304,37 @@
     }
   }
 
+  /* Leaving mid-game throws the run away, so it asks first. Drawn last and it
+     clears the hit list, so nothing behind it can be clicked by a near miss. */
+  function drawConfirm() {
+    var p = pal();
+    hits.length = 0;
+    fb.shade(0, 0, W, H, 0.45);
+
+    var pw = Math.min(W - 20, 210), ph = 78;
+    var px = (W - pw) >> 1, py = (H - ph) >> 1;
+    fb.rect(px, py, pw, ph, p.hudShadow);
+    fb.frame(px, py, pw, ph, p.hudInk);
+
+    var q = 'LEAVE THIS GAME?';
+    hud(q, px + ((pw - fb.textW(q,1)) >> 1), py + 14, p.hudInk);
+    var w2 = 'THIS RUN IS LOST';
+    hud(w2, px + ((pw - fb.textW(w2,1)) >> 1), py + 27, p.hudDim);
+
+    button(px + 16, py + 46, 76, 'LEAVE', { t:'menu-yes' }, true);
+    button(px + pw - 92, py + 46, 76, 'STAY', { t:'menu-no' }, true);
+  }
+
   /* ═══ ACTIONS ═════════════════════════════════════════════════════════ */
 
   function say(msg) { if (live) live.textContent = msg; }
+
+  function toMenu() {
+    screen = 'SETUP'; g = null; fx = null; confirmMenu = false;
+    fit();
+    if (history.replaceState) history.replaceState(null, '', location.pathname);
+    say('Hi Lo. Choose a grid size and a setting, then deal.');
+  }
 
   function describe() {
     if (!g) return;
@@ -356,12 +386,18 @@
       begin((Math.random() * 0x7fffffff) | 0);
       return;
     }
-    if (act.t === 'again' || act.t === 'menu') {
-      screen = 'SETUP'; g = null; fx = null;
-      fit();
-      if (history.replaceState) history.replaceState(null, '', location.pathname);
-      return;
+    if (act.t === 'menu') {
+      // nothing to lose once the run has ended
+      if (g && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) {
+        confirmMenu = true;
+        say('Leave this game? This run will be lost.');
+        return;
+      }
+      toMenu(); return;
     }
+    if (act.t === 'menu-yes') { toMenu(); return; }
+    if (act.t === 'menu-no')  { confirmMenu = false; describe(); return; }
+    if (act.t === 'again')    { toMenu(); return; }
     flushFx();
     if (act.t === 'select') { HiLo.apply(g, { t:'SELECT', pile:act.pile }); focus = act.pile; return; }
     if (act.t === 'call')   { doCall(act.call); return; }
@@ -417,6 +453,12 @@
       e.preventDefault(); return;
     }
     if (!g) return;
+    if (confirmMenu) {
+      if (k === 'Enter' || k === ' ') dispatch({ t:'menu-yes' });
+      else if (k === 'Escape') dispatch({ t:'menu-no' });
+      else return;
+      e.preventDefault(); return;
+    }
     if (k === 'Escape') { dispatch({ t:'menu' }); e.preventDefault(); return; }
     flushFx();
     if (g.phase === 'WON' || g.phase === 'LOST') {
@@ -453,7 +495,7 @@
     if (fx) { fx.t += dt; if (fx.t >= fx.dur) endFx(); }
 
     hits.length = 0;
-    if (screen === 'SETUP') drawSetup(); else drawGame();
+    if (screen === 'SETUP') drawSetup(); else { drawGame(); if (confirmMenu) drawConfirm(); }
 
     var img = ctx.createImageData(W, H);
     img.data.set(fb.d);
