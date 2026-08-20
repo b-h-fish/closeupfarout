@@ -25,6 +25,7 @@
      limits a tall grid, so moving the UI out of the vertical budget is worth a
      whole scale step. */
   var uiSide = false;
+  var hovC = 0, hovR = 0;               // grid cell under the pointer, if any
   var hits = [], mouse = { x: -1e5, y: -1e5 }, now = 0;
 
   function pal() { return SCENES[pickScene].pal; }
@@ -151,26 +152,33 @@
     wordmark(cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
     y += 21 + 30;
 
-    /* Hovering a cell commits it. The preview used to fall back to the current
-       selection whenever the pointer sat in a gap between cells, which read as
-       the grid snapping back on its own. */
+    /* Hovering previews, clicking chooses. The preview is held while the
+       pointer stays anywhere inside the grid, so the gaps between cells don't
+       make it flicker — but it is dropped the moment the pointer leaves, so
+       crossing the grid on the way down to DEAL can't change the size. */
     var gx = cx - (gwid >> 1), gy = y, r, c;
+    if (!(mouse.x >= gx && mouse.x < gx + gwid && mouse.y >= gy && mouse.y < gy + gwid)) {
+      hovC = 0; hovR = 0;
+    }
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
       var bx = gx + c*(cell+cgap), by = gy + r*(cell+cgap);
       if (mouse.x >= bx && mouse.x < bx+cell && mouse.y >= by && mouse.y < by+cell) {
-        pickC = c+1; pickR = r+1;
+        hovC = c+1; hovR = r+1;
       }
     }
+    var shC = hovC || pickC, shR = hovR || pickR;
+    // a preview is drawn muted; the chosen size is drawn bright
+    var previewing = hovC && (hovC !== pickC || hovR !== pickR);
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
       var bx2 = gx + c*(cell+cgap), by2 = gy + r*(cell+cgap);
-      var lit = (c < pickC && r < pickR);
-      fb.rect(bx2, by2, cell, cell, lit ? p.hudInk : p.hudShadow);
+      var lit = (c < shC && r < shR);
+      fb.rect(bx2, by2, cell, cell, lit ? (previewing ? p.hudDim : p.hudInk) : p.hudShadow);
       fb.frame(bx2, by2, cell, cell, lit ? p.hudInk : p.hudDim);
       hit(bx2, by2, cell, cell, { t:'grid', c:c+1, r:r+1 });
     }
     y += gwid + 10;
 
-    var lbl = pickC + ' X ' + pickR;
+    var lbl = shC + ' X ' + shR;
     hud(lbl, cx - (fb.textW(lbl,1) >> 1), y, p.hudInk);
     y += 7 + 18;
 
