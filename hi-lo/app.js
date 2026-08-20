@@ -311,18 +311,16 @@
     hits.length = 0;
     fb.shade(0, 0, W, H, 0.45);
 
-    var pw = Math.min(W - 20, 210), ph = 78;
+    var pw = Math.min(W - 20, 210), ph = 64;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
 
     var q = 'LEAVE THIS GAME?';
     hud(q, px + ((pw - fb.textW(q,1)) >> 1), py + 14, p.hudInk);
-    var w2 = 'THIS RUN IS LOST';
-    hud(w2, px + ((pw - fb.textW(w2,1)) >> 1), py + 27, p.hudDim);
 
-    button(px + 16, py + 46, 76, 'LEAVE', { t:'menu-yes' }, true);
-    button(px + pw - 92, py + 46, 76, 'STAY', { t:'menu-no' }, true);
+    button(px + 16, py + 33, 76, 'LEAVE', { t:'menu-yes' }, true);
+    button(px + pw - 92, py + 33, 76, 'STAY', { t:'menu-no' }, true);
   }
 
   /* ═══ ACTIONS ═════════════════════════════════════════════════════════ */
