@@ -13,8 +13,7 @@
   var scale = 2, W = 0, H = 0;
 
   var screen = 'SETUP';
-  var pickC = 3, pickR = 3, pickScene = 0;
-  var hovC = 0, hovR = 0;
+  var pickC = 3, pickR = 3, pickScene = 1;
   var g = null, fx = null, focus = 0;
   var hits = [], mouse = { x: -1e5, y: -1e5 }, now = 0;
 
@@ -25,7 +24,9 @@
      The logical canvas then fills the viewport exactly at that scale. */
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
-    scale = Math.max(1, Math.min(4, Math.floor(Math.min(vw / 420, vh / 400))));
+    scale = (screen === 'SETUP')
+      ? Math.max(1, Math.min(5, Math.floor(Math.min(vw / 380, vh / 300))))
+      : Math.max(1, Math.min(4, Math.floor(Math.min(vw / 420, vh / 400))));
     W = Math.max(300, Math.floor(vw / scale));
     H = Math.max(300, Math.floor(vh / scale));
     canvas.width = W; canvas.height = H;
@@ -91,74 +92,66 @@
     var p = pal();
     drawScene(fb, SCENES[pickScene], W, H);
 
-    var cell = 13, cgap = 4, gwid = 4*cell + 3*cgap;
-    var cx = W >> 1;
+    var cell = 14, cgap = 4, gwid = 4*cell + 3*cgap;
+    var cx = W >> 1, PAD = 20;
+    var blockH = 21 + 20 + 17 + gwid + 10 + 7 + 18 + 17 + 20 + 20 + 20;
+    var top = Math.max(8, Math.round((H - blockH) / 2));
 
-    /* Measured up front so the whole block can be centred, rather than each
-       piece being pinned to its own guess at the middle. */
-    var TITLE = 21, PAD = 22;
-    var blockH = TITLE + 26 + 13 + gwid + 8 + 11 + 22 + 13 + 18 + 26 + 18;
-    var top = Math.max(PAD, Math.round((H - blockH) / 2));
-
-    // A darkened panel behind it all: the setting still shows around the edges,
-    // but the controls sit on a consistent ground whatever the hour.
-    var pw = Math.min(W - 24, 300), ph = blockH + PAD*2;
+    var pw = Math.min(W - 24, 340), ph = blockH + PAD*2;
     fb.shade(cx - (pw>>1), top - PAD, pw, ph, 0.42);
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    hudBig('HI LO', cx - (fb.textW('HI LO',3) >> 1), y, p.hudInk, 3);
-    y += TITLE + 26;
+    hudBig('HI | LO', cx - (fb.textW('HI | LO',3) >> 1), y, p.hudInk, 3);
+    y += 21 + 20;
 
     hud('GRID', cx - (fb.textW('GRID',1) >> 1), y, p.hudDim);
-    y += 13;
+    y += 17;
 
-    hovC = 0; hovR = 0;
+    /* Hovering a cell commits it. The preview used to fall back to the current
+       selection whenever the pointer sat in a gap between cells, which read as
+       the grid snapping back on its own. */
     var gx = cx - (gwid >> 1), gy = y, r, c;
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
       var bx = gx + c*(cell+cgap), by = gy + r*(cell+cgap);
       if (mouse.x >= bx && mouse.x < bx+cell && mouse.y >= by && mouse.y < by+cell) {
-        hovC = c+1; hovR = r+1;
+        pickC = c+1; pickR = r+1;
       }
     }
-    var shC = hovC || pickC, shR = hovR || pickR;
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
       var bx2 = gx + c*(cell+cgap), by2 = gy + r*(cell+cgap);
-      var lit = (c < shC && r < shR);
+      var lit = (c < pickC && r < pickR);
       fb.rect(bx2, by2, cell, cell, lit ? p.hudInk : p.hudShadow);
       fb.frame(bx2, by2, cell, cell, lit ? p.hudInk : p.hudDim);
       hit(bx2, by2, cell, cell, { t:'grid', c:c+1, r:r+1 });
     }
-    y += gwid + 8;
+    y += gwid + 10;
 
-    var lbl = shC + ' X ' + shR;
+    var lbl = pickC + ' X ' + pickR;
     hud(lbl, cx - (fb.textW(lbl,1) >> 1), y, p.hudInk);
-    y += 11;
-    var n = shC*shR, sub = n + ' UP - ' + (52-n) + ' IN STOCK';
-    hud(sub, cx - (fb.textW(sub,1) >> 1), y, p.hudDim);
-    y += 22;
+    y += 7 + 18;
 
     hud('SETTING', cx - (fb.textW('SETTING',1) >> 1), y, p.hudDim);
-    y += 13;
-    var bw = 88, tot = 3*bw + 2*5, sx = cx - (tot >> 1);
+    y += 17;
+    var bw = 100, tot = 3*bw + 2*6, sx = cx - (tot >> 1);
     for (var i = 0; i < SCENES.length; i++) {
       var on = (i === pickScene);
-      var bx3 = sx + i*(bw+5);
-      var hot = mouse.x >= bx3 && mouse.x < bx3+bw && mouse.y >= y && mouse.y < y+18;
-      fb.rect(bx3, y, bw, 18, on || hot ? p.hudInk : p.hudShadow);
-      fb.frame(bx3, y, bw, 18, p.hudInk);
+      var bx3 = sx + i*(bw+6);
+      var hot = mouse.x >= bx3 && mouse.x < bx3+bw && mouse.y >= y && mouse.y < y+20;
+      fb.rect(bx3, y, bw, 20, on || hot ? p.hudInk : p.hudShadow);
+      fb.frame(bx3, y, bw, 20, p.hudInk);
       var nm = SCENES[i].name.toUpperCase();
-      fb.text(nm, bx3 + ((bw - fb.textW(nm,1)) >> 1), y + 6, on || hot ? p.hudShadow : p.hudInk);
-      hit(bx3, y, bw, 18, { t:'scene', i:i });
+      fb.text(nm, bx3 + ((bw - fb.textW(nm,1)) >> 1), y + 7, on || hot ? p.hudShadow : p.hudInk);
+      hit(bx3, y, bw, 20, { t:'scene', i:i });
     }
-    y += 18 + 26;
+    y += 20 + 20;
 
-    var dw = 84, dx = cx - (dw>>1);
-    var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+18;
-    fb.rect(dx, y, dw, 18, dhot ? p.hudInk : p.hudShadow);
-    fb.frame(dx, y, dw, 18, p.hudInk);
-    fb.text('DEAL', dx + ((dw - fb.textW('DEAL',1)) >> 1), y + 6, dhot ? p.hudShadow : p.hudInk);
-    hit(dx, y, dw, 18, { t:'deal' });
+    var dw = 100, dx = cx - (dw>>1);
+    var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+20;
+    fb.rect(dx, y, dw, 20, dhot ? p.hudInk : p.hudShadow);
+    fb.frame(dx, y, dw, 20, p.hudInk);
+    fb.text('DEAL', dx + ((dw - fb.textW('DEAL',1)) >> 1), y + 7, dhot ? p.hudShadow : p.hudInk);
+    hit(dx, y, dw, 20, { t:'deal' });
   }
 
   /* ═══ GAME ════════════════════════════════════════════════════════════ */
@@ -233,7 +226,7 @@
     }
 
     // ── HUD ──
-    hud('HI LO', 9, 9, p.hudInk);
+    hud('HI | LO', 9, 9, p.hudInk);
     var right = HiLo.stockLeft(g) + ' LEFT   ' + HiLo.aliveCount(g) + '/' + g.size + ' ALIVE';
     hud(right, W - 9 - fb.textW(right,1), 9, p.hudDim);
 
@@ -327,6 +320,7 @@
     }
     if (act.t === 'again') {
       screen = 'SETUP'; g = null; fx = null;
+      fit();
       if (history.replaceState) history.replaceState(null, '', location.pathname);
       return;
     }
@@ -346,6 +340,7 @@
   function begin(seed) {
     g = HiLo.create(seed, pickC, pickR, 1);
     screen = 'GAME'; focus = 0; fx = null;
+    fit();
     if (history.replaceState) {
       history.replaceState(null, '', location.pathname +
         '?seed=' + seed + '&grid=' + pickC + 'x' + pickR + '&scene=' + pickScene);
