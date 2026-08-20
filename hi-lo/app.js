@@ -190,12 +190,20 @@
     var dealing = fx && fx.kind === 'deal' && fx.pile === i;
     var flipping = fx && (fx.kind === 'flip' || fx.kind === 'revive') && fx.pile === i;
 
-    // the stack under the top card
+    /* A chosen pile is lifted off the table and keylined in the setting's
+       accent. The old treatment was a cream frame on a cream card, which read
+       as a slightly thicker edge rather than as a state. */
+    var sel = (g.phase === 'PLAY' && g.selected === i && !fx);
+    var lift = sel ? 5 : 0;
+    var ly = b.y - lift;
+
     var depth = Math.min(cards.length, 5);
-    fb.shade(b.x + (depth-1)*2 + 3, b.y + (depth-1)*2 + 4, CARD_W, CARD_H, 0.55);
+    // the shadow stays down on the table and deepens, which is what sells the lift
+    fb.shade(b.x + (depth-1)*2 + 3 + lift, b.y + (depth-1)*2 + 4 + lift*2,
+             CARD_W, CARD_H, sel ? 0.42 : 0.55);
     for (var d = depth-1; d >= 1; d--) {
-      fb.rect(b.x + d*2, b.y + d*2, CARD_W, CARD_H, p.ink);
-      fb.rect(b.x + d*2 + 1, b.y + d*2 + 1, CARD_W-2, CARD_H-2, p.linen);
+      fb.rect(b.x + d*2, ly + d*2, CARD_W, CARD_H, p.ink);
+      fb.rect(b.x + d*2 + 1, ly + d*2 + 1, CARD_W-2, CARD_H-2, p.linen);
     }
 
     if (flipping) {
@@ -209,27 +217,29 @@
     // While a card is in the air the pile still shows what it showed before.
     var shown = dealing ? cards[cards.length-2] : cards[cards.length-1];
     if (pile.alive || dealing) {
-      cardFace(fb, b.x, b.y, CARD_W, CARD_H, HiLo.rankChar(shown), HiLo.suitChar(shown), p);
+      cardFace(fb, b.x, ly, CARD_W, CARD_H, HiLo.rankChar(shown), HiLo.suitChar(shown), p);
     } else {
-      cardBack(fb, b.x, b.y, CARD_W, CARD_H, p);
-      fb.shade(b.x, b.y, CARD_W, CARD_H, 0.62);
+      cardBack(fb, b.x, ly, CARD_W, CARD_H, p);
+      fb.shade(b.x, ly, CARD_W, CARD_H, 0.62);
     }
 
     if (g.phase === 'RESURRECT' && !pile.alive && !fx) {
       // glow rather than dim: these are the piles asking to be chosen
       var puls = 0.30 + 0.26 * (Math.sin(now / 180) * 0.5 + 0.5);
-      fb.tint(b.x, b.y, CARD_W, CARD_H, p.lit, puls);
-      fb.frame(b.x-1, b.y-1, CARD_W+2, CARD_H+2, p.lit);
-      fb.frame(b.x-2, b.y-2, CARD_W+4, CARD_H+4, p.lit);
-      hit(b.x-2, b.y-2, CARD_W+4, CARD_H+4, { t:'revive', pile:i });
+      fb.tint(b.x, ly, CARD_W, CARD_H, p.lit, puls);
+      fb.frame(b.x-1, ly-1, CARD_W+2, CARD_H+2, p.lit);
+      fb.frame(b.x-2, ly-2, CARD_W+4, CARD_H+4, p.lit);
+      hit(b.x-2, ly-2, CARD_W+4, CARD_H+4, { t:'revive', pile:i });
     } else if (g.phase === 'PLAY' && pile.alive && !fx) {
-      if (g.selected === i) {
-        fb.frame(b.x-1, b.y-1, CARD_W+2, CARD_H+2, p.hudInk);
-        fb.frame(b.x-2, b.y-2, CARD_W+4, CARD_H+4, p.hudInk);
+      if (sel) {
+        // dark keyline under the accent so it holds on a bright setting too
+        fb.frame(b.x-3, ly-3, CARD_W+6, CARD_H+6, p.ink);
+        fb.frame(b.x-2, ly-2, CARD_W+4, CARD_H+4, p.pick);
+        fb.frame(b.x-1, ly-1, CARD_W+2, CARD_H+2, p.pick);
       } else if (inside(b) || (kbNav && focus === i)) {
-        fb.frame(b.x-1, b.y-1, CARD_W+2, CARD_H+2, p.hudDim);
+        fb.frame(b.x-1, ly-1, CARD_W+2, CARD_H+2, p.hudDim);
       }
-      hit(b.x, b.y, CARD_W, CARD_H, { t:'select', pile:i });
+      hit(b.x, ly, CARD_W, CARD_H + lift, { t:'select', pile:i });
     }
   }
 

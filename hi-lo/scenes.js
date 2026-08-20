@@ -31,7 +31,8 @@ var SCENES = [
       sky:['#0a1030','#101a44','#17244f','#1d2c5c','#243668'],
       tower:'#151d40', towerFar:'#1b2450', lit:'#ffd489', litDim:'#c99a55',
       wall:'#191324', floor:'#221828', floorLit:'#3a2a34',
-      ui:'#e8dcc0', uiDim:'#9b8a76', uiShadow:'#0b0812', btnBg:'#2e2438', btnInk:'#e8dcc0'
+      ui:'#e8dcc0', uiDim:'#9b8a76', uiShadow:'#0b0812', btnBg:'#2e2438', btnInk:'#e8dcc0',
+      pick:'#6fd3ff'
     })) },
   { key:'dusk', jp:'黄昏', name:'Dusk Terrace',
     blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
@@ -39,7 +40,8 @@ var SCENES = [
       sky:['#2b1a4e','#4a2263','#77296a','#a83a63','#d25a51','#ef8248','#ffb267'],
       tower:'#1a1030', towerFar:'#2e1a48', lit:'#ffe3a0', litDim:'#d8a05e',
       wall:'#1d1230', floor:'#241736', floorLit:'#43284a',
-      ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0'
+      ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
+      pick:'#5fe0c8'
     })) },
   { key:'palms', jp:'常夏', name:'Palm Court',
     blurb:'Daylight, somewhere warm. Turquoise water, palms, and a sun that never quite sets.',
@@ -49,7 +51,8 @@ var SCENES = [
       trunk:'#4a3330', trunkLit:'#6b4a42', frond:'#1d6b52', frondLit:'#2e9a66',
       lit:'#fff2c0', litDim:'#ffd98a',
       wall:'#2a5f66', floor:'#255760', floorLit:'#3d7a80',
-      ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540'
+      ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
+      pick:'#ff7a5c'
     })) }
 ];
 
