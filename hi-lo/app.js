@@ -20,17 +20,7 @@
      a phone's pixel density it isn't visible at all. */
   var STEPS = [1, 1.5, 2, 2.5, 3];
 
-  /* On a dense screen one logical pixel is already four or more device pixels,
-     so a fractional scale varies them by one and nobody can see it — and it
-     lets a board fill the width instead of stopping at the nearest half. On a
-     1x display that same variation is 2px against 3px, which shows in the
-     dithering, so those keep the clean steps. */
-  function fineScaling() { return (window.devicePixelRatio || 1) >= 2; }
-
   function bestStep(needW, needH, vw, vh) {
-    if (fineScaling()) {
-      return Math.max(1, Math.min(WORLD_MAX, Math.min(vw / needW, vh / needH)));
-    }
     var best = STEPS[0];
     for (var i = 0; i < STEPS.length; i++) {
       if (STEPS[i] > WORLD_MAX) break;
@@ -83,7 +73,7 @@
          phantom 160px was enough to force everything down to 1x. */
       var plans = [
         { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + 64 },
-        { side:false, w: Math.max(bw + 8,                  CALLS_W + 24), h: bh + 64 },
+        { side:false, w: Math.max(bw + 20,                 CALLS_W + 24), h: bh + 64 },
         { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8  }
       ];
       /* Capped, because scale zooms the setting as well as the cards: left
@@ -123,9 +113,8 @@
      which also gives the deal animation somewhere honest to fly from. */
   function stockBox() {
     var b = boardBox();
-    if (b.big) return { x: b.x - CARD_W - 26, y: b.y + b.h - CARD_H,
-                        w: CARD_W, h: CARD_H, big: true, mode: 'side' };
-    return { x: W - 30, y: 10, w: 14, h: 19, big: false, mode: 'hud' };
+    if (b.big) return { x: b.x - CARD_W - 26, y: b.y + b.h - CARD_H, w: CARD_W, h: CARD_H, big: true };
+    return { x: W - 30, y: 10, w: 14, h: 19, big: false };
   }
 
   function hit(x, y, w, h, act) { hits.push({ x:x, y:y, w:w, h:h, act:act }); }
@@ -313,11 +302,13 @@
 
     // ── stock ──
     var s = stockBox();
-    if (s.mode !== 'hud') {
+    if (s.big) {
       fb.shade(s.x+3, s.y+4, CARD_W, CARD_H, 0.55);
       if (HiLo.stockLeft(g) > 0) cardBack(fb, s.x, s.y, CARD_W, CARD_H, p);
       else { fb.frame(s.x, s.y, CARD_W, CARD_H, p.hudDim); }
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
+        // above the deck now that it sits low, so the count stays clear of the
+        // call buttons on a narrow board
         var sc = String(HiLo.stockLeft(g));
         hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), s.y - 21, p.hudInk);
         hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), s.y - 11, p.hudDim);
@@ -338,7 +329,7 @@
 
     // On a viewport too narrow for the stock to sit beside the board, the count
     // has nowhere else to go.
-    if (s.mode === 'hud' && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) {
+    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) {
       var sl = HiLo.stockLeft(g) + ' LEFT';
       hud(sl, W - 9 - fb.textW(sl,1), 10, p.hudDim);
     }
@@ -353,11 +344,11 @@
     }
 
     if (g.phase === 'WON' || g.phase === 'LOST') drawResult();
-    else if (!fx) drawCalls(b, s);
+    else if (!fx) drawCalls(b);
   }
 
   /* The calls, in whichever place the layout put them. */
-  function drawCalls(b, s) {
+  function drawCalls(b) {
     var p = pal(), on = g.selected >= 0;
     var resurrecting = (g.phase === 'RESURRECT');
 
@@ -379,7 +370,7 @@
       return;
     }
 
-    var by = b.y + b.h + 14, promptY = by + 24;
+    var by = b.y + b.h + 14;
     if (resurrecting) {
       var m2 = 'SPLIT - REVIVE A PILE';
       hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
@@ -391,7 +382,7 @@
     button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on);
     if (!on) {
       var m = 'PICK A PILE';
-      hud(m, (W - fb.textW(m,1)) >> 1, promptY, p.hudDim);
+      hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
     }
   }
 
