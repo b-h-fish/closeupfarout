@@ -12,6 +12,22 @@
   var SIDE_W = 88;                       // width of the call column when beside
   var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
+  /* Whole steps are too coarse for a phone. Every board has the same shape as
+     a card (about 0.74) and a phone is nearer 0.59, so width always binds
+     there — and a 4x4 is either 62% of the screen at 1x or off the edge at 2x,
+     with nothing in between. Halves fill that gap. A half step alternates one
+     and two device pixels in a steady pattern rather than a random one, and on
+     a phone's pixel density it isn't visible at all. */
+  var STEPS = [1, 1.5, 2, 2.5, 3];
+
+  function bestStep(needW, needH, vw, vh) {
+    var best = STEPS[0];
+    for (var i = 0; i < STEPS.length; i++) {
+      if (STEPS[i] > WORLD_MAX) break;
+      if (needW * STEPS[i] <= vw && needH * STEPS[i] <= vh) best = STEPS[i];
+    }
+    return best;
+  }
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
 
@@ -37,7 +53,7 @@
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
     if (screen === 'SETUP') {
-      scale = Math.max(1, Math.min(WORLD_MAX, Math.floor(Math.min(vw / 380, vh / 300))));
+      scale = bestStep(380, 300, vw, vh);
     } else {
       /* Sized against the grid actually on the table, and laid out whichever of
          two ways leaves the cards bigger: calls stacked beneath the board, or
@@ -65,16 +81,15 @@
          cut off and the water became a wall of dither. */
       scale = 1; uiSide = false;
       for (var pi = 0; pi < plans.length; pi++) {
-        var sc = Math.max(1, Math.min(WORLD_MAX,
-          Math.floor(Math.min(vw / plans[pi].w, vh / plans[pi].h))));
+        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh);
         if (sc > scale) { scale = sc; uiSide = plans[pi].side; }
       }
     }
-    W = Math.max(120, Math.floor(vw / scale));
-    H = Math.max(120, Math.floor(vh / scale));
+    W = Math.max(120, Math.round(vw / scale));
+    H = Math.max(120, Math.round(vh / scale));
     canvas.width = W; canvas.height = H;
-    canvas.style.width = (W * scale) + 'px';
-    canvas.style.height = (H * scale) + 'px';
+    canvas.style.width = vw + 'px';
+    canvas.style.height = vh + 'px';
     fb = new FB(W, H);
   }
 
@@ -519,7 +534,8 @@
 
   function toLogical(e) {
     var r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
+    return { x: (e.clientX - r.left) * W / r.width,
+             y: (e.clientY - r.top)  * H / r.height };
   }
 
   function onMove(e) { var q = toLogical(e); mouse.x = q.x; mouse.y = q.y; kbNav = false; }
