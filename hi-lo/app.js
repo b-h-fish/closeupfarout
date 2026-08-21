@@ -20,7 +20,16 @@
      a phone's pixel density it isn't visible at all. */
   var STEPS = [1, 1.5, 2, 2.5, 3];
 
-  function bestStep(needW, needH, vw, vh) {
+  /* `fine` is only ever passed for a four-column board. Those are the ones a
+     phone cannot fit at the next clean step, so they stop well short of the
+     edge; every other grid reaches a step that already looks right and is left
+     on it. Even then it needs a dense screen: there one logical pixel is four
+     or more device pixels, so a fractional scale varies them by one and nobody
+     sees it, where on a 1x display the same variation shows in the dithering. */
+  function bestStep(needW, needH, vw, vh, fine) {
+    if (fine && (window.devicePixelRatio || 1) >= 2) {
+      return Math.max(1, Math.min(WORLD_MAX, Math.min(vw / needW, vh / needH)));
+    }
     var best = STEPS[0];
     for (var i = 0; i < STEPS.length; i++) {
       if (STEPS[i] > WORLD_MAX) break;
@@ -71,9 +80,12 @@
          and nothing else. The old rule reserved deck width on both sides of a
          board that only ever has a deck on one, and on a narrow screen that
          phantom 160px was enough to force everything down to 1x. */
+      // a four-column board gets a tighter margin as well: it is the one that
+      // runs out of width, and 20 logical pixels is a card's worth of it
+      var wide = (c === 4), edge = wide ? 8 : 20;
       var plans = [
         { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + 64 },
-        { side:false, w: Math.max(bw + 20,                 CALLS_W + 24), h: bh + 64 },
+        { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + 64 },
         { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8  }
       ];
       /* Capped, because scale zooms the setting as well as the cards: left
@@ -81,7 +93,7 @@
          cut off and the water became a wall of dither. */
       scale = 1; uiSide = false;
       for (var pi = 0; pi < plans.length; pi++) {
-        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh);
+        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh, wide);
         if (sc > scale) { scale = sc; uiSide = plans[pi].side; }
       }
     }
