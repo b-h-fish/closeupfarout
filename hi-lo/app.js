@@ -13,10 +13,10 @@
   var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
-  var SETUP_SIDE_W = 271, SETUP_SIDE_H = 300;
-  /* Asking for more height than the panel needs is what leaves the setting
-     visible around it — the menu settles a step lower and the sky shows. */
-  var SETUP_STACK_W = GWID + 40, SETUP_STACK_H = 400;
+  /* One row of settings whatever the width, now that they cycle rather than
+     all showing at once — so there is a single shape to fit. Asking for more
+     height than the panel needs is what leaves the setting visible around it. */
+  var SETUP_W = 175, SETUP_H = 330;
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   /* Whole steps are too coarse for a phone. Every board has the same shape as
      a card (about 0.74) and a phone is nearer 0.59, so width always binds
@@ -68,14 +68,9 @@
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
     if (screen === 'SETUP') {
-      /* Two arrangements for the settings: abreast, or one above another when
-         the panel is too narrow to give each a readable width. Stacking costs
-         height and saves width, which is what a phone has and hasn't. Whichever
-         scales larger wins — and the menu is allowed the fine scaling too,
-         because a 14px grid cell was an impossible target for a finger. */
-      var mSide = bestStep(SETUP_SIDE_W, SETUP_SIDE_H, vw, vh, true);
-      var mStack = bestStep(SETUP_STACK_W, SETUP_STACK_H, vw, vh, true);
-      scale = Math.max(mSide, mStack);
+      // fine scaling here too: a 14px grid cell was an impossible target for a
+      // finger, and the cells only grow if the menu can
+      scale = bestStep(SETUP_W, SETUP_H, vw, vh, true);
     } else {
       /* Sized against the grid actually on the table, and laid out whichever of
          two ways leaves the cards bigger: calls stacked beneath the board, or
@@ -214,10 +209,7 @@
     var cx = W >> 1, PAD = 20;
     // a share of the canvas rather than all of it, so the setting frames it
     var pw = Math.min(Math.round(W * 0.84), 340);
-    // each setting needs about 73 to hold its name; below that they stack
-    var stackScenes = Math.floor((pw - 36) / 3) < 73;
-    var sceneH = stackScenes ? (3*20 + 2*6) : 20;
-    var blockH = 21 + 20 + GWID + 10 + 7 + 14 + 7 + 6 + sceneH + 16 + 20;
+    var blockH = 21 + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20;
     var ph = blockH + PAD*2;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
@@ -254,36 +246,27 @@
     hud(lbl, cx - (fb.textW(lbl,1) >> 1), y, p.hudInk);
     y += 7 + 14;
 
-    hud('SETTING', cx - (fb.textW('SETTING',1) >> 1), y, p.hudDim);
-    y += 7 + 6;
+    /* The settings cycle rather than all showing at once: one row holds any
+       number of them, and the panel does not have to grow to add more. */
+    var rowW = Math.min(pw - 28, 210), rx = cx - (rowW >> 1), aw = 22;
+    var n = SCENES.length;
 
-    var i, nm, hot;
-    if (stackScenes) {
-      var sw = pw - 28, sx0 = cx - (sw >> 1);
-      for (i = 0; i < SCENES.length; i++) {
-        var sy = y + i*26;
-        hot = mouse.x >= sx0 && mouse.x < sx0+sw && mouse.y >= sy && mouse.y < sy+20;
-        fb.rect(sx0, sy, sw, 20, (i === pickScene || hot) ? p.hudInk : p.hudShadow);
-        fb.frame(sx0, sy, sw, 20, p.hudInk);
-        nm = SCENES[i].name.toUpperCase();
-        fb.text(nm, sx0 + ((sw - fb.textW(nm,1)) >> 1), sy + 7,
-                (i === pickScene || hot) ? p.hudShadow : p.hudInk);
-        hit(sx0, sy, sw, 20, { t:'scene', i:i });
-      }
-    } else {
-      var bw = Math.floor((pw - 36) / 3), tot = 3*bw + 12, sx = cx - (tot >> 1);
-      for (i = 0; i < SCENES.length; i++) {
-        var bx3 = sx + i*(bw+6);
-        hot = mouse.x >= bx3 && mouse.x < bx3+bw && mouse.y >= y && mouse.y < y+20;
-        fb.rect(bx3, y, bw, 20, (i === pickScene || hot) ? p.hudInk : p.hudShadow);
-        fb.frame(bx3, y, bw, 20, p.hudInk);
-        nm = SCENES[i].name.toUpperCase();
-        fb.text(nm, bx3 + ((bw - fb.textW(nm,1)) >> 1), y + 7,
-                (i === pickScene || hot) ? p.hudShadow : p.hudInk);
-        hit(bx3, y, bw, 20, { t:'scene', i:i });
-      }
+    function arrow(ax, glyph, to) {
+      var on = mouse.x >= ax && mouse.x < ax+aw && mouse.y >= y && mouse.y < y+20;
+      fb.rect(ax, y, aw, 20, on ? p.hudInk : p.hudShadow);
+      fb.frame(ax, y, aw, 20, p.hudInk);
+      fb.text(glyph, ax + ((aw - 5) >> 1), y + 7, on ? p.hudShadow : p.hudInk);
+      hit(ax, y, aw, 20, { t:'scene', i:to });
     }
-    y += sceneH + 16;
+    arrow(rx, '<', (pickScene + n - 1) % n);
+    arrow(rx + rowW - aw, '>', (pickScene + 1) % n);
+
+    var nx = rx + aw + 6, nw = rowW - 2*(aw + 6);
+    fb.rect(nx, y, nw, 20, p.hudShadow);
+    fb.frame(nx, y, nw, 20, p.hudDim);
+    var nm = SCENES[pickScene].name.toUpperCase();
+    fb.text(nm, nx + ((nw - fb.textW(nm,1)) >> 1), y + 7, p.hudInk);
+    y += 20 + 16;
 
     var dw = Math.min(120, pw - 40), dx = cx - (dw>>1);
     var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+20;
