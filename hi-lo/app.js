@@ -11,6 +11,10 @@
   var CARD_W = 54, CARD_H = 74, GAP = 5;
   var SIDE_W = 88;                       // width of the call column when beside
   var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
+  var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
+  var GWID = 4*CELL + 3*CGAP;
+  var SETUP_SIDE_W = 271, SETUP_SIDE_H = 300;
+  var SETUP_STACK_W = GWID + 40, SETUP_STACK_H = 352;
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   /* Whole steps are too coarse for a phone. Every board has the same shape as
      a card (about 0.74) and a phone is nearer 0.59, so width always binds
@@ -62,7 +66,14 @@
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
     if (screen === 'SETUP') {
-      scale = bestStep(380, 300, vw, vh);
+      /* Two arrangements for the settings: abreast, or one above another when
+         the panel is too narrow to give each a readable width. Stacking costs
+         height and saves width, which is what a phone has and hasn't. Whichever
+         scales larger wins — and the menu is allowed the fine scaling too,
+         because a 14px grid cell was an impossible target for a finger. */
+      var mSide = bestStep(SETUP_SIDE_W, SETUP_SIDE_H, vw, vh, true);
+      var mStack = bestStep(SETUP_STACK_W, SETUP_STACK_H, vw, vh, true);
+      scale = Math.max(mSide, mStack);
     } else {
       /* Sized against the grid actually on the table, and laid out whichever of
          two ways leaves the cards bigger: calls stacked beneath the board, or
@@ -198,67 +209,80 @@
     var p = pal();
     drawScene(fb, SCENES[pickScene], W, H);
 
-    var cell = 14, cgap = 4, gwid = 4*cell + 3*cgap;
     var cx = W >> 1, PAD = 20;
-    var blockH = 21 + 30 + gwid + 10 + 7 + 18 + 17 + 20 + 20 + 20;
+    var pw = Math.min(W - 16, 340);
+    // each setting needs about 73 to hold its name; below that they stack
+    var stackScenes = Math.floor((pw - 36) / 3) < 73;
+    var sceneH = stackScenes ? (3*20 + 2*6) : 20;
+    var blockH = 21 + 20 + GWID + 10 + 7 + 14 + 7 + 6 + sceneH + 16 + 20;
+    var ph = blockH + PAD*2;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
-    var pw = Math.min(W - 16, 340), ph = blockH + PAD*2;
     fb.shade(cx - (pw>>1), top - PAD, pw, ph, 0.42);
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
     wordmark(cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
-    y += 21 + 30;
+    y += 21 + 20;
 
-    /* Hovering previews, clicking chooses. The preview is held while the
-       pointer stays anywhere inside the grid, so the gaps between cells don't
-       make it flicker — but it is dropped the moment the pointer leaves, so
-       crossing the grid on the way down to DEAL can't change the size. */
-    var gx = cx - (gwid >> 1), gy = y, r, c;
-    if (!(mouse.x >= gx && mouse.x < gx + gwid && mouse.y >= gy && mouse.y < gy + gwid)) {
+    var gx = cx - (GWID >> 1), gy = y, r, c;
+    if (!(mouse.x >= gx && mouse.x < gx + GWID && mouse.y >= gy && mouse.y < gy + GWID)) {
       hovC = 0; hovR = 0;
     }
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
-      var bx = gx + c*(cell+cgap), by = gy + r*(cell+cgap);
-      if (mouse.x >= bx && mouse.x < bx+cell && mouse.y >= by && mouse.y < by+cell) {
+      var bx = gx + c*(CELL+CGAP), by = gy + r*(CELL+CGAP);
+      if (mouse.x >= bx && mouse.x < bx+CELL && mouse.y >= by && mouse.y < by+CELL) {
         hovC = c+1; hovR = r+1;
       }
     }
     var shC = hovC || pickC, shR = hovR || pickR;
-    // a preview is drawn muted; the chosen size is drawn bright
     var previewing = hovC && (hovC !== pickC || hovR !== pickR);
     for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
-      var bx2 = gx + c*(cell+cgap), by2 = gy + r*(cell+cgap);
+      var bx2 = gx + c*(CELL+CGAP), by2 = gy + r*(CELL+CGAP);
       var lit = (c < shC && r < shR);
-      fb.rect(bx2, by2, cell, cell, lit ? (previewing ? p.hudDim : p.hudInk) : p.hudShadow);
-      fb.frame(bx2, by2, cell, cell, lit ? p.hudInk : p.hudDim);
-      hit(bx2, by2, cell, cell, { t:'grid', c:c+1, r:r+1 });
+      fb.rect(bx2, by2, CELL, CELL, lit ? (previewing ? p.hudDim : p.hudInk) : p.hudShadow);
+      fb.frame(bx2, by2, CELL, CELL, lit ? p.hudInk : p.hudDim);
+      // the tappable area takes the gap with it, so there is no dead seam
+      hit(bx2 - 2, by2 - 2, CELL + 4, CELL + 4, { t:'grid', c:c+1, r:r+1 });
     }
-    y += gwid + 10;
+    y += GWID + 10;
 
     var lbl = shC + ' X ' + shR;
     hud(lbl, cx - (fb.textW(lbl,1) >> 1), y, p.hudInk);
-    y += 7 + 18;
+    y += 7 + 14;
 
     hud('SETTING', cx - (fb.textW('SETTING',1) >> 1), y, p.hudDim);
-    y += 17;
-    // the three settings share whatever the panel can spare
-    var bw = Math.max(56, Math.min(100, Math.floor((pw - 24 - 12) / 3)));
-    var tot = 3*bw + 2*6, sx = cx - (tot >> 1);
-    for (var i = 0; i < SCENES.length; i++) {
-      var on = (i === pickScene);
-      var bx3 = sx + i*(bw+6);
-      var hot = mouse.x >= bx3 && mouse.x < bx3+bw && mouse.y >= y && mouse.y < y+20;
-      fb.rect(bx3, y, bw, 20, on || hot ? p.hudInk : p.hudShadow);
-      fb.frame(bx3, y, bw, 20, p.hudInk);
-      var nm = SCENES[i].name.toUpperCase();
-      fb.text(nm, bx3 + ((bw - fb.textW(nm,1)) >> 1), y + 7, on || hot ? p.hudShadow : p.hudInk);
-      hit(bx3, y, bw, 20, { t:'scene', i:i });
-    }
-    y += 20 + 20;
+    y += 7 + 6;
 
-    var dw = Math.min(100, pw - 40), dx = cx - (dw>>1);
+    var i, nm, hot;
+    if (stackScenes) {
+      var sw = pw - 28, sx0 = cx - (sw >> 1);
+      for (i = 0; i < SCENES.length; i++) {
+        var sy = y + i*26;
+        hot = mouse.x >= sx0 && mouse.x < sx0+sw && mouse.y >= sy && mouse.y < sy+20;
+        fb.rect(sx0, sy, sw, 20, (i === pickScene || hot) ? p.hudInk : p.hudShadow);
+        fb.frame(sx0, sy, sw, 20, p.hudInk);
+        nm = SCENES[i].name.toUpperCase();
+        fb.text(nm, sx0 + ((sw - fb.textW(nm,1)) >> 1), sy + 7,
+                (i === pickScene || hot) ? p.hudShadow : p.hudInk);
+        hit(sx0, sy, sw, 20, { t:'scene', i:i });
+      }
+    } else {
+      var bw = Math.floor((pw - 36) / 3), tot = 3*bw + 12, sx = cx - (tot >> 1);
+      for (i = 0; i < SCENES.length; i++) {
+        var bx3 = sx + i*(bw+6);
+        hot = mouse.x >= bx3 && mouse.x < bx3+bw && mouse.y >= y && mouse.y < y+20;
+        fb.rect(bx3, y, bw, 20, (i === pickScene || hot) ? p.hudInk : p.hudShadow);
+        fb.frame(bx3, y, bw, 20, p.hudInk);
+        nm = SCENES[i].name.toUpperCase();
+        fb.text(nm, bx3 + ((bw - fb.textW(nm,1)) >> 1), y + 7,
+                (i === pickScene || hot) ? p.hudShadow : p.hudInk);
+        hit(bx3, y, bw, 20, { t:'scene', i:i });
+      }
+    }
+    y += sceneH + 16;
+
+    var dw = Math.min(120, pw - 40), dx = cx - (dw>>1);
     var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+20;
     fb.rect(dx, y, dw, 20, dhot ? p.hudInk : p.hudShadow);
     fb.frame(dx, y, dw, 20, p.hudInk);
