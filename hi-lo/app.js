@@ -391,17 +391,21 @@
   function drawResult() {
     var p = pal();
     fb.shade(0, 0, W, H, 0.45);
-    var pw = Math.min(W - 20, 200), ph = 74;
+    var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
+    var left = HiLo.stockLeft(g);
+    var tight = (W - 16) < 150;
+    var sub = tight ? (left + ' LEFT')
+                    : (left + (left === 1 ? ' CARD REMAINING' : ' CARDS REMAINING'));
+    var bw = 84;
+    var cw = Math.max(fb.textW(head,2), fb.textW(sub,1), bw);
+    var pw = Math.min(W - 16, cw + 28), ph = 74;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
+
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
-
-    var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
     hudBig(head, px + ((pw - fb.textW(head,2)) >> 1), py + 12, p.hudInk, 2);
-    var left = HiLo.stockLeft(g);
-    var sub = left + (left === 1 ? ' CARD REMAINING' : ' CARDS REMAINING');
     hud(sub, px + ((pw - fb.textW(sub,1)) >> 1), py + 34, p.hudDim);
-    button(px + ((pw - 84) >> 1), py + 48, 84, 'AGAIN', { t:'replay' }, true);
+    button(px + ((pw - bw) >> 1), py + 48, bw, 'AGAIN', { t:'replay' }, true);
   }
 
   /* Leaving mid-game throws the run away, so it asks first. Drawn last and it
@@ -411,18 +415,42 @@
     hits.length = 0;
     fb.shade(0, 0, W, H, 0.45);
 
-    var pw = Math.min(W - 20, 210), ph = 78;
+    /* Both panels measure their own contents. They are laid out in logical
+       units, and a small grid runs at a higher scale — so the canvas is
+       narrower in those units and a fixed width filled it edge to edge. When
+       there isn't room for two buttons abreast they stack and the warning
+       wraps, rather than the panel squeezing its own text. */
+    var q = 'LEAVE THIS GAME?';
+    var stack = W < 250;   // two abreast only when the panel can stay well inside
+    var lines = stack ? ['THIS RUN WILL', 'BE LOST'] : ['THIS RUN WILL BE LOST'];
+    var bw = stack ? 92 : 76, bh = 18, gap = 8;
+
+    var cw = Math.max(fb.textW(q, 1), stack ? bw : bw*2 + gap);
+    for (var i = 0; i < lines.length; i++) cw = Math.max(cw, fb.textW(lines[i], 1));
+
+    var pw = Math.min(W - 16, cw + 28);
+    var btnTop = 27 + lines.length * 12 + 8;
+    var btnH = stack ? (bh*2 + gap) : bh;
+    var ph = btnTop + btnH + 14;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
+
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
 
-    var q = 'LEAVE THIS GAME?';
     hud(q, px + ((pw - fb.textW(q,1)) >> 1), py + 14, p.hudInk);
-    var w2 = 'THIS RUN WILL BE LOST';
-    hud(w2, px + ((pw - fb.textW(w2,1)) >> 1), py + 27, p.hudDim);
+    for (i = 0; i < lines.length; i++) {
+      hud(lines[i], px + ((pw - fb.textW(lines[i],1)) >> 1), py + 27 + i*12, p.hudDim);
+    }
 
-    button(px + 16, py + 46, 76, 'LEAVE', { t:'menu-yes' }, true);
-    button(px + pw - 92, py + 46, 76, 'STAY', { t:'menu-no' }, true);
+    var by = py + btnTop;
+    if (stack) {
+      var bx = px + ((pw - bw) >> 1);
+      button(bx, by, bw, 'LEAVE', { t:'menu-yes' }, true);
+      button(bx, by + bh + gap, bw, 'STAY', { t:'menu-no' }, true);
+    } else {
+      button(px + ((pw - (bw*2 + gap)) >> 1), by, bw, 'LEAVE', { t:'menu-yes' }, true);
+      button(px + ((pw - (bw*2 + gap)) >> 1) + bw + gap, by, bw, 'STAY', { t:'menu-no' }, true);
+    }
   }
 
   /* ═══ ACTIONS ═════════════════════════════════════════════════════════ */
