@@ -14,7 +14,9 @@
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   var SETUP_SIDE_W = 271, SETUP_SIDE_H = 300;
-  var SETUP_STACK_W = GWID + 40, SETUP_STACK_H = 352;
+  /* Asking for more height than the panel needs is what leaves the setting
+     visible around it — the menu settles a step lower and the sky shows. */
+  var SETUP_STACK_W = GWID + 40, SETUP_STACK_H = 400;
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   /* Whole steps are too coarse for a phone. Every board has the same shape as
      a card (about 0.74) and a phone is nearer 0.59, so width always binds
@@ -210,7 +212,8 @@
     drawScene(fb, SCENES[pickScene], W, H);
 
     var cx = W >> 1, PAD = 20;
-    var pw = Math.min(W - 16, 340);
+    // a share of the canvas rather than all of it, so the setting frames it
+    var pw = Math.min(Math.round(W * 0.84), 340);
     // each setting needs about 73 to hold its name; below that they stack
     var stackScenes = Math.floor((pw - 36) / 3) < 73;
     var sceneH = stackScenes ? (3*20 + 2*6) : 20;
