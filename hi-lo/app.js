@@ -246,7 +246,7 @@
 
     /* A chosen pile is keylined in the setting's accent. A cream frame on a
        cream card read as a slightly thicker edge rather than as a state. */
-    var sel = (g.phase === 'PLAY' && g.selected === i && !fx);
+    var sel = (g.phase === 'PLAY' && g.selected === i && !fx && g.size > 1);
     var ly = b.y;
 
     var depth = Math.min(cards.length, 5);

@@ -64,7 +64,9 @@ var HiLo = (function () {
       next: size,                 // index of the next card to come off the stock
       piles: piles,
       phase: 'PLAY',              // PLAY · RESURRECT · WON · LOST
-      selected: -1,
+      // With a single pile there is nothing to choose between, so it is
+      // always the chosen one and a call can be made straight away.
+      selected: size === 1 ? 0 : -1,
       players: Math.max(1, players | 0 || 1),
       turn: 0,
       last: null,                 // what just happened, for the renderer to show
@@ -174,6 +176,7 @@ var HiLo = (function () {
     if (stockLeft(state) === 0) state.phase = 'WON';
     else if (aliveCount(state) === 0) state.phase = 'LOST';
     else state.phase = 'PLAY';
+    if (state.phase === 'PLAY' && state.size === 1) state.selected = 0;
     return state;
   }
 
