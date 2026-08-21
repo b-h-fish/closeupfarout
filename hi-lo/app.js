@@ -80,9 +80,11 @@
          and nothing else. The old rule reserved deck width on both sides of a
          board that only ever has a deck on one, and on a narrow screen that
          phantom 160px was enough to force everything down to 1x. */
-      // a four-column board gets a tighter margin as well: it is the one that
-      // runs out of width, and 20 logical pixels is a card's worth of it
-      var wide = (c === 4), edge = wide ? 8 : 20;
+      /* Because a four-column board is scaled to whatever fits, this margin is
+         what sets how much of the screen it takes: the board lands on
+         bw / (bw + edge) of the width. Four columns is 231 logical, so 26
+         leaves it at about 90%. */
+      var wide = (c === 4), edge = wide ? 26 : 20;
       var plans = [
         { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + 64 },
         { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + 64 },
