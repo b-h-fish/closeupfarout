@@ -89,7 +89,11 @@
          tall enough to then fill the height, which puts its top card right
          under the wordmark. It reserves the HUD in its height budget so it
          settles a step lower when it has to. */
-      var tall23 = (c === 2 && r === 3), head = tall23 ? 84 : 64;
+      /* Reserving the HUD cost this grid a whole step — it fell from 2.5 to 2
+         with nothing in between. It gets the same continuous scaling the wide
+         boards use, so it can settle between steps and keep its size while
+         still clearing the wordmark. */
+      var tall23 = (c === 2 && r === 3), head = tall23 ? 97 : 64;
       var plans = [
         { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + head },
         { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + head },
@@ -100,7 +104,7 @@
          cut off and the water became a wall of dither. */
       scale = 1; uiSide = false;
       for (var pi = 0; pi < plans.length; pi++) {
-        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh, wide);
+        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh, wide || tall23);
         if (sc > scale) { scale = sc; uiSide = plans[pi].side; }
       }
     }
