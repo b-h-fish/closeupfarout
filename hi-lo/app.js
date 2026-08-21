@@ -11,6 +11,12 @@
   var CARD_W = 54, CARD_H = 74, GAP = 5;
   var SIDE_W = 88;                       // width of the call column when beside
   var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
+  /* A losing card used to land and flip away in the same breath, which cost
+     the player the one look they get at it — and a dead pile's cards are still
+     information, both for counting and for choosing what to buy back with a
+     Split. It now sits face up for a beat before it turns. */
+  var DEAL_MS = 450, HOLD_MS = 800, FLIP_MS = 420;
+
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than
@@ -282,6 +288,7 @@
     var p = pal(), b = pileBox(i), pile = g.piles[i];
     var cards = pile.cards;
     var dealing = fx && fx.kind === 'deal' && fx.pile === i;
+    var holding = fx && fx.kind === 'hold' && fx.pile === i;
     var flipping = fx && (fx.kind === 'flip' || fx.kind === 'revive') && fx.pile === i;
 
     /* A chosen pile is keylined in the setting's accent. A cream frame on a
@@ -306,7 +313,7 @@
 
     // While a card is in the air the pile still shows what it showed before.
     var shown = dealing ? cards[cards.length-2] : cards[cards.length-1];
-    if (pile.alive || dealing) {
+    if (pile.alive || dealing || holding) {
       cardFace(fb, b.x, ly, CARD_W, CARD_H, HiLo.rankChar(shown), HiLo.suitChar(shown), p);
     } else {
       cardBack(fb, b.x, ly, CARD_W, CARD_H, p);
@@ -527,7 +534,7 @@
     var i = g.selected, card = g.deck[g.next];
     var from = stockBox(), to = pileBox(i);
     HiLo.apply(g, { t:'CALL', call:call });
-    fx = { kind:'deal', pile:i, card:card, t:0, dur:320,
+    fx = { kind:'deal', pile:i, card:card, t:0, dur:DEAL_MS,
            fx: from.big ? from.x : W-40, fy: from.big ? from.y : 10,
            tx: to.x, ty: to.y };
   }
@@ -537,13 +544,19 @@
      on immediately, rather than being swallowed. */
   function flushFx() {
     var guard = 0;
-    while (fx && guard++ < 4) { fx.t = fx.dur; endFx(); }
+    while (fx && guard++ < 6) { fx.t = fx.dur; endFx(); }
   }
 
   function endFx() {
     var was = fx; fx = null;
-    if (was.kind === 'deal') {
-      if (!g.piles[was.pile].alive) { fx = { kind:'flip', pile:was.pile, t:0, dur:260 }; return; }
+    if (was.kind === 'deal' && !g.piles[was.pile].alive) {
+      // a beat with the losing card still face up, before it turns over
+      fx = { kind:'hold', pile:was.pile, t:0, dur:HOLD_MS };
+      return;
+    }
+    if (was.kind === 'hold') {
+      fx = { kind:'flip', pile:was.pile, t:0, dur:FLIP_MS };
+      return;
     }
     describe();
   }
@@ -579,7 +592,7 @@
     if (act.t === 'call')   { doCall(act.call); return; }
     if (act.t === 'revive') {
       HiLo.apply(g, { t:'REVIVE', pile:act.pile });
-      fx = { kind:'revive', pile:act.pile, t:0, dur:260 };
+      fx = { kind:'revive', pile:act.pile, t:0, dur:FLIP_MS };
       return;
     }
   }
