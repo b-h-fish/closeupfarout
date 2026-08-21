@@ -85,10 +85,15 @@
          bw / (bw + edge) of the width. Four columns is 231 logical, so 26
          leaves it at about 90%. */
       var wide = (c === 4), edge = wide ? 26 : 20;
+      /* Two by three is the one grid narrow enough to reach a high scale and
+         tall enough to then fill the height, which puts its top card right
+         under the wordmark. It reserves the HUD in its height budget so it
+         settles a step lower when it has to. */
+      var tall23 = (c === 2 && r === 3), head = tall23 ? 84 : 64;
       var plans = [
-        { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + 64 },
-        { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + 64 },
-        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8  }
+        { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + head },
+        { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + head },
+        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8    }
       ];
       /* Capped, because scale zooms the setting as well as the cards: left
          uncapped, a small grid pushed the world so close that the palms were
@@ -112,7 +117,14 @@
     var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
     var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
     var blockH = uiSide ? bh : bh + 14 + 18;
-    var y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
+    var y;
+    if (!uiSide && c === 2 && r === 3) {
+      // centred in the space under the HUD rather than in the whole canvas, so
+      // the top card stops sitting against the wordmark
+      y = Math.max(18, 30 + Math.round((H - 30 - blockH - 21) / 2));
+    } else {
+      y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
+    }
     // The board is centred on its own, so it lines up with the calls beneath
     // it. The stock is free to sit off to one side.
     var big = (W - bw) / 2 >= CARD_W + 44;
