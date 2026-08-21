@@ -15,7 +15,7 @@
      the player the one look they get at it — and a dead pile's cards are still
      information, both for counting and for choosing what to buy back with a
      Split. It now sits face up for a beat before it turns. */
-  var DEAL_MS = 450, HOLD_MS = 800, FLIP_MS = 420;
+  var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
 
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
