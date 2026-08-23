@@ -88,7 +88,10 @@ var HiLoLayout = (function () {
              /* on a tablet on its side it stacked the calls underneath, which
                 bought a bigger card but left no room for the deck */
              on: { 'tablet-wide': { callsBeside:true } } },
-    '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
+    '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false,
+             /* centred on the board alone it left 96px one side and 10px the
+                other on an iPad Air; centre the whole row instead */
+             on: { 'tablet-wide': { sideFit:true } } },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false,
              /* on a tablet held upright the board filled the screen: cards over
                 the wordmark, and PICK A PILE a unit off the bottom edge */
