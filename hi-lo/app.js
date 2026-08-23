@@ -8,9 +8,11 @@
 (function () {
   'use strict';
 
-  var CARD_W = 54, CARD_H = 74, GAP = 5;
-  var SIDE_W = 88;                       // width of the call column when beside
-  var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when they sit beneath
+  /* Sizing lives in layout.js, one row per grid, so a change to one board
+     cannot reach another. This file only draws what that decides. */
+  var L = HiLoLayout;
+  var CARD_W = L.CARD_W, CARD_H = L.CARD_H, GAP = L.GAP;
+  var SIDE_W = L.SIDE_W, CALLS_W = L.CALLS_W;
   /* A losing card used to land and flip away in the same breath, which cost
      the player the one look they get at it — and a dead pile's cards are still
      information, both for counting and for choosing what to buy back with a
@@ -23,32 +25,6 @@
      all showing at once — so there is a single shape to fit. Asking for more
      height than the panel needs is what leaves the setting visible around it. */
   var SETUP_W = 175, SETUP_H = 330;
-  var WORLD_MAX = 3;                     // furthest the setting may be zoomed
-  /* Whole steps are too coarse for a phone. Every board has the same shape as
-     a card (about 0.74) and a phone is nearer 0.59, so width always binds
-     there — and a 4x4 is either 62% of the screen at 1x or off the edge at 2x,
-     with nothing in between. Halves fill that gap. A half step alternates one
-     and two device pixels in a steady pattern rather than a random one, and on
-     a phone's pixel density it isn't visible at all. */
-  var STEPS = [1, 1.5, 2, 2.5, 3];
-
-  /* `fine` is only ever passed for a four-column board. Those are the ones a
-     phone cannot fit at the next clean step, so they stop well short of the
-     edge; every other grid reaches a step that already looks right and is left
-     on it. Even then it needs a dense screen: there one logical pixel is four
-     or more device pixels, so a fractional scale varies them by one and nobody
-     sees it, where on a 1x display the same variation shows in the dithering. */
-  function bestStep(needW, needH, vw, vh, fine) {
-    if (fine && (window.devicePixelRatio || 1) >= 2) {
-      return Math.max(1, Math.min(WORLD_MAX, Math.min(vw / needW, vh / needH)));
-    }
-    var best = STEPS[0];
-    for (var i = 0; i < STEPS.length; i++) {
-      if (STEPS[i] > WORLD_MAX) break;
-      if (needW * STEPS[i] <= vw && needH * STEPS[i] <= vh) best = STEPS[i];
-    }
-    return best;
-  }
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
 
@@ -73,54 +49,16 @@
      The logical canvas then fills the viewport exactly at that scale. */
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
+    var dpr = window.devicePixelRatio || 1;
     if (screen === 'SETUP') {
       // fine scaling here too: a 14px grid cell was an impossible target for a
       // finger, and the cells only grow if the menu can
-      scale = bestStep(SETUP_W, SETUP_H, vw, vh, true);
+      scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
+      uiSide = false;
     } else {
-      /* Sized against the grid actually on the table, and laid out whichever of
-         two ways leaves the cards bigger: calls stacked beneath the board, or
-         calls in a column beside it. Beside costs width — which is plentiful —
-         and buys height, which is what a four-row grid runs out of. */
-      var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
-      var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
-
-      /* Three ways to arrange it, richest first. Whichever leaves the biggest
-         card wins, and ties go to the earlier — so the calls only move aside
-         when that genuinely buys a step, and the deck only leaves the table
-         when there is truly no room for it.
-
-         The last arrangement is what makes a phone work: it asks for the board
-         and nothing else. The old rule reserved deck width on both sides of a
-         board that only ever has a deck on one, and on a narrow screen that
-         phantom 160px was enough to force everything down to 1x. */
-      /* Because a four-column board is scaled to whatever fits, this margin is
-         what sets how much of the screen it takes: the board lands on
-         bw / (bw + edge) of the width. Four columns is 231 logical, so 26
-         leaves it at about 90%. */
-      var wide = (c === 4), edge = wide ? 26 : 20;
-      /* Two by three is the one grid narrow enough to reach a high scale and
-         tall enough to then fill the height, which puts its top card right
-         under the wordmark. It reserves the HUD in its height budget so it
-         settles a step lower when it has to. */
-      /* Reserving the HUD cost this grid a whole step — it fell from 2.5 to 2
-         with nothing in between. It gets the same continuous scaling the wide
-         boards use, so it can settle between steps and keep its size while
-         still clearing the wordmark. */
-      var tall23 = (c === 2 && r === 3), head = tall23 ? 97 : 64;
-      var plans = [
-        { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + head },
-        { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + head },
-        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8    }
-      ];
-      /* Capped, because scale zooms the setting as well as the cards: left
-         uncapped, a small grid pushed the world so close that the palms were
-         cut off and the water became a wall of dither. */
-      scale = 1; uiSide = false;
-      for (var pi = 0; pi < plans.length; pi++) {
-        var sc = bestStep(plans[pi].w, plans[pi].h, vw, vh, wide || tall23);
-        if (sc > scale) { scale = sc; uiSide = plans[pi].side; }
-      }
+      var fitted = L.game(g ? g.cols : pickC, g ? g.rows : pickR, vw, vh, dpr);
+      scale = fitted.scale;
+      uiSide = fitted.uiSide;
     }
     W = Math.max(120, Math.round(vw / scale));
     H = Math.max(120, Math.round(vh / scale));
@@ -132,22 +70,9 @@
 
   /* ── layout ── */
   function boardBox() {
-    var c = g ? g.cols : pickC, r = g ? g.rows : pickR;
-    var bw = c*CARD_W + (c-1)*GAP, bh = r*CARD_H + (r-1)*GAP;
-    var blockH = uiSide ? bh : bh + 14 + 18;
-    var y;
-    if (!uiSide && c === 2 && r === 3) {
-      // centred in the space under the HUD rather than in the whole canvas, so
-      // the top card stops sitting against the wordmark
-      y = Math.max(18, 30 + Math.round((H - 30 - blockH - 21) / 2));
-    } else {
-      y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
-    }
-    // The board is centred on its own, so it lines up with the calls beneath
-    // it. The stock is free to sit off to one side.
-    var big = (W - bw) / 2 >= CARD_W + 44;
-    return { x: Math.round((W - bw) / 2), y: y, w: bw, h: bh, big: big };
+    return L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide);
   }
+
   function pileBox(i) {
     var b = boardBox();
     return { x: b.x + (i % g.cols)*(CARD_W+GAP), y: b.y + ((i/g.cols)|0)*(CARD_H+GAP),
