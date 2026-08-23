@@ -56,7 +56,7 @@
 
     var cap = document.createElement('div');
     cap.className = 'cap';
-    cap.innerHTML = '<b>' + c + ' × ' + r + '</b><span>' + (c*r) + ' up</span>';
+    cap.innerHTML = '<b>' + c + ' × ' + r + '</b><span class="got">…</span>';
     tile.appendChild(cap);
 
     var win = document.createElement('div');
@@ -75,6 +75,18 @@
       f.style.transform = 'scale(' + k + ')';
       f.loading = 'eager';
       f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE;
+      // Read back what the frame actually measured. If it does not match the
+      // real viewport the panel is a different layout from the live game, and
+      // the sheet is lying — so say so on the panel rather than hide it.
+      f.addEventListener('load', function () {
+        var got = cap.querySelector('.got');
+        try {
+          var iw = f.contentWindow.innerWidth, ih = f.contentWindow.innerHeight;
+          var ok = (iw === VW && ih === VH);
+          got.textContent = iw + '×' + ih + (ok ? '' : '  ✗ not ' + VW + '×' + VH);
+          got.style.color = ok ? '#6a9f6a' : '#e06b5c';
+        } catch (e) { got.textContent = 'unreadable'; }
+      });
       win.appendChild(f);
     }, i * 220);
   });
