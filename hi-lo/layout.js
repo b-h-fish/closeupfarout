@@ -27,6 +27,10 @@ var HiLoLayout = (function () {
               continuously this is what sets how much height the board takes,
               since it grows until this reserve stops it
      fine   – scale continuously rather than in steps, on a dense screen only
+     sideFit– when the calls sit beside the board, reserve what the whole row
+              (deck | board | calls) actually needs and centre that row, rather
+              than centring the board alone. The calls are wider than the deck,
+              so a centred board pushes them off the right edge
      hudGap – centre in the space under the wordmark rather than the canvas
      count  – which side of the deck its remaining-cards figure sits on. Above
               is the default; on a board one row deep the deck starts at the
@@ -43,12 +47,12 @@ var HiLoLayout = (function () {
     '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '3x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
-    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false }
   };
@@ -86,7 +90,8 @@ var HiLoLayout = (function () {
     return [
       { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + row.head },
       { side:false, w: Math.max(bw + row.edge,           CALLS_W + 24), h: bh + row.head },
-      { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + row.sideH }
+      { side:true,  w: row.sideFit ? bw + (CARD_W + 26) + (SIDE_W + 26) + 16
+                                   : bw + (CARD_W + 26) + SIDE_W + 36,   h: bh + row.sideH }
     ];
   }
 
@@ -122,8 +127,9 @@ var HiLoLayout = (function () {
     } else {
       y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
     }
+    var lean = (uiSide && row.sideFit) ? Math.round((SIDE_W - CARD_W) / 2) : 0;
     return {
-      x: Math.round((W - bw) / 2), y: y, w: bw, h: bh,
+      x: Math.round((W - bw) / 2) - lean, y: y, w: bw, h: bh,
       big: (W - bw) / 2 >= CARD_W + 44
     };
   }
