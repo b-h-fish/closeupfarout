@@ -10,55 +10,72 @@
   body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 14px; }
   header { margin-bottom: 12px; }
   h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
-  .note { color: #8a7f96; margin-top: 4px; }
-  .warn { color: #e0a05c; margin-top: 4px; }
-  .bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
-  .bar button {
+  .note { color: #8a7f96; margin-top: 6px; }
+  .warn { color: #e0a05c; margin-top: 4px; max-width: 92ch; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .row > i { font-style: normal; color: #6d6379; width: 5.5em; letter-spacing: .08em; }
+  .row button {
     font: inherit; color: #b9ae94; background: #17111f; border: 1px solid #2e2438;
     padding: 4px 10px; cursor: pointer; letter-spacing: .04em;
   }
-  .bar button:hover { color: #f4edda; border-color: #4a3a58; }
-  .bar button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
-  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .cap { display: flex; justify-content: space-between; color: #b9ae94; padding: 0 2px 3px; }
+  .row button:hover { color: #f4edda; border-color: #4a3a58; }
+  .row button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
+  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  .cap { display: flex; justify-content: space-between; gap: 8px; color: #b9ae94; padding: 0 2px 3px; }
   .cap b { color: #f4edda; font-weight: 600; }
+  .cap .got { text-align: right; }
   /* Each frame is given a real viewport size, so the game inside lays out
      exactly as it would on that screen; the wrapper then scales it down. */
   .win { position: relative; overflow: hidden; border: 1px solid #2e2438; background: #000; }
+  .win.off { border-color: #6d4a2a; }
   .win iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
 </style>
 </head>
 <body>
 <header>
   <h1>HI | LO — all sixteen grids</h1>
-  <div class="bar" id="bar"></div>
+  <div class="row" id="rowWin"><i>this</i></div>
+  <div class="row" id="rowPhone"><i>phone</i></div>
+  <div class="row" id="rowTablet"><i>tablet</i></div>
+  <div class="row" id="rowTv"><i>tv</i></div>
   <div class="note" id="meta">measuring…</div>
   <div class="warn" id="warn"></div>
 </header>
 <div class="sheet" id="sheet"></div>
 
+<script src="/hi-lo/layout.js"></script>
 <script>
 (function () {
   // Captured before the sheet can scroll, so "this window" gets the true viewport.
   var TRUE_W = window.innerWidth, TRUE_H = window.innerHeight;
   var DPR = window.devicePixelRatio || 1;
   var SEED = 424242, SCENE = 1;
+  var L = window.HiLoLayout;
 
-  /* Phone sizes are the viewport Safari actually leaves a page — device height
-     less its chrome — not the raw screen, since that is what the game reads. */
+  /* Sizes are the viewport the browser actually leaves a page — device height
+     less its chrome — not the raw screen, since that is what the game reads.
+     `dpr` is what the real device reports; this display may not match it. */
   var DEVICES = [
-    { id:'win',    label:'This window',      w:TRUE_W, h:TRUE_H },
-    { id:'se',     label:'iPhone SE',        w:375,  h:553 },
-    { id:'15',     label:'iPhone 15',        w:390,  h:664 },
-    { id:'max',    label:'15 Pro Max',       w:430,  h:745 },
-    { id:'15L',    label:'iPhone 15 ↻',      w:844,  h:390 },
-    { id:'maxL',   label:'Pro Max ↻',        w:932,  h:430 }
+    { g:'rowWin',    label:'This window',    w:TRUE_W, h:TRUE_H, dpr:DPR },
+    { g:'rowPhone',  label:'iPhone SE',      w:375,  h:553,  dpr:2 },
+    { g:'rowPhone',  label:'iPhone 15',      w:390,  h:664,  dpr:3 },
+    { g:'rowPhone',  label:'15 Pro Max',     w:430,  h:745,  dpr:3 },
+    { g:'rowPhone',  label:'iPhone 15 ↻',    w:844,  h:390,  dpr:3 },
+    { g:'rowPhone',  label:'Pro Max ↻',      w:932,  h:430,  dpr:3 },
+    { g:'rowTablet', label:'iPad mini',      w:744,  h:1005, dpr:2 },
+    { g:'rowTablet', label:'iPad Air',       w:820,  h:1052, dpr:2 },
+    { g:'rowTablet', label:'iPad Pro 13',    w:1024, h:1238, dpr:2 },
+    { g:'rowTablet', label:'iPad mini ↻',    w:1133, h:616,  dpr:2 },
+    { g:'rowTablet', label:'iPad Air ↻',     w:1180, h:692,  dpr:2 },
+    { g:'rowTablet', label:'iPad Pro 13 ↻',  w:1366, h:896,  dpr:2 },
+    { g:'rowTv',     label:'720p',           w:1280, h:720,  dpr:1 },
+    { g:'rowTv',     label:'1080p',          w:1920, h:1080, dpr:1 },
+    { g:'rowTv',     label:'4K',             w:3840, h:2160, dpr:1 }
   ];
 
-  var bar = document.getElementById('bar');
   var sheet = document.getElementById('sheet');
-  var meta = document.getElementById('meta');
-  var warn = document.getElementById('warn');
+  var meta  = document.getElementById('meta');
+  var warn  = document.getElementById('warn');
   var timers = [];
 
   DEVICES.forEach(function (d) {
@@ -67,8 +84,24 @@
     b.setAttribute('aria-pressed', 'false');
     b.addEventListener('click', function () { build(d); });
     d.btn = b;
-    bar.appendChild(b);
+    document.getElementById(d.g).appendChild(b);
   });
+
+  /* Scaling is chosen per grid by pixel density, not by screen size, and the
+     only thing that matters is whether it is 2x or better. A frame runs at this
+     display's density whatever size we give it, so where the two disagree the
+     panel is not that device — work out exactly which grids, rather than
+     casting doubt over all sixteen. */
+  function unfaithful(dev) {
+    var bad = {};
+    if (!L || (dev.dpr >= 2) === (DPR >= 2)) return bad;
+    for (var c = 1; c <= 4; c++) for (var r = 1; r <= 4; r++) {
+      var a = L.game(c, r, dev.w, dev.h, dev.dpr);
+      var b = L.game(c, r, dev.w, dev.h, DPR);
+      if (a.scale.toFixed(4) !== b.scale.toFixed(4) || a.uiSide !== b.uiSide) bad[c + 'x' + r] = true;
+    }
+    return bad;
+  }
 
   function build(dev) {
     timers.forEach(clearTimeout); timers = [];
@@ -80,21 +113,22 @@
     var k = colW / VW;
 
     meta.textContent =
-      dev.label + ' — ' + VW + ' × ' + VH + ' css px  ·  device pixel ratio ' + DPR +
-      '  ·  each panel is a full-size game shown at ' + (k*100).toFixed(1) + '%' +
+      dev.label + ' — ' + VW + ' × ' + VH + ' css px at ' + dev.dpr + '×' +
+      '  ·  this display is ' + DPR + '×' +
+      '  ·  panels are full size shown at ' + (k*100).toFixed(1) + '%' +
       '  ·  seed ' + SEED;
 
-    /* Scaling is chosen per grid by pixel density, not by screen size, so a
-       frame only lays out like a phone when this display is dense enough. */
-    warn.textContent = (dev.id !== 'win' && DPR < 2)
-      ? 'This display reports ' + DPR + '× — phones are 2× or 3×, and the grids that '
-        + 'scale continuously only do so at 2× and up. These panels will not match a real phone.'
-      : '';
+    var bad = unfaithful(dev), names = Object.keys(bad);
+    warn.textContent = names.length
+      ? 'This display is ' + DPR + '× and the ' + dev.label + ' is ' + dev.dpr + '×. Continuous '
+        + 'scaling turns on at 2×, so ' + names.length + ' panel' + (names.length > 1 ? 's' : '')
+        + ' below (' + names.join(', ') + ') will not match the real device. The rest are faithful.'
+      : (!L ? 'layout.js did not load, so density differences cannot be checked.' : '');
 
-    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++) add(c, r, VW, VH, k);
+    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++) add(c, r, VW, VH, k, bad[c + 'x' + r]);
   }
 
-  function add(c, r, VW, VH, k) {
+  function add(c, r, VW, VH, k, off) {
     var tile = document.createElement('div');
 
     var cap = document.createElement('div');
@@ -103,7 +137,7 @@
     tile.appendChild(cap);
 
     var win = document.createElement('div');
-    win.className = 'win';
+    win.className = 'win' + (off ? ' off' : '');
     win.style.width = Math.round(VW * k) + 'px';
     win.style.height = Math.round(VH * k) + 'px';
     tile.appendChild(win);
@@ -126,8 +160,9 @@
         try {
           var iw = f.contentWindow.innerWidth, ih = f.contentWindow.innerHeight;
           var ok = (iw === VW && ih === VH);
-          got.textContent = iw + '×' + ih + (ok ? '' : '  ✗ not ' + VW + '×' + VH);
-          got.style.color = ok ? '#6a9f6a' : '#e06b5c';
+          got.textContent = (ok ? iw + '×' + ih : iw + '×' + ih + ' ✗ not ' + VW + '×' + VH)
+                          + (off ? '  ✳ wrong density' : '');
+          got.style.color = !ok ? '#e06b5c' : (off ? '#e0a05c' : '#6a9f6a');
         } catch (e) { got.textContent = 'unreadable'; }
       });
       win.appendChild(f);
