@@ -88,7 +88,7 @@ var HiLoLayout = (function () {
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
-             on: { desktop:      { callsBeside:true },
+             on: { desktop:      { callsBeside:true, fine:true, sideEdge:13 },
                    'tablet-wide': { callsBeside:true },
                    'phone-wide':  { callsBeside:true, fine:true } } },
     '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
