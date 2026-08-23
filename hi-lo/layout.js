@@ -16,6 +16,7 @@ var HiLoLayout = (function () {
   var CALLS_W = 40 + 40 + 54 + 14;       // the call row, when beneath
   var WORLD_MAX = 3;                     // furthest the setting may be zoomed
   var STEPS = [1, 1.5, 2, 2.5, 3];
+  var DECK_KEEP = 0.85;                  // what a withDeck board will pay for it
 
   /* One row per grid.
 
@@ -27,6 +28,9 @@ var HiLoLayout = (function () {
               continuously this is what sets how much height the board takes,
               since it grows until this reserve stops it
      fine   – scale continuously rather than in steps, on a dense screen only
+     withDeck– keep the deck in the row: ask outright for the margin the deck
+              needs, never fall back to the arrangement that drops it into the
+              corner, and centre the calls under deck and board together
      sideFit– when the calls sit beside the board, reserve what the whole row
               (deck | board | calls) actually needs and centre that row, rather
               than centring the board alone. The calls are wider than the deck,
@@ -51,7 +55,7 @@ var HiLoLayout = (function () {
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false }
@@ -85,6 +89,13 @@ var HiLoLayout = (function () {
      column beside it. Whichever leaves the biggest card wins, ties to the
      earlier — so the calls only move aside when that buys a step, and the
      deck only leaves the table when there is no room for it. */
+  /* What a withDeck board asks for: the margin the deck actually needs on
+     both sides, since the board is centred. */
+  function keepPlan(cols, rows, row) {
+    return { side:false, w: Math.max(boardW(cols) + 2*(CARD_W + 44), CALLS_W + 24),
+                         h: boardH(rows) + row.head };
+  }
+
   function plans(cols, rows, row) {
     var bw = boardW(cols), bh = boardH(rows);
     return [
@@ -101,6 +112,15 @@ var HiLoLayout = (function () {
     for (var i = 0; i < ps.length; i++) {
       var sc = step(ps[i].w, ps[i].h, vw, vh, row.fine, dpr);
       if (sc > scale) { scale = sc; uiSide = ps[i].side; }
+    }
+    /* A board that keeps its deck takes the arrangement with room for it as
+       long as that is nearly free. On a screen too narrow to hold the columns
+       and the deck together, buying the deck would cost most of the card, so
+       there it keeps the cards and the deck goes back to the corner. */
+    if (row.withDeck) {
+      var k = keepPlan(cols, rows, row);
+      var ks = step(k.w, k.h, vw, vh, row.fine, dpr);
+      if (ks >= scale * DECK_KEEP) { scale = ks; uiSide = k.side; }
     }
     return {
       scale: scale,
@@ -128,9 +148,14 @@ var HiLoLayout = (function () {
       y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
     }
     var lean = (uiSide && row.sideFit) ? Math.round((SIDE_W - CARD_W) / 2) : 0;
+    var big  = (W - bw) / 2 >= CARD_W + 44;
     return {
       x: Math.round((W - bw) / 2) - lean, y: y, w: bw, h: bh,
-      big: (W - bw) / 2 >= CARD_W + 44
+      big: big,
+      /* How far the calls sit from the centre of the board. Zero everywhere
+         except a withDeck board, where they centre on the deck and board
+         together rather than on the board alone. */
+      callsDx: (row.withDeck && !uiSide && big) ? -Math.round((CARD_W + 26) / 2) : 0
     };
   }
 

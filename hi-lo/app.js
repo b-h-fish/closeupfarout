@@ -372,18 +372,19 @@
     }
 
     var by = b.y + b.h + 14;
+    var dx = b.callsDx || 0;          // nudged when the deck joins the row
     if (resurrecting) {
       var m2 = 'SPLIT - REVIVE A PILE';
-      hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
+      hud(m2, ((W - fb.textW(m2,1)) >> 1) + dx, by + 5, p.hudInk);
       return;
     }
-    var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = (W - tot) >> 1;
+    var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = ((W - tot) >> 1) + dx;
     button(bx, by, wid[0], 'HI', { t:'call', call:'HI' }, on);
     button(bx+wid[0]+7, by, wid[1], 'LO', { t:'call', call:'LO' }, on);
     button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on);
     if (!on) {
       var m = 'PICK A PILE';
-      hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
+      hud(m, ((W - fb.textW(m,1)) >> 1) + dx, by + 24, p.hudDim);
     }
   }
 
