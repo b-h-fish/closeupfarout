@@ -19,6 +19,7 @@
      Split. It now sits face up for a beat before it turns. */
   var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
 
+  var WM_X = 6, WM_Y = 6;                // the wordmark's corner, in world units
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than
@@ -27,6 +28,11 @@
   var SETUP_W = 175, SETUP_H = 330;
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
+  /* The setting sits on its own layer at a scale that never changes with the
+     grid, so the city stays put while the board grows and shrinks over it. It
+     only needs redrawing when the setting or the window changes, which also
+     takes the most expensive thing on screen out of the per-frame path. */
+  var bgCanvas, bgCtx, bgFb = null, worldScale = 2, bgW = 0, bgH = 0, bgDirty = true;
 
   var screen = 'SETUP';
   var pickC = 3, pickR = 3, pickScene = 1;
@@ -66,6 +72,27 @@
     canvas.style.width = vw + 'px';
     canvas.style.height = vh + 'px';
     fb = new FB(W, H);
+
+    worldScale = L.world(vw, vh, dpr);
+    bgW = Math.max(120, Math.round(vw / worldScale));
+    bgH = Math.max(120, Math.round(vh / worldScale));
+    bgCanvas.width = bgW; bgCanvas.height = bgH;
+    bgCanvas.style.width = vw + 'px';
+    bgCanvas.style.height = vh + 'px';
+    bgFb = new FB(bgW, bgH);
+    document.getElementById('stack').style.width = vw + 'px';
+    document.getElementById('stack').style.height = vh + 'px';
+    bgDirty = true;
+  }
+
+  /* The setting, and in play the wordmark with it — both at the world scale. */
+  function drawBackground() {
+    drawScene(bgFb, SCENES[pickScene], bgW, bgH);
+    if (screen === 'GAME') wordmark(bgFb, WM_X + 6, WM_Y + 7, 1, pal().hudInk);
+    var img = bgCtx.createImageData(bgW, bgH);
+    img.data.set(bgFb.d);
+    bgCtx.putImageData(img, 0, 0);
+    bgDirty = false;
   }
 
   /* ── layout ── */
@@ -106,16 +133,16 @@
      and bottom, which no letter does, so it reads as a separator. */
   var WM_GAP = 5, WM_OVER = 2, WM_TALL = 11;
   function wordmarkW(k) { return (11 + WM_GAP + 1 + WM_GAP + 11) * k; }
-  function wordmark(x, y, k, col) {
+  function wordmark(t, x, y, k, col) {
     var p = pal();
     function put(str, sx) {
-      fb.textBig(str, sx + k, y + k, p.hudShadow, k);
-      fb.textBig(str, sx, y, col, k);
+      t.textBig(str, sx + k, y + k, p.hudShadow, k);
+      t.textBig(str, sx, y, col, k);
     }
     put('HI', x);
     var rx = x + 11*k + WM_GAP*k;
-    fb.rect(rx + k, y - WM_OVER*k + k, k, WM_TALL*k, p.hudShadow);
-    fb.rect(rx,     y - WM_OVER*k,     k, WM_TALL*k, col);
+    t.rect(rx + k, y - WM_OVER*k + k, k, WM_TALL*k, p.hudShadow);
+    t.rect(rx,     y - WM_OVER*k,     k, WM_TALL*k, col);
     put('LO', rx + k + WM_GAP*k);
   }
 
@@ -135,7 +162,6 @@
 
   function drawSetup() {
     var p = pal();
-    drawScene(fb, SCENES[pickScene], W, H);
 
     var cx = W >> 1, PAD = 20;
     // a share of the canvas rather than all of it, so the setting frames it
@@ -144,11 +170,11 @@
     var ph = blockH + PAD*2;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
-    fb.shade(cx - (pw>>1), top - PAD, pw, ph, 0.42);
+    fb.dim(cx - (pw>>1), top - PAD, pw, ph, 0.42);
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    wordmark(cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
+    wordmark(fb, cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
     y += 21 + 20;
 
     var gx = cx - (GWID >> 1), gy = y, r, c;
@@ -222,7 +248,7 @@
     var ly = b.y;
 
     var depth = Math.min(cards.length, 5);
-    fb.shade(b.x + (depth-1)*2 + 3, b.y + (depth-1)*2 + 4, CARD_W, CARD_H, 0.55);
+    fb.dim(b.x + (depth-1)*2 + 3, b.y + (depth-1)*2 + 4, CARD_W, CARD_H, 0.55);
     for (var d = depth-1; d >= 1; d--) {
       fb.rect(b.x + d*2, ly + d*2, CARD_W, CARD_H, p.ink);
       fb.rect(b.x + d*2 + 1, ly + d*2 + 1, CARD_W-2, CARD_H-2, p.linen);
@@ -242,7 +268,7 @@
       cardFace(fb, b.x, ly, CARD_W, CARD_H, HiLo.rankChar(shown), HiLo.suitChar(shown), p);
     } else {
       cardBack(fb, b.x, ly, CARD_W, CARD_H, p);
-      fb.shade(b.x, ly, CARD_W, CARD_H, 0.62);
+      fb.dim(b.x, ly, CARD_W, CARD_H, 0.62);
     }
 
     if (g.phase === 'RESURRECT' && !pile.alive && !fx) {
@@ -267,7 +293,6 @@
 
   function drawGame() {
     var p = pal();
-    drawScene(fb, SCENES[pickScene], W, H);
 
     var b = boardBox(), i;
     for (i = 0; i < g.size; i++) drawPile(i);
@@ -275,7 +300,7 @@
     // ── stock ──
     var s = stockBox();
     if (s.big) {
-      fb.shade(s.x+3, s.y+4, CARD_W, CARD_H, 0.55);
+      fb.dim(s.x+3, s.y+4, CARD_W, CARD_H, 0.55);
       if (HiLo.stockLeft(g) > 0) cardBack(fb, s.x, s.y, CARD_W, CARD_H, p);
       else { fb.frame(s.x, s.y, CARD_W, CARD_H, p.hudDim); }
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
@@ -291,12 +316,12 @@
     // The wordmark is the way back to the menu. Nothing else lives up here:
     // the stock count is already under the deck, and how many piles are alive
     // is plain from the board.
-    var wmW = wordmarkW(1), wmR = { x: 6, y: 6, w: wmW + 12, h: 21 };
-    if (inside(wmR)) {
-      fb.rect(wmR.x, wmR.y, wmR.w, wmR.h, p.hudShadow);
-      fb.frame(wmR.x, wmR.y, wmR.w, wmR.h, p.hudInk);
-    }
-    wordmark(wmR.x + 6, wmR.y + 7, 1, p.hudInk);
+    /* Drawn on the layer behind, so its box has to be converted from that
+       layer's units into these to stay clickable and to draw its hover. */
+    var q = worldScale / scale;
+    var wmR = { x: Math.round(WM_X*q), y: Math.round(WM_Y*q),
+                w: Math.round((wordmarkW(1) + 12)*q), h: Math.round(21*q) };
+    if (inside(wmR)) fb.frame(wmR.x, wmR.y, wmR.w, wmR.h, p.hudInk);
     hit(wmR.x, wmR.y, wmR.w, wmR.h, { t:'menu' });
 
     // On a viewport too narrow for the stock to sit beside the board, the count
@@ -311,7 +336,7 @@
       var t = fx.t / fx.dur, e = t*t*(3-2*t);
       var ax = Math.round(fx.fx + (fx.tx - fx.fx) * e);
       var ay = Math.round(fx.fy + (fx.ty - fx.fy) * e);
-      fb.shade(ax+3, ay+4, CARD_W, CARD_H, 0.55);
+      fb.dim(ax+3, ay+4, CARD_W, CARD_H, 0.55);
       cardFace(fb, ax, ay, CARD_W, CARD_H, HiLo.rankChar(fx.card), HiLo.suitChar(fx.card), p);
     }
 
@@ -362,7 +387,7 @@
      whichever gap the layout happened to leave. */
   function drawResult() {
     var p = pal();
-    fb.shade(0, 0, W, H, 0.45);
+    fb.dim(0, 0, W, H, 0.45);
     var head = g.phase === 'WON' ? 'CLEARED' : 'OUT';
     var left = HiLo.stockLeft(g);
     var tight = (W - 16) < 150;
@@ -385,7 +410,7 @@
   function drawConfirm() {
     var p = pal();
     hits.length = 0;
-    fb.shade(0, 0, W, H, 0.45);
+    fb.dim(0, 0, W, H, 0.45);
 
     /* Both panels measure their own contents. They are laid out in logical
        units, and a small grid runs at a higher scale — so the canvas is
@@ -489,7 +514,7 @@
   function dispatch(act) {
     if (!act) return;
     if (act.t === 'grid')  { pickC = act.c; pickR = act.r; return; }
-    if (act.t === 'scene') { pickScene = act.i; return; }
+    if (act.t === 'scene') { pickScene = act.i; bgDirty = true; return; }
     if (act.t === 'deal')  {
       begin((Math.random() * 0x7fffffff) | 0);
       return;
@@ -610,7 +635,10 @@
 
     if (fx) { fx.t += dt; if (fx.t >= fx.dur) endFx(); }
 
+    if (bgDirty) drawBackground();
+
     hits.length = 0;
+    fb.clear();
     if (screen === 'SETUP') drawSetup(); else { drawGame(); if (confirmMenu) drawConfirm(); }
 
     var img = ctx.createImageData(W, H);
@@ -621,6 +649,8 @@
   function boot() {
     canvas = document.getElementById('stage');
     ctx = canvas.getContext('2d');
+    bgCanvas = document.getElementById('bg');
+    bgCtx = bgCanvas.getContext('2d');
     live = document.getElementById('say');
     fit();
 

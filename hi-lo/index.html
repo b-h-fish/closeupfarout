@@ -16,9 +16,15 @@
     -webkit-tap-highlight-color: transparent;
   }
   body { display: flex; align-items: center; justify-content: center; }
+  /* The setting is drawn on its own layer at a scale that never changes with
+     the grid; the board is drawn over it at whatever scale that grid takes. */
+  #stack { position: relative; }
+  #stack canvas { position: absolute; top: 0; left: 0; }
+  #bg { z-index: 0; }
+  #stage { z-index: 1; }
   /* Integer-scaled pixels, never smoothed. The scale factor is chosen in JS so
      one logical pixel is always a whole number of device pixels. */
-  #stage {
+  #bg, #stage {
     display: block;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
@@ -33,8 +39,11 @@
 </style>
 </head>
 <body>
-  <canvas id="stage" width="640" height="400" tabindex="0"
-          aria-label="Hi Lo. Arrow keys move between piles, Enter selects, then H for higher, L for lower, S for split."></canvas>
+  <div id="stack">
+    <canvas id="bg" width="640" height="400" aria-hidden="true"></canvas>
+    <canvas id="stage" width="640" height="400" tabindex="0"
+            aria-label="Hi Lo. Arrow keys move between piles, Enter selects, then H for higher, L for lower, S for split."></canvas>
+  </div>
   <div id="say" class="vh" role="status" aria-live="polite"></div>
 
   <script src="pixel.js"></script>

@@ -100,6 +100,12 @@ var HiLoLayout = (function () {
     };
   }
 
+  /* The setting and the wordmark are drawn at their own scale, the same for
+     every grid, so the city does not shrink when the board does. Defined as
+     whatever a three-row board would take — that is the look this was tuned
+     against — and it depends only on the viewport, never on what is dealt. */
+  function world(vw, vh, dpr) { return game(3, 3, vw, vh, dpr).scale; }
+
   /* Where the board sits in the canvas the scale produced. */
   function board(cols, rows, W, H, uiSide) {
     var row = rowFor(cols, rows);
@@ -120,7 +126,7 @@ var HiLoLayout = (function () {
   return {
     CARD_W: CARD_W, CARD_H: CARD_H, GAP: GAP,
     SIDE_W: SIDE_W, CALLS_W: CALLS_W, WORLD_MAX: WORLD_MAX, STEPS: STEPS,
-    GRIDS: GRIDS, rowFor: rowFor, step: step, game: game, board: board,
+    GRIDS: GRIDS, rowFor: rowFor, step: step, game: game, board: board, world: world,
     boardW: boardW, boardH: boardH
   };
 })();

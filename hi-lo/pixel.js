@@ -25,6 +25,21 @@ FB.prototype.shade = function (x, y, w, h, f) {
     this.d[k] *= f; this.d[k+1] *= f; this.d[k+2] *= f;
   }
 };
+/* Darkens a region on a transparent layer. Where something is already drawn
+   the pixels are multiplied, exactly as shade does; where nothing is, black is
+   written at partial alpha so whatever sits behind the canvas darkens instead.
+   That is what lets a card's shadow fall on a background it cannot touch. */
+FB.prototype.dim = function (x, y, w, h, f) {
+  var a = Math.round((1 - f) * 255);
+  for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) {
+    var px = x+i, py = y+j;
+    if (px < 0 || py < 0 || px >= this.w || py >= this.h) continue;
+    var k = (py*this.w + px) * 4;
+    if (this.d[k+3] > 0) { this.d[k] *= f; this.d[k+1] *= f; this.d[k+2] *= f; }
+    else { this.d[k] = 0; this.d[k+1] = 0; this.d[k+2] = 0; this.d[k+3] = a; }
+  }
+};
+FB.prototype.clear = function () { this.d.fill(0); };
 FB.prototype.frame = function (x, y, w, h, c) {
   this.hline(x, y, w, c); this.hline(x, y+h-1, w, c);
   this.vline(x, y, h, c); this.vline(x+w-1, y, h, c);
