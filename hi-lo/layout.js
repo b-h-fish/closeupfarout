@@ -29,8 +29,8 @@ var HiLoLayout = (function () {
               since it grows until this reserve stops it
      fine   – scale continuously rather than in steps, on a dense screen only
      withDeck– keep the deck in the row: ask outright for the margin the deck
-              needs, never fall back to the arrangement that drops it into the
-              corner, and centre the calls under deck and board together
+              needs, rather than settling for the arrangement that drops it
+              into the corner
      sideFit– when the calls sit beside the board, reserve what the whole row
               (deck | board | calls) actually needs and centre that row, rather
               than centring the board alone. The calls are wider than the deck,
@@ -55,7 +55,7 @@ var HiLoLayout = (function () {
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
+    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false }
@@ -151,11 +151,7 @@ var HiLoLayout = (function () {
     var big  = (W - bw) / 2 >= CARD_W + 44;
     return {
       x: Math.round((W - bw) / 2) - lean, y: y, w: bw, h: bh,
-      big: big,
-      /* How far the calls sit from the centre of the board. Zero everywhere
-         except a withDeck board, where they centre on the deck and board
-         together rather than on the board alone. */
-      callsDx: (row.withDeck && !uiSide && big) ? -Math.round((CARD_W + 26) / 2) : 0
+      big: big
     };
   }
 
