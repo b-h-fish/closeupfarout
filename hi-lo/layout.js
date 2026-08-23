@@ -58,19 +58,27 @@ var HiLoLayout = (function () {
                 let the reserves set the height */
              on: { phone: { fine:true, head:128, sideH:50 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
-             on: { tablet: { sideFit:true } } },
+             on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 } } },
 
     '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true,
              on: { phone: { head:128, sideH:50 } } },
-    '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
+             /* on a tablet on its side, stepped scaling tied with the stacked
+                arrangement and the tie went to stacking; 4x4's reserves put
+                all four four-row boards on the same footing */
+             on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 } } },
-    '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
+             /* on a tablet on its side, stepped scaling tied with the stacked
+                arrangement and the tie went to stacking; 4x4's reserves put
+                all four four-row boards on the same footing */
+             on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9,
