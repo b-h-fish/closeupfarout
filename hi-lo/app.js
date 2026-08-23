@@ -306,13 +306,18 @@
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
         /* Above the deck by default, so the count stays clear of the calls.
            A board one row deep starts at the top, which puts that figure up
-           beside the wordmark — those rows ask for it underneath instead. */
+           beside the wordmark — those rows ask for it underneath instead.
+           One line, figure then label, centred on the card: at six pixels a
+           character the longest it ever reads is 41 against the card's 54. */
         var sc = String(HiLo.stockLeft(g));
+        var lead = fb.textW(sc + ' ', 1) + 1;      // where the label starts
+        var tw = lead + fb.textW('LEFT', 1);
+        var tx = s.x + ((CARD_W - tw) >> 1);
         var ty = (L.rowFor(g.cols, g.rows).count === 'below')
           ? s.y + CARD_H + 6
-          : s.y - 21;
-        hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), ty, p.hudInk);
-        hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), ty + 10, p.hudDim);
+          : s.y - 11;
+        hud(sc, tx, ty, p.hudInk);
+        hud('LEFT', tx + lead, ty, p.hudDim);
       }
     }
 
