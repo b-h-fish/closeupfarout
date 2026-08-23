@@ -36,28 +36,31 @@ var HiLoLayout = (function () {
               than centring the board alone. The calls are wider than the deck,
               so a centred board pushes them off the right edge
      sideEdge– margin each end of that row, when sideFit is set
+     sideDrop– push the board down off centre, in units. A two-row board puts
+              its deck-count and its PICK A PILE in the gap between the rows,
+              which lands on the scene's horizon; this carries them clear
      hudGap – centre in the space under the wordmark rather than the canvas
      count  – which side of the deck its remaining-cards figure sits on. Above
               is the default; on a board one row deep the deck starts at the
               top, which puts that figure up beside the wordmark             */
   var GRIDS = {
     '1x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '1x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '2x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true  },
     '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '3x2': { count:'above', edge:20, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:13 },
+    '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
-    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15 },
+    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9 },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false }
   };
@@ -149,6 +152,7 @@ var HiLoLayout = (function () {
     } else {
       y = Math.max(uiSide ? 4 : 18, Math.round((H - blockH) / 2));
     }
+    if (uiSide && row.sideDrop) y += row.sideDrop;
     var lean = (uiSide && row.sideFit) ? Math.round((SIDE_W - CARD_W) / 2) : 0;
     var big  = (W - bw) / 2 >= CARD_W + 44;
     return {
