@@ -54,7 +54,7 @@ var HiLoLayout = (function () {
     '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
-    '4x4': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false }
+    '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false }
   };
 
   function clampGrid(n) { return Math.max(1, Math.min(4, n | 0)); }
