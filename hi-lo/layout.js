@@ -23,7 +23,9 @@ var HiLoLayout = (function () {
               continuously this is what sets its share of the width, since it
               lands on bw / (bw + edge) of it
      head   – vertical reserve when the calls sit beneath the board
-     sideH  – vertical reserve when they sit beside it
+     sideH  – vertical reserve when they sit beside it. On a row that scales
+              continuously this is what sets how much height the board takes,
+              since it grows until this reserve stops it
      fine   – scale continuously rather than in steps, on a dense screen only
      hudGap – centre in the space under the wordmark rather than the canvas
      count  – which side of the deck its remaining-cards figure sits on. Above
@@ -37,7 +39,7 @@ var HiLoLayout = (function () {
 
     '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '2x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '2x3': { count:'above', edge:20, head:97, sideH:8, fine:true,  hudGap:true  },
+    '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true  },
     '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
@@ -47,7 +49,7 @@ var HiLoLayout = (function () {
 
     '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
-    '4x3': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false }
   };
 
