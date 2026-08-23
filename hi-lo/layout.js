@@ -50,7 +50,10 @@ var HiLoLayout = (function () {
               is the default; on a board one row deep the deck starts at the
               top, which puts that figure up beside the wordmark             */
   var GRIDS = {
-    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true },
+    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+             /* the calls sit beside the board wherever there is width for
+                it, as they do on every deeper board */
+             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
     '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              /* three cards tall ran to nine tenths of a phone; stepped it
@@ -62,7 +65,10 @@ var HiLoLayout = (function () {
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+             /* the calls sit beside the board wherever there is width for
+                it, as they do on every deeper board */
+             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true,
              on: { phone: { head:128, sideH:50 } } },
@@ -72,7 +78,10 @@ var HiLoLayout = (function () {
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+             /* the calls sit beside the board wherever there is width for
+                it, as they do on every deeper board */
+             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
     '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 },
@@ -83,7 +92,10 @@ var HiLoLayout = (function () {
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
+    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true,
+             /* the calls sit beside the board wherever there is width for
+                it, as they do on every deeper board */
+             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9,
              /* on a tablet on its side it stacked the calls underneath, which
                 bought a bigger card but left no room for the deck */
@@ -186,7 +198,7 @@ var HiLoLayout = (function () {
        long as that is nearly free. On a screen too narrow to hold the columns
        and the deck together, buying the deck would cost most of the card, so
        there it keeps the cards and the deck goes back to the corner. */
-    if (row.withDeck) {
+    if (row.withDeck && !row.callsBeside) {
       var k = keepPlan(cols, rows, row);
       var ks = step(k.w, k.h, vw, vh, row.fine, dpr);
       if (ks >= scale * DECK_KEEP) { scale = ks; uiSide = k.side; }
