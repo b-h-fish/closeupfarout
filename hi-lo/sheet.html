@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Hi Lo — all 16 grids</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 14px; }
+  header { margin-bottom: 12px; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+  .note { color: #8a7f96; margin-top: 4px; }
+  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tile { }
+  .cap { display: flex; justify-content: space-between; color: #b9ae94; padding: 0 2px 3px; }
+  .cap b { color: #f4edda; font-weight: 600; }
+  /* Each frame is given the real viewport size, so the game inside lays out
+     exactly as it would full screen; the wrapper then scales it down. */
+  .win { position: relative; overflow: hidden; border: 1px solid #2e2438; background: #000; }
+  .win iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>HI | LO — all sixteen grids</h1>
+  <div class="note" id="meta">measuring…</div>
+</header>
+<div class="sheet" id="sheet"></div>
+
+<script>
+(function () {
+  // Captured before the sheet can scroll, so the frames get the true viewport.
+  var VW = window.innerWidth, VH = window.innerHeight;
+  var DPR = window.devicePixelRatio || 1;
+  var SEED = 424242, SCENE = 1;
+
+  var sheet = document.getElementById('sheet');
+  var colW = (sheet.getBoundingClientRect().width - 3*12) / 4;
+  var k = colW / VW;
+
+  document.getElementById('meta').textContent =
+    'viewport ' + VW + ' x ' + VH + ' css px  ·  device pixel ratio ' + DPR +
+    '  ·  each panel is a full-size game shown at ' + (k*100).toFixed(1) + '%' +
+    '  ·  seed ' + SEED;
+
+  var jobs = [];
+  for (var r = 1; r <= 4; r++) {
+    for (var c = 1; c <= 4; c++) jobs.push([c, r]);
+  }
+
+  jobs.forEach(function (g, i) {
+    var c = g[0], r = g[1];
+    var tile = document.createElement('div');
+    tile.className = 'tile';
+
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.innerHTML = '<b>' + c + ' × ' + r + '</b><span>' + (c*r) + ' up</span>';
+    tile.appendChild(cap);
+
+    var win = document.createElement('div');
+    win.className = 'win';
+    win.style.width = Math.round(VW * k) + 'px';
+    win.style.height = Math.round(VH * k) + 'px';
+    tile.appendChild(win);
+    sheet.appendChild(tile);
+
+    // staggered, so sixteen canvases don't all start their loops at once
+    setTimeout(function () {
+      var f = document.createElement('iframe');
+      f.width = VW; f.height = VH;
+      f.style.width = VW + 'px';
+      f.style.height = VH + 'px';
+      f.style.transform = 'scale(' + k + ')';
+      f.loading = 'eager';
+      f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE;
+      win.appendChild(f);
+    }, i * 220);
+  });
+})();
+</script>
+</body>
+</html>
