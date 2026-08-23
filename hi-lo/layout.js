@@ -48,7 +48,11 @@ var HiLoLayout = (function () {
   var GRIDS = {
     '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true },
     '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
-    '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
+             /* three cards tall ran to nine tenths of a phone; stepped it
+                lands anywhere from 72% to 89%, so scale it continuously and
+                let the reserves set the height */
+             on: { phone: { fine:true, head:128, sideH:50 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true } } },
 
