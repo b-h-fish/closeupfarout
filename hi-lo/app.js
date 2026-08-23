@@ -94,10 +94,15 @@
          and nothing else. The old rule reserved deck width on both sides of a
          board that only ever has a deck on one, and on a narrow screen that
          phantom 160px was enough to force everything down to 1x. */
-      /* Because a four-column board is scaled to whatever fits, this margin is
-         what sets how much of the screen it takes: the board lands on
-         bw / (bw + edge) of the width. Four columns is 231 logical, so 26
-         leaves it at about 90%. */
+      /* Because a four-column board is scaled to whatever fits, these margins
+         are what set how much of the screen it takes — the board lands on
+         bw / (bw + edge) of the width, so 26 leaves four columns at about 90%.
+         The side plan's 68 does the same vertically: without it a 4x4 scaled
+         right up to the 8 pixels that were only ever there to buy a step, and
+         sat against the top and bottom edges. 68 puts it where a 3x4 lands on
+         its half step, which is the look to match. The side plan is never
+         chosen on a phone — it asks for more width than one has — so this is
+         a desktop margin only. */
       var wide = (c === 4), edge = wide ? 26 : 20;
       /* Two by three is the one grid narrow enough to reach a high scale and
          tall enough to then fill the height, which puts its top card right
@@ -111,7 +116,7 @@
       var plans = [
         { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + head },
         { side:false, w: Math.max(bw + edge,               CALLS_W + 24), h: bh + head },
-        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 8    }
+        { side:true,  w: bw + (CARD_W + 26) + SIDE_W + 36,                h: bh + 68   }
       ];
       /* Capped, because scale zooms the setting as well as the cards: left
          uncapped, a small grid pushed the world so close that the palms were
