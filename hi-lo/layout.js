@@ -84,7 +84,9 @@ var HiLoLayout = (function () {
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
-             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
+             on: { desktop:      { callsBeside:true },
+                   'tablet-wide': { callsBeside:true },
+                   'phone-wide':  { callsBeside:true, fine:true } } },
     '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 },
@@ -98,7 +100,9 @@ var HiLoLayout = (function () {
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true, sideEdge:15,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
-             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
+             on: { desktop:      { callsBeside:true },
+                   'tablet-wide': { callsBeside:true },
+                   'phone-wide':  { callsBeside:true } } },
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9,
              /* on a tablet on its side it stacked the calls underneath, which
                 bought a bigger card but left no room for the deck */
