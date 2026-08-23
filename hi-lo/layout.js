@@ -67,6 +67,7 @@ var HiLoLayout = (function () {
                    'tablet-wide': { fine:true, sideH:42 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 },
+                   phone:         { fine:true, head:134, sideH:140, sideFit:true },
                    'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
@@ -83,6 +84,7 @@ var HiLoLayout = (function () {
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 },
+                   phone:         { fine:true, head:134 },
                    'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
@@ -100,6 +102,7 @@ var HiLoLayout = (function () {
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 },
+                   phone:         { fine:true, head:134 },
                    'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true, sideEdge:15,
@@ -119,7 +122,8 @@ var HiLoLayout = (function () {
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false,
              /* on a tablet held upright the board filled the screen: cards over
                 the wordmark, and PICK A PILE a unit off the bottom edge */
-             on: { tablet: { head:112 } } }
+             on: { tablet: { head:112 },
+                   phone:  { head:134 } } }
   };
 
   function clampGrid(n) { return Math.max(1, Math.min(4, n | 0)); }
