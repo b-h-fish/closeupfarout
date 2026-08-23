@@ -187,8 +187,13 @@ var HiLoLayout = (function () {
     if (uiSide && row.sideDrop) y += row.sideDrop;
     var lean = (uiSide && row.sideFit) ? Math.round((SIDE_W - CARD_W) / 2) : 0;
     /* A phone does without the deck entirely — there is no width to spare for
-       it, and the corner figure carries the count instead. */
-    var big  = (dev !== 'phone') && (W - bw) / 2 >= CARD_W + 44;
+       it, and the corner figure carries the count instead. A tablet keeps the
+       deck only while it is held on its side: upright it has the width for the
+       card but not the height to spare beside a board that already fills the
+       screen. The canvas keeps the viewport's own proportions, so W against H
+       is the orientation, and turning the tablet re-fits and moves the deck. */
+    var big = (W - bw) / 2 >= CARD_W + 44;
+    if (dev === 'phone' || (dev === 'tablet' && W <= H)) big = false;
     return {
       x: Math.round((W - bw) / 2) - lean, y: y, w: bw, h: bh,
       big: big
