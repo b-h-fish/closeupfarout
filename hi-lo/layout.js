@@ -66,12 +66,15 @@ var HiLoLayout = (function () {
              on: { phone: { fine:true, head:128, sideH:50 },
                    'tablet-wide': { fine:true, sideH:42 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
-             on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 } } },
+             on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 },
+                   'phone-wide': { callsBeside:true, fine:true } } },
 
     '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
-             on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
+             on: { desktop:       { callsBeside:true },
+                   'tablet-wide': { callsBeside:true },
+                   'phone-wide':  { callsBeside:true } } },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true,
              on: { phone: { head:128, sideH:50 } } },
@@ -79,7 +82,8 @@ var HiLoLayout = (function () {
              /* on a tablet on its side, stepped scaling tied with the stacked
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
-             on: { 'tablet-wide': { fine:true, sideH:54 } } },
+             on: { 'tablet-wide': { fine:true, sideH:54 },
+                   'phone-wide': { callsBeside:true, fine:true } } },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
@@ -95,7 +99,8 @@ var HiLoLayout = (function () {
              /* on a tablet on its side, stepped scaling tied with the stacked
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
-             on: { 'tablet-wide': { fine:true, sideH:54 } } },
+             on: { 'tablet-wide': { fine:true, sideH:54 },
+                   'phone-wide': { callsBeside:true, fine:true } } },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true, sideEdge:15,
              /* the calls sit beside the board wherever there is width for
