@@ -304,11 +304,15 @@
       if (HiLo.stockLeft(g) > 0) cardBack(fb, s.x, s.y, CARD_W, CARD_H, p);
       else { fb.frame(s.x, s.y, CARD_W, CARD_H, p.hudDim); }
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
-        // above the deck now that it sits low, so the count stays clear of the
-        // call buttons on a narrow board
+        /* Above the deck by default, so the count stays clear of the calls.
+           A board one row deep starts at the top, which puts that figure up
+           beside the wordmark — those rows ask for it underneath instead. */
         var sc = String(HiLo.stockLeft(g));
-        hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), s.y - 21, p.hudInk);
-        hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), s.y - 11, p.hudDim);
+        var ty = (L.rowFor(g.cols, g.rows).count === 'below')
+          ? s.y + CARD_H + 6
+          : s.y - 21;
+        hud(sc, s.x + ((CARD_W - fb.textW(sc,1)) >> 1), ty, p.hudInk);
+        hud('LEFT', s.x + ((CARD_W - fb.textW('LEFT',1)) >> 1), ty + 10, p.hudDim);
       }
     }
 

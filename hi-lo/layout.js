@@ -25,27 +25,30 @@ var HiLoLayout = (function () {
      head   – vertical reserve when the calls sit beneath the board
      sideH  – vertical reserve when they sit beside it
      fine   – scale continuously rather than in steps, on a dense screen only
-     hudGap – centre in the space under the wordmark rather than the canvas   */
+     hudGap – centre in the space under the wordmark rather than the canvas
+     count  – which side of the deck its remaining-cards figure sits on. Above
+              is the default; on a board one row deep the deck starts at the
+              top, which puts that figure up beside the wordmark             */
   var GRIDS = {
-    '1x1': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '1x2': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '1x3': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '1x4': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '2x1': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '2x2': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '2x3': { edge:20, head:97, sideH:8, fine:true,  hudGap:true  },
-    '2x4': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x3': { count:'above', edge:20, head:97, sideH:8, fine:true,  hudGap:true  },
+    '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '3x1': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '3x2': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '3x3': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '3x4': { edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x2': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '4x1': { edge:26, head:64, sideH:8, fine:true,  hudGap:false },
-    '4x2': { edge:26, head:64, sideH:8, fine:true,  hudGap:false },
-    '4x3': { edge:26, head:64, sideH:8, fine:true,  hudGap:false },
-    '4x4': { edge:26, head:64, sideH:8, fine:true,  hudGap:false }
+    '4x1': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x3': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false },
+    '4x4': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false }
   };
 
   function clampGrid(n) { return Math.max(1, Math.min(4, n | 0)); }
