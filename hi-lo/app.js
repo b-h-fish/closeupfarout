@@ -20,6 +20,21 @@
   var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
 
   var WM_X = 6, WM_Y = 6;                // the wordmark's corner, in world units
+  /* A coarse pointer is the only thing that tells a tablet from a desktop
+     window of the same shape; read once, since it cannot change under us.
+     ?coarse=1/0 overrides it, so the contact sheet can stand a desktop frame
+     in for a touch device — the frame's own pointer would say otherwise. */
+  var COARSE = (function () {
+    try {
+      var f = new URLSearchParams(location.search).get('coarse');
+      if (f === '1' || f === '0') return f === '1';
+    } catch (e) { /* fall through to what the display reports */ }
+    return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  })();
+  var device = 'desktop';
+  /* Every setting lays its ground plane between these fractions of the canvas,
+     so text landing in the band sits on a horizon whichever one is playing. */
+  var GROUND_TOP = 0.42, GROUND_BOT = 0.47;
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than
@@ -56,13 +71,14 @@
   function fit() {
     var vw = window.innerWidth, vh = window.innerHeight;
     var dpr = window.devicePixelRatio || 1;
+    device = L.device(vw, vh, COARSE);
     if (screen === 'SETUP') {
       // fine scaling here too: a 14px grid cell was an impossible target for a
       // finger, and the cells only grow if the menu can
       scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
       uiSide = false;
     } else {
-      var fitted = L.game(g ? g.cols : pickC, g ? g.rows : pickR, vw, vh, dpr);
+      var fitted = L.game(g ? g.cols : pickC, g ? g.rows : pickR, vw, vh, dpr, COARSE);
       scale = fitted.scale;
       uiSide = fitted.uiSide;
     }
@@ -73,7 +89,7 @@
     canvas.style.height = vh + 'px';
     fb = new FB(W, H);
 
-    worldScale = L.world(vw, vh, dpr);
+    worldScale = L.world(vw, vh, dpr, COARSE);
     bgW = Math.max(120, Math.round(vw / worldScale));
     bgH = Math.max(120, Math.round(vh / worldScale));
     bgCanvas.width = bgW; bgCanvas.height = bgH;
@@ -97,7 +113,7 @@
 
   /* ── layout ── */
   function boardBox() {
-    return L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide);
+    return L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
   }
 
   function pileBox(i) {
@@ -313,9 +329,18 @@
         var lead = fb.textW(sc + ' ', 1) + 1;      // where the label starts
         var tw = lead + fb.textW('LEFT', 1);
         var tx = s.x + ((CARD_W - tw) >> 1);
-        var ty = (L.rowFor(g.cols, g.rows).count === 'below')
-          ? s.y + CARD_H + 6
-          : s.y - 11;
+        var ty = s.y - 11;
+        if (L.rowFor(g.cols, g.rows, device).count === 'below') {
+          ty = s.y + CARD_H + 6;
+        } else if (device !== 'desktop') {
+          /* Off the desktop the board lands where it lands, so check rather
+             than assume: if the figure would sit on the ground plane, drop it
+             under the deck instead. Desktop is left exactly as tuned. */
+          var pad = 12 / scale;
+          if (ty + 7 > GROUND_TOP*H - pad && ty < GROUND_BOT*H + pad) {
+            ty = s.y + CARD_H + 6;
+          }
+        }
         hud(sc, tx, ty, p.hudInk);
         hud('LEFT', tx + lead, ty, p.hudDim);
       }

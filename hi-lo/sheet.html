@@ -57,20 +57,20 @@
      `dpr` is what the real device reports; this display may not match it. */
   var DEVICES = [
     { g:'rowWin',    label:'This window',    w:TRUE_W, h:TRUE_H, dpr:DPR },
-    { g:'rowPhone',  label:'iPhone SE',      w:375,  h:553,  dpr:2 },
-    { g:'rowPhone',  label:'iPhone 15',      w:390,  h:664,  dpr:3 },
-    { g:'rowPhone',  label:'15 Pro Max',     w:430,  h:745,  dpr:3 },
-    { g:'rowPhone',  label:'iPhone 15 ↻',    w:844,  h:390,  dpr:3 },
-    { g:'rowPhone',  label:'Pro Max ↻',      w:932,  h:430,  dpr:3 },
-    { g:'rowTablet', label:'iPad mini',      w:744,  h:1005, dpr:2 },
-    { g:'rowTablet', label:'iPad Air',       w:820,  h:1052, dpr:2 },
-    { g:'rowTablet', label:'iPad Pro 13',    w:1024, h:1238, dpr:2 },
-    { g:'rowTablet', label:'iPad mini ↻',    w:1133, h:616,  dpr:2 },
-    { g:'rowTablet', label:'iPad Air ↻',     w:1180, h:692,  dpr:2 },
-    { g:'rowTablet', label:'iPad Pro 13 ↻',  w:1366, h:896,  dpr:2 },
-    { g:'rowTv',     label:'720p',           w:1280, h:720,  dpr:1 },
-    { g:'rowTv',     label:'1080p',          w:1920, h:1080, dpr:1 },
-    { g:'rowTv',     label:'4K',             w:3840, h:2160, dpr:1 }
+    { g:'rowPhone',  label:'iPhone SE',      w:375,  h:553,  dpr:2, coarse:1 },
+    { g:'rowPhone',  label:'iPhone 15',      w:390,  h:664,  dpr:3, coarse:1 },
+    { g:'rowPhone',  label:'15 Pro Max',     w:430,  h:745,  dpr:3, coarse:1 },
+    { g:'rowPhone',  label:'iPhone 15 ↻',    w:844,  h:390,  dpr:3, coarse:1 },
+    { g:'rowPhone',  label:'Pro Max ↻',      w:932,  h:430,  dpr:3, coarse:1 },
+    { g:'rowTablet', label:'iPad mini',      w:744,  h:1005, dpr:2, coarse:1 },
+    { g:'rowTablet', label:'iPad Air',       w:820,  h:1052, dpr:2, coarse:1 },
+    { g:'rowTablet', label:'iPad Pro 13',    w:1024, h:1238, dpr:2, coarse:1 },
+    { g:'rowTablet', label:'iPad mini ↻',    w:1133, h:616,  dpr:2, coarse:1 },
+    { g:'rowTablet', label:'iPad Air ↻',     w:1180, h:692,  dpr:2, coarse:1 },
+    { g:'rowTablet', label:'iPad Pro 13 ↻',  w:1366, h:896,  dpr:2, coarse:1 },
+    { g:'rowTv',     label:'720p',           w:1280, h:720,  dpr:1, coarse:0 },
+    { g:'rowTv',     label:'1080p',          w:1920, h:1080, dpr:1, coarse:0 },
+    { g:'rowTv',     label:'4K',             w:3840, h:2160, dpr:1, coarse:0 }
   ];
 
   var sheet = document.getElementById('sheet');
@@ -96,8 +96,9 @@
     var bad = {};
     if (!L || (dev.dpr >= 2) === (DPR >= 2)) return bad;
     for (var c = 1; c <= 4; c++) for (var r = 1; r <= 4; r++) {
-      var a = L.game(c, r, dev.w, dev.h, dev.dpr);
-      var b = L.game(c, r, dev.w, dev.h, DPR);
+      var co = !!dev.coarse;
+      var a = L.game(c, r, dev.w, dev.h, dev.dpr, co);
+      var b = L.game(c, r, dev.w, dev.h, DPR, co);
       if (a.scale.toFixed(4) !== b.scale.toFixed(4) || a.uiSide !== b.uiSide) bad[c + 'x' + r] = true;
     }
     return bad;
@@ -125,10 +126,12 @@
         + ' below (' + names.join(', ') + ') will not match the real device. The rest are faithful.'
       : (!L ? 'layout.js did not load, so density differences cannot be checked.' : '');
 
-    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++) add(c, r, VW, VH, k, bad[c + 'x' + r]);
+    var pointer = (dev.coarse === undefined) ? null : dev.coarse;
+    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++)
+      add(c, r, VW, VH, k, bad[c + 'x' + r], pointer);
   }
 
-  function add(c, r, VW, VH, k, off) {
+  function add(c, r, VW, VH, k, off, COARSE) {
     var tile = document.createElement('div');
 
     var cap = document.createElement('div');
@@ -151,7 +154,8 @@
       f.style.height = VH + 'px';
       f.style.transform = 'scale(' + k + ')';
       f.loading = 'eager';
-      f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE;
+      f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE
+            + (COARSE === null ? '' : '&coarse=' + COARSE);
       // Read back what the frame actually measured. If it does not match the
       // size we asked for, the panel is a different layout from the real thing
       // and the sheet is lying — so say so on the panel rather than hide it.

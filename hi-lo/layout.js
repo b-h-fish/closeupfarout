@@ -36,6 +36,8 @@ var HiLoLayout = (function () {
               than centring the board alone. The calls are wider than the deck,
               so a centred board pushes them off the right edge
      sideEdge– margin each end of that row, when sideFit is set
+     on     – overrides for one kind of screen, e.g. on:{ tablet:{ sideFit:true } }.
+              Anything not named here behaves the same everywhere
      sideDrop– push the board down off centre, in units. A two-row board puts
               its deck-count and its PICK A PILE in the gap between the rows,
               which lands on the scene's horizon; this carries them clear
@@ -44,10 +46,11 @@ var HiLoLayout = (function () {
               is the default; on a board one row deep the deck starts at the
               top, which puts that figure up beside the wordmark             */
   var GRIDS = {
-    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true },
     '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
-    '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
+             on: { tablet: { sideFit:true } } },
 
     '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
@@ -66,8 +69,28 @@ var HiLoLayout = (function () {
   };
 
   function clampGrid(n) { return Math.max(1, Math.min(4, n | 0)); }
-  function rowFor(cols, rows) {
-    return GRIDS[clampGrid(cols) + 'x' + clampGrid(rows)];
+
+  /* Which kind of screen this is. Size alone cannot tell a tablet from a
+     desktop window of the same proportions — 1180x692 is both an iPad in
+     landscape and an ordinary browser window — so the pointer decides, and a
+     desktop resized small stays a desktop. Absent that signal it is a desktop,
+     which keeps every existing caller on the behaviour it already had. */
+  function device(vw, vh, coarse) {
+    if (!coarse) return 'desktop';
+    return Math.max(vw, vh) <= 950 ? 'phone' : 'tablet';
+  }
+
+  /* A row, with any overrides for this kind of screen folded in. A row says
+     what it does everywhere; `on` names the exceptions, so a screen that is
+     not mentioned keeps the shared behaviour and cannot drift from it. */
+  function rowFor(cols, rows, dev) {
+    var row = GRIDS[clampGrid(cols) + 'x' + clampGrid(rows)];
+    var over = row.on && row.on[dev];
+    if (!over) return row;
+    var merged = {}, k;
+    for (k in row)  if (k !== 'on') merged[k] = row[k];
+    for (k in over) merged[k] = over[k];
+    return merged;
   }
 
   function boardW(cols) { return cols*CARD_W + (cols-1)*GAP; }
@@ -111,8 +134,8 @@ var HiLoLayout = (function () {
     ];
   }
 
-  function game(cols, rows, vw, vh, dpr) {
-    var row = rowFor(cols, rows), ps = plans(cols, rows, row);
+  function game(cols, rows, vw, vh, dpr, coarse) {
+    var row = rowFor(cols, rows, device(vw, vh, coarse)), ps = plans(cols, rows, row);
     var scale = 1, uiSide = false;
     for (var i = 0; i < ps.length; i++) {
       var sc = step(ps[i].w, ps[i].h, vw, vh, row.fine, dpr);
@@ -139,11 +162,11 @@ var HiLoLayout = (function () {
      every grid, so the city does not shrink when the board does. Defined as
      whatever a three-row board would take — that is the look this was tuned
      against — and it depends only on the viewport, never on what is dealt. */
-  function world(vw, vh, dpr) { return game(3, 3, vw, vh, dpr).scale; }
+  function world(vw, vh, dpr, coarse) { return game(3, 3, vw, vh, dpr, coarse).scale; }
 
   /* Where the board sits in the canvas the scale produced. */
-  function board(cols, rows, W, H, uiSide) {
-    var row = rowFor(cols, rows);
+  function board(cols, rows, W, H, uiSide, dev) {
+    var row = rowFor(cols, rows, dev || 'desktop');
     var bw = boardW(cols), bh = boardH(rows);
     var blockH = uiSide ? bh : bh + 14 + 18;
     var y;
@@ -154,7 +177,9 @@ var HiLoLayout = (function () {
     }
     if (uiSide && row.sideDrop) y += row.sideDrop;
     var lean = (uiSide && row.sideFit) ? Math.round((SIDE_W - CARD_W) / 2) : 0;
-    var big  = (W - bw) / 2 >= CARD_W + 44;
+    /* A phone does without the deck entirely — there is no width to spare for
+       it, and the corner figure carries the count instead. */
+    var big  = (dev !== 'phone') && (W - bw) / 2 >= CARD_W + 44;
     return {
       x: Math.round((W - bw) / 2) - lean, y: y, w: bw, h: bh,
       big: big
@@ -164,7 +189,8 @@ var HiLoLayout = (function () {
   return {
     CARD_W: CARD_W, CARD_H: CARD_H, GAP: GAP,
     SIDE_W: SIDE_W, CALLS_W: CALLS_W, WORLD_MAX: WORLD_MAX, STEPS: STEPS,
-    GRIDS: GRIDS, rowFor: rowFor, step: step, game: game, board: board, world: world,
+    GRIDS: GRIDS, rowFor: rowFor, device: device,
+    step: step, game: game, board: board, world: world,
     boardW: boardW, boardH: boardH
   };
 })();
