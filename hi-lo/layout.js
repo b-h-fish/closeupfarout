@@ -67,7 +67,7 @@ var HiLoLayout = (function () {
                    'tablet-wide': { fine:true, sideH:42 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 },
-                   'phone-wide': { callsBeside:true, fine:true } } },
+                   'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
@@ -83,7 +83,7 @@ var HiLoLayout = (function () {
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 },
-                   'phone-wide': { callsBeside:true, fine:true } } },
+                   'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
@@ -100,7 +100,7 @@ var HiLoLayout = (function () {
                 arrangement and the tie went to stacking; 4x4's reserves put
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 },
-                   'phone-wide': { callsBeside:true, fine:true } } },
+                   'phone-wide': { callsBeside:true, fine:true, sideH:54 } } },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true, sideEdge:15,
              /* the calls sit beside the board wherever there is width for
