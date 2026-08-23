@@ -125,21 +125,29 @@ var HiLoLayout = (function () {
     return Math.max(vw, vh) <= 950 ? 'phone' : 'tablet';
   }
 
+  /* What a kind of screen wants of every board, before any row speaks. A
+     tablet on its side is wide and shallow, so the calls belong beside the
+     board there whatever the board is; a row can still say otherwise. */
+  var DEFAULTS = { 'tablet-wide': { callsBeside: true } };
+
   /* A row, with any overrides for this kind of screen folded in. A row says
      what it does everywhere; `on` names the exceptions, so a screen that is
      not mentioned keeps the shared behaviour and cannot drift from it. */
   function rowFor(cols, rows, dev, wide) {
     var row = GRIDS[clampGrid(cols) + 'x' + clampGrid(rows)];
-    if (!row.on) return row;
     /* 'tablet' covers the tablet held either way; 'tablet-wide' refines it on
-       its side, and is applied second so it wins where both are given. */
+       its side, and is applied second so it wins where both are given. Within
+       a key the screen's default goes first and the row's own word second. */
     var keys = wide ? [dev, dev + '-wide'] : [dev];
-    var merged = null, i, k;
+    var merged = null, i, j, k;
     for (i = 0; i < keys.length; i++) {
-      var over = row.on[keys[i]];
-      if (!over) continue;
-      if (!merged) { merged = {}; for (k in row) if (k !== 'on') merged[k] = row[k]; }
-      for (k in over) merged[k] = over[k];
+      var layers = [DEFAULTS[keys[i]], row.on && row.on[keys[i]]];
+      for (j = 0; j < 2; j++) {
+        var over = layers[j];
+        if (!over) continue;
+        if (!merged) { merged = {}; for (k in row) if (k !== 'on') merged[k] = row[k]; }
+        for (k in over) merged[k] = over[k];
+      }
     }
     return merged || row;
   }
