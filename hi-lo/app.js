@@ -330,7 +330,7 @@
         var tw = lead + fb.textW('LEFT', 1);
         var tx = s.x + ((CARD_W - tw) >> 1);
         var ty = s.y - 11;
-        if (L.rowFor(g.cols, g.rows, device).count === 'below') {
+        if (L.rowFor(g.cols, g.rows, device, W > H).count === 'below') {
           ty = s.y + CARD_H + 6;
         } else if (device !== 'desktop') {
           /* Off the desktop the board lands where it lands, so check rather

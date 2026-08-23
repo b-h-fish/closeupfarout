@@ -36,8 +36,12 @@ var HiLoLayout = (function () {
               than centring the board alone. The calls are wider than the deck,
               so a centred board pushes them off the right edge
      sideEdge– margin each end of that row, when sideFit is set
-     on     – overrides for one kind of screen, e.g. on:{ tablet:{ sideFit:true } }.
-              Anything not named here behaves the same everywhere
+     on     – overrides for one kind of screen, e.g. on:{ tablet:{ sideFit:true } };
+              add '-wide' to mean that screen on its side, e.g. 'tablet-wide',
+              which is applied after the plain key. Anything not named here
+              behaves the same everywhere
+     callsBeside– take the calls-beside-the-board arrangement even where
+              stacking them underneath would give a bigger card
      sideDrop– push the board down off centre, in units. A two-row board puts
               its deck-count and its PICK A PILE in the gap between the rows,
               which lands on the scene's horizon; this carries them clear
@@ -69,7 +73,10 @@ var HiLoLayout = (function () {
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
     '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true },
-    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9 },
+    '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9,
+             /* on a tablet on its side it stacked the calls underneath, which
+                bought a bigger card but left no room for the deck */
+             on: { 'tablet-wide': { callsBeside:true } } },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false,
              /* on a tablet held upright the board filled the screen: cards over
@@ -92,14 +99,20 @@ var HiLoLayout = (function () {
   /* A row, with any overrides for this kind of screen folded in. A row says
      what it does everywhere; `on` names the exceptions, so a screen that is
      not mentioned keeps the shared behaviour and cannot drift from it. */
-  function rowFor(cols, rows, dev) {
+  function rowFor(cols, rows, dev, wide) {
     var row = GRIDS[clampGrid(cols) + 'x' + clampGrid(rows)];
-    var over = row.on && row.on[dev];
-    if (!over) return row;
-    var merged = {}, k;
-    for (k in row)  if (k !== 'on') merged[k] = row[k];
-    for (k in over) merged[k] = over[k];
-    return merged;
+    if (!row.on) return row;
+    /* 'tablet' covers the tablet held either way; 'tablet-wide' refines it on
+       its side, and is applied second so it wins where both are given. */
+    var keys = wide ? [dev, dev + '-wide'] : [dev];
+    var merged = null, i, k;
+    for (i = 0; i < keys.length; i++) {
+      var over = row.on[keys[i]];
+      if (!over) continue;
+      if (!merged) { merged = {}; for (k in row) if (k !== 'on') merged[k] = row[k]; }
+      for (k in over) merged[k] = over[k];
+    }
+    return merged || row;
   }
 
   function boardW(cols) { return cols*CARD_W + (cols-1)*GAP; }
@@ -134,17 +147,22 @@ var HiLoLayout = (function () {
 
   function plans(cols, rows, row) {
     var bw = boardW(cols), bh = boardH(rows);
+    var side = { side:true, w: row.sideFit
+          ? bw + (CARD_W + 26) + (SIDE_W + 26) + 2*(row.sideEdge || 8)
+          : bw + (CARD_W + 26) + SIDE_W + 36,                          h: bh + row.sideH };
+    /* Some boards want the calls beside them whatever that costs in scale —
+       stacking them underneath would otherwise win on card size alone. */
+    if (row.callsBeside) return [side];
     return [
       { side:false, w: Math.max(bw + (CARD_W + 26) + 40, CALLS_W + 24), h: bh + row.head },
       { side:false, w: Math.max(bw + row.edge,           CALLS_W + 24), h: bh + row.head },
-      { side:true,  w: row.sideFit
-            ? bw + (CARD_W + 26) + (SIDE_W + 26) + 2*(row.sideEdge || 8)
-            : bw + (CARD_W + 26) + SIDE_W + 36,                          h: bh + row.sideH }
+      side
     ];
   }
 
   function game(cols, rows, vw, vh, dpr, coarse) {
-    var row = rowFor(cols, rows, device(vw, vh, coarse)), ps = plans(cols, rows, row);
+    var row = rowFor(cols, rows, device(vw, vh, coarse), vw > vh);
+    var ps = plans(cols, rows, row);
     var scale = 1, uiSide = false;
     for (var i = 0; i < ps.length; i++) {
       var sc = step(ps[i].w, ps[i].h, vw, vh, row.fine, dpr);
@@ -175,7 +193,7 @@ var HiLoLayout = (function () {
 
   /* Where the board sits in the canvas the scale produced. */
   function board(cols, rows, W, H, uiSide, dev) {
-    var row = rowFor(cols, rows, dev || 'desktop');
+    var row = rowFor(cols, rows, dev || 'desktop', W > H);
     var bw = boardW(cols), bh = boardH(rows);
     var blockH = uiSide ? bh : bh + 14 + 18;
     var y;
