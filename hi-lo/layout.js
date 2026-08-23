@@ -139,9 +139,18 @@ var HiLoLayout = (function () {
   }
 
   /* What a kind of screen wants of every board, before any row speaks. A
-     tablet on its side is wide and shallow, so the calls belong beside the
-     board there whatever the board is; a row can still say otherwise. */
-  var DEFAULTS = { 'tablet-wide': { callsBeside: true } };
+     wide screen puts the calls beside the board whatever the board is; a
+     row can still say otherwise. A window taller than it is wide keeps them
+     underneath, which is the only shape where beside does not fit.
+
+     sideFit rides along: the calls need more room to the board's right than
+     the deck does to its left, so a board centred by itself pushes them off
+     the edge. Wherever the calls sit beside the board, the row is what gets
+     centred. */
+  var DEFAULTS = {
+    'tablet-wide':  { callsBeside: true, sideFit: true },
+    'desktop-wide': { callsBeside: true, sideFit: true }
+  };
 
   /* A row, with any overrides for this kind of screen folded in. A row says
      what it does everywhere; `on` names the exceptions, so a screen that is
