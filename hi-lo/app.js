@@ -397,7 +397,11 @@
       button(cx, cy, cw, 'HI', { t:'call', call:'HI' }, on);
       button(cx, cy + ch + gp, cw, 'LO', { t:'call', call:'LO' }, on);
       button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on);
-      if (!on) hud('PICK A PILE', mid('PICK A PILE'), cy - 13, p.hudDim);
+      if (!on) {
+        var under = L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
+        hud('PICK A PILE', mid('PICK A PILE'),
+            under ? cy + stackH + 6 : cy - 13, p.hudDim);
+      }
       return;
     }
 

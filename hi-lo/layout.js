@@ -42,6 +42,9 @@ var HiLoLayout = (function () {
               behaves the same everywhere
      callsBeside– take the calls-beside-the-board arrangement even where
               stacking them underneath would give a bigger card
+     pickUnder– put PICK A PILE below the calls rather than above them. The
+              calls are as tall as a card, so above a board one row deep the
+              label clears the board's own top edge and floats in the sky
      sideDrop– push the board down off centre, in units. A two-row board puts
               its deck-count and its PICK A PILE in the gap between the rows,
               which lands on the scene's horizon; this carries them clear
@@ -50,7 +53,7 @@ var HiLoLayout = (function () {
               is the default; on a board one row deep the deck starts at the
               top, which puts that figure up beside the wordmark             */
   var GRIDS = {
-    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+    '1x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
@@ -65,7 +68,7 @@ var HiLoLayout = (function () {
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+    '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
@@ -78,7 +81,7 @@ var HiLoLayout = (function () {
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true,
+    '3x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
@@ -92,7 +95,7 @@ var HiLoLayout = (function () {
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true,
+    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
