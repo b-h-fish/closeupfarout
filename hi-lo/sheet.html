@@ -11,12 +11,19 @@
   header { margin-bottom: 12px; }
   h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
   .note { color: #8a7f96; margin-top: 4px; }
+  .warn { color: #e0a05c; margin-top: 4px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+  .bar button {
+    font: inherit; color: #b9ae94; background: #17111f; border: 1px solid #2e2438;
+    padding: 4px 10px; cursor: pointer; letter-spacing: .04em;
+  }
+  .bar button:hover { color: #f4edda; border-color: #4a3a58; }
+  .bar button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
   .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .tile { }
   .cap { display: flex; justify-content: space-between; color: #b9ae94; padding: 0 2px 3px; }
   .cap b { color: #f4edda; font-weight: 600; }
-  /* Each frame is given the real viewport size, so the game inside lays out
-     exactly as it would full screen; the wrapper then scales it down. */
+  /* Each frame is given a real viewport size, so the game inside lays out
+     exactly as it would on that screen; the wrapper then scales it down. */
   .win { position: relative; overflow: hidden; border: 1px solid #2e2438; background: #000; }
   .win iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
 </style>
@@ -24,35 +31,71 @@
 <body>
 <header>
   <h1>HI | LO — all sixteen grids</h1>
+  <div class="bar" id="bar"></div>
   <div class="note" id="meta">measuring…</div>
+  <div class="warn" id="warn"></div>
 </header>
 <div class="sheet" id="sheet"></div>
 
 <script>
 (function () {
-  // Captured before the sheet can scroll, so the frames get the true viewport.
-  var VW = window.innerWidth, VH = window.innerHeight;
+  // Captured before the sheet can scroll, so "this window" gets the true viewport.
+  var TRUE_W = window.innerWidth, TRUE_H = window.innerHeight;
   var DPR = window.devicePixelRatio || 1;
   var SEED = 424242, SCENE = 1;
 
+  /* Phone sizes are the viewport Safari actually leaves a page — device height
+     less its chrome — not the raw screen, since that is what the game reads. */
+  var DEVICES = [
+    { id:'win',    label:'This window',      w:TRUE_W, h:TRUE_H },
+    { id:'se',     label:'iPhone SE',        w:375,  h:553 },
+    { id:'15',     label:'iPhone 15',        w:390,  h:664 },
+    { id:'max',    label:'15 Pro Max',       w:430,  h:745 },
+    { id:'15L',    label:'iPhone 15 ↻',      w:844,  h:390 },
+    { id:'maxL',   label:'Pro Max ↻',        w:932,  h:430 }
+  ];
+
+  var bar = document.getElementById('bar');
   var sheet = document.getElementById('sheet');
-  var colW = (sheet.getBoundingClientRect().width - 3*12) / 4;
-  var k = colW / VW;
+  var meta = document.getElementById('meta');
+  var warn = document.getElementById('warn');
+  var timers = [];
 
-  document.getElementById('meta').textContent =
-    'viewport ' + VW + ' x ' + VH + ' css px  ·  device pixel ratio ' + DPR +
-    '  ·  each panel is a full-size game shown at ' + (k*100).toFixed(1) + '%' +
-    '  ·  seed ' + SEED;
+  DEVICES.forEach(function (d) {
+    var b = document.createElement('button');
+    b.textContent = d.label;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { build(d); });
+    d.btn = b;
+    bar.appendChild(b);
+  });
 
-  var jobs = [];
-  for (var r = 1; r <= 4; r++) {
-    for (var c = 1; c <= 4; c++) jobs.push([c, r]);
+  function build(dev) {
+    timers.forEach(clearTimeout); timers = [];
+    sheet.textContent = '';
+    DEVICES.forEach(function (d) { d.btn.setAttribute('aria-pressed', d === dev ? 'true' : 'false'); });
+
+    var VW = dev.w, VH = dev.h;
+    var colW = (sheet.getBoundingClientRect().width - 3*12) / 4;
+    var k = colW / VW;
+
+    meta.textContent =
+      dev.label + ' — ' + VW + ' × ' + VH + ' css px  ·  device pixel ratio ' + DPR +
+      '  ·  each panel is a full-size game shown at ' + (k*100).toFixed(1) + '%' +
+      '  ·  seed ' + SEED;
+
+    /* Scaling is chosen per grid by pixel density, not by screen size, so a
+       frame only lays out like a phone when this display is dense enough. */
+    warn.textContent = (dev.id !== 'win' && DPR < 2)
+      ? 'This display reports ' + DPR + '× — phones are 2× or 3×, and the grids that '
+        + 'scale continuously only do so at 2× and up. These panels will not match a real phone.'
+      : '';
+
+    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++) add(c, r, VW, VH, k);
   }
 
-  jobs.forEach(function (g, i) {
-    var c = g[0], r = g[1];
+  function add(c, r, VW, VH, k) {
     var tile = document.createElement('div');
-    tile.className = 'tile';
 
     var cap = document.createElement('div');
     cap.className = 'cap';
@@ -67,7 +110,7 @@
     sheet.appendChild(tile);
 
     // staggered, so sixteen canvases don't all start their loops at once
-    setTimeout(function () {
+    timers.push(setTimeout(function () {
       var f = document.createElement('iframe');
       f.width = VW; f.height = VH;
       f.style.width = VW + 'px';
@@ -76,8 +119,8 @@
       f.loading = 'eager';
       f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE;
       // Read back what the frame actually measured. If it does not match the
-      // real viewport the panel is a different layout from the live game, and
-      // the sheet is lying — so say so on the panel rather than hide it.
+      // size we asked for, the panel is a different layout from the real thing
+      // and the sheet is lying — so say so on the panel rather than hide it.
       f.addEventListener('load', function () {
         var got = cap.querySelector('.got');
         try {
@@ -88,8 +131,10 @@
         } catch (e) { got.textContent = 'unreadable'; }
       });
       win.appendChild(f);
-    }, i * 220);
-  });
+    }, (sheet.children.length - 1) * 220));
+  }
+
+  build(DEVICES[0]);
 })();
 </script>
 </body>
