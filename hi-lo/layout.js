@@ -95,7 +95,7 @@ var HiLoLayout = (function () {
                 all four four-row boards on the same footing */
              on: { 'tablet-wide': { fine:true, sideH:54 } } },
 
-    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true,
+    '4x1': { count:'below', edge:26, head:64, sideH:8, fine:true,  hudGap:false, withDeck:true, sideFit:true, pickUnder:true, sideEdge:15,
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
