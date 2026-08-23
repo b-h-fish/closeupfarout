@@ -44,12 +44,12 @@ var HiLoLayout = (function () {
               is the default; on a board one row deep the deck starts at the
               top, which puts that figure up beside the wordmark             */
   var GRIDS = {
-    '1x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '1x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
 
-    '2x1': { count:'below', edge:20, head:64, sideH:8, fine:false, hudGap:false },
+    '2x1': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true  },
     '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false },
