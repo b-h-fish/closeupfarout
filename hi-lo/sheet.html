@@ -36,6 +36,7 @@
   <h1>HI | LO — all sixteen grids</h1>
   <div class="row" id="rowWin"><i>this</i></div>
   <div class="row" id="rowPhone"><i>phone</i></div>
+  <div class="row" id="rowDesk"><i>desktop</i></div>
   <div class="row" id="rowTablet"><i>tablet</i></div>
   <div class="row" id="rowTv"><i>tv</i></div>
   <div class="note" id="meta">measuring…</div>
@@ -60,8 +61,16 @@
     { g:'rowPhone',  label:'iPhone SE',      w:375,  h:553,  dpr:2, coarse:1 },
     { g:'rowPhone',  label:'iPhone 15',      w:390,  h:664,  dpr:3, coarse:1 },
     { g:'rowPhone',  label:'15 Pro Max',     w:430,  h:745,  dpr:3, coarse:1 },
+    { g:'rowPhone',  label:'iPhone SE ↻',    w:667,  h:375,  dpr:2, coarse:1 },
     { g:'rowPhone',  label:'iPhone 15 ↻',    w:844,  h:390,  dpr:3, coarse:1 },
     { g:'rowPhone',  label:'Pro Max ↻',      w:932,  h:430,  dpr:3, coarse:1 },
+    /* A desktop window can be any shape, and a tall narrow one is the shape
+       none of the device sizes reach — nothing else here is portrait with a
+       mouse, which is what the layout keys on. */
+    { g:'rowDesk',   label:'Tall 700',       w:700,  h:900,  dpr:2, coarse:0 },
+    { g:'rowDesk',   label:'Tall 900',       w:900,  h:1100, dpr:2, coarse:0 },
+    { g:'rowDesk',   label:'Short 1152',     w:1152, h:547,  dpr:2, coarse:0 },
+    { g:'rowDesk',   label:'Laptop 1440',    w:1440, h:780,  dpr:2, coarse:0 },
     { g:'rowTablet', label:'iPad mini',      w:744,  h:1005, dpr:2, coarse:1 },
     { g:'rowTablet', label:'iPad Air',       w:820,  h:1052, dpr:2, coarse:1 },
     { g:'rowTablet', label:'iPad Pro 13',    w:1024, h:1238, dpr:2, coarse:1 },
