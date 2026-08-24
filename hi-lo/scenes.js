@@ -139,7 +139,7 @@ function vnoise(seed) {
 /* A cloud of gas: a tilted lens for the overall shape, broken up by two
    octaves of noise, then quantised to three steps of one hue. Several can
    overlap without turning to mud because each only ever writes its own three. */
-function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright, seed) {
+function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright, seed, tail) {
   var ca = Math.cos(tilt), sa = Math.sin(tilt);
   var cx = W * cxf, cy = hz * cyf;
   var n1 = vnoise(seed), n2 = vnoise(seed + 37);
@@ -149,7 +149,9 @@ function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright,
       var dx = x - cx, dy = y - cy;
       var u =  ca * dx + sa * dy;
       var v = -sa * dx + ca * dy;
-      var fu = 1 - Math.min(1, Math.abs(u) / along);
+      // `tail` shortens the far end only, so a cloud can taper unevenly
+      var reach = u > 0 ? along * (tail || 1) : along;
+      var fu = 1 - Math.min(1, Math.abs(u) / reach);
       var fv = 1 - Math.min(1, Math.abs(v) / across);
       if (fu <= 0 || fv <= 0) continue;
       var shape = fv * (0.40 + 0.60 * fu);
@@ -212,7 +214,7 @@ function drawScene(fb, S, W, H) {
     /* Its faintest step is a dark violet, not a dark olive — where the gold
        thins out over the band it now settles into the sky instead of browning
        it, and only shows its own colour where it is actually dense. */
-    cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508);
+    cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508, 0.42);
     // and a warm bank low on the right, under the rose
     cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733);
     stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301);
