@@ -613,7 +613,10 @@
 
   function onDown(e) {
     var q = toLogical(e); mouse.x = q.x; mouse.y = q.y;
-    if (fx) { flushFx(); return; }   // first click settles the board, next one acts
+    if (fx) {
+      flushFx();
+      if (!(g && (g.phase === 'WON' || g.phase === 'LOST'))) return;
+    }
     for (var i = hits.length - 1; i >= 0; i--) {
       var h = hits[i];
       if (q.x >= h.x && q.x < h.x+h.w && q.y >= h.y && q.y < h.y+h.h) { dispatch(h.act); return; }
