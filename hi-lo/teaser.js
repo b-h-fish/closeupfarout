@@ -223,7 +223,7 @@
        on all four. Hue carries the hot/cold read; brightness stays put. */
     var HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
     var COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
-    var HOT_C = null, COLD_C = null;              // packed once, on first use
+    var HOT_C = null, COLD_C = null, WHITE = null;   // packed once, on first use
 
     var WM_GAP = 5, WM_OVER = 2, WM_TALL = 11;
     function wordmarkW(k) { return (11 + WM_GAP + 1 + WM_GAP + 11) * k; }
@@ -232,6 +232,7 @@
       if (!HOT_C) {
         HOT_C = HOT.map(hex);
         COLD_C = COLD.map(hex);
+        WHITE = hex('#ffffff');
       }
     }
 
@@ -268,12 +269,16 @@
       textRows(t, 'HI', x, y, k, HOT_C);
       textRows(t, 'LO', lx, y, k, COLD_C);
 
-      /* The divider stays black — the two words carry the temperature and a
-         third colour between them only muddles the crossing. It overshoots the
-         caps at both ends, which no letter does, and that is what keeps it
-         reading as a rule rather than as a second I. */
+      /* The divider is white, and neutral on purpose: it sits between a hot
+         word and a cold one, so any tint in it would pull the crossing one
+         way. It takes the same ring the letters do — the mark is centred over
+         the board, so a bare white rule would land on cream card stock with
+         nothing to separate it, which is the trouble the letters already have.
+         It overshoots the caps at both ends, which no letter does, and that is
+         what keeps it reading as a rule rather than as a second I. */
       var top = y - WM_OVER * k, tall = WM_TALL * k;
-      t.rect(rx, top, k, tall, shadow);
+      t.rect(rx - k, top - k, 3 * k, tall + 2 * k, shadow);
+      t.rect(rx, top, k, tall, WHITE);
     }
 
     // ── the game clock ────────────────────────────────────────────────
