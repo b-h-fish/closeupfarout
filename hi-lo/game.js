@@ -58,20 +58,30 @@ var HiLo = (function () {
     var deck = shuffled(seed);
     var piles = [], i;
     for (i = 0; i < size; i++) piles.push({ cards: [deck[i]], alive: true });
-    return {
+    return autoPick({
       seed: seed, cols: cols, rows: rows, size: size,
       deck: deck,
       next: size,                 // index of the next card to come off the stock
       piles: piles,
       phase: 'PLAY',              // PLAY · RESURRECT · WON · LOST
-      // With a single pile there is nothing to choose between, so it is
-      // always the chosen one and a call can be made straight away.
-      selected: size === 1 ? 0 : -1,
+      selected: -1,
       players: Math.max(1, players | 0 || 1),
       turn: 0,
       last: null,                 // what just happened, for the renderer to show
       log: []
-    };
+    });
+  }
+
+  /* With one pile still alive there is nothing to choose between, so the game
+     chooses: the player calls straight away rather than naming the only pile
+     on the board first. A one-pile board is simply the case where this is
+     true from the deal. */
+  function autoPick(state) {
+    if (state.phase !== 'PLAY' || aliveCount(state) !== 1) return state;
+    for (var i = 0; i < state.size; i++) {
+      if (state.piles[i].alive) { state.selected = i; break; }
+    }
+    return state;
   }
 
   function top(state, i) {
@@ -176,8 +186,7 @@ var HiLo = (function () {
     if (stockLeft(state) === 0) state.phase = 'WON';
     else if (aliveCount(state) === 0) state.phase = 'LOST';
     else state.phase = 'PLAY';
-    if (state.phase === 'PLAY' && state.size === 1) state.selected = 0;
-    return state;
+    return autoPick(state);
   }
 
   /* Rebuild a game from its seed and action log — the hook multiplayer will
