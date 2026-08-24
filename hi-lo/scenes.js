@@ -25,15 +25,6 @@ var DECK = {
 };
 
 var SCENES = [
-  { key:'window', jp:'深夜の窓', name:'Late Window',
-    blurb:'Interior, high floor. A city held behind glass, a lamp just off the table.',
-    pal: P(Object.assign({}, DECK, {
-      sky:['#0a1030','#101a44','#17244f','#1d2c5c','#243668'],
-      tower:'#151d40', towerFar:'#1b2450', lit:'#ffd489', litDim:'#c99a55',
-      wall:'#191324', floor:'#221828', floorLit:'#3a2a34',
-      ui:'#e8dcc0', uiDim:'#9b8a76', uiShadow:'#0b0812', btnBg:'#2e2438', btnInk:'#e8dcc0',
-      pick:'#a878e8'
-    })) },
   { key:'dusk', jp:'黄昏', name:'Dusk Terrace',
     blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
     pal: P(Object.assign({}, DECK, {
@@ -115,23 +106,7 @@ function drawScene(fb, S, W, H) {
   var r = function (f) { return Math.round(H * f); };
   var gy = groundY(H);
 
-  if (S.key === 'window') {
-    fb.rect(0, 0, W, H, p.wall);
-    var ww = Math.min(W - 44, Math.round(W * 0.74));
-    var wx = Math.round((W - ww) / 2), wy = r(0.07);
-    var wh = gy - wy - 2;                  // its sill is the ground plane
-    fb.skyBand(wx, wy, ww, wh, p.sky);
-    skyline(fb, wx, wy, ww, wy + wh - Math.round(wh*0.12), p.towerFar, p.lit, p.litDim, 7, 0.30);
-    skyline(fb, wx, wy, ww, wy + wh, p.tower, p.lit, p.litDim, 19, 0.38);
-    fb.frame(wx-1, wy-1, ww+2, wh+2, p.floorLit);
-    // mullions, spaced so the panes stay squarish whatever the window's width
-    var panes = Math.max(2, Math.round(ww / 130));
-    for (var m = 1; m < panes; m++) fb.vline(wx + Math.round(ww*m/panes), wy, wh, p.floorLit);
-    fb.hline(wx, wy + (wh >> 1), ww, p.floorLit);
-    fb.rect(0, wy+wh+2, W, H-(wy+wh+2), p.floor);
-    fb.skyBand(0, wy+wh+2, W, groundBand(H), [p.floorLit, p.floor]);
-
-  } else if (S.key === 'dusk') {
+  if (S.key === 'dusk') {
     var hz = gy - r(0.02);                 // the skyline meets the ground plane
     fb.skyBand(0, 0, W, hz, p.sky);
     var sr = Math.max(16, Math.round(H * 0.085)), sx = (W>>1), sy = r(0.30);

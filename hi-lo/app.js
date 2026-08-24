@@ -51,7 +51,7 @@
   var bgCanvas, bgCtx, bgFb = null, worldScale = 2, bgW = 0, bgH = 0, bgDirty = true;
 
   var screen = 'SETUP';
-  var pickC = 3, pickR = 3, pickScene = 1;
+  var pickC = 3, pickR = 3, pickScene = 0;   // Dusk Terrace, the load-in default
   var g = null, fx = null, focus = 0, confirmMenu = false;
   /* Keyboard focus is only drawn once the keyboard is in use — otherwise
      pile 0 wears a ring from the moment the board is dealt, which reads as
