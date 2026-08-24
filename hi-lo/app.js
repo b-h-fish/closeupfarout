@@ -192,7 +192,10 @@
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    wordmark(fb, cx - (wordmarkW(3) >> 1), y, 3, p.hudInk);
+    /* The menu gets the hot/cold mark. In play the wordmark stays plain and
+       small in the corner — the board is what should be carrying colour
+       there, not the masthead. */
+    hiloMark(fb, cx - (hiloMarkW(3) >> 1), y, 3, p.hudShadow);
     y += 21 + 20;
 
     var gx = cx - (GWID >> 1), gy = y, r, c;

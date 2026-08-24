@@ -398,3 +398,68 @@ FB.prototype.cardEdge = function (cx, y, w, h, face, P) {
   this.rect(x, y, w, h, P.ink);
   if (w > 2) this.rect(x+1, y+1, w-2, h-2, face);
 };
+
+/* ── the HI | LO mark ──────────────────────────────────────────────────── */
+
+/* HI runs hot and LO runs cold: seven steps each, one per row of the font, so
+   the heat belongs to the glyph rather than being a gradient laid over it.
+
+   Both ramps stop short of their dark end on purpose. A red that falls to
+   near-black and a blue that falls to navy each lose a setting, and the mark
+   has to hold on all four — so hue does the hot/cold work and brightness stays
+   put. Lives here rather than in either caller because the front-page teaser
+   and the game's own menu both draw it, and a mark that drifts between the two
+   is worse than no mark at all. */
+var HILO_HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
+var HILO_COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
+var HILO_WHITE = '#ffffff';
+var HILO_PACKED = null;
+
+var HILO_GAP = 5, HILO_OVER = 2, HILO_TALL = 11;
+function hiloMarkW(k) { return (11 + HILO_GAP + 1 + HILO_GAP + 11) * k; }
+
+/* The font renderer takes one colour for a whole string, so the ramp has to be
+   applied a row at a time here instead. */
+function hiloRows(fb, s, x, y, k, ramp, flat) {
+  for (var i = 0; i < s.length; i++) {
+    var g = GLYPH[s[i]];
+    if (g) for (var j = 0; j < g.length; j++) {
+      var col = flat || ramp[Math.min(j, ramp.length - 1)];
+      for (var m = 0; m < g[j].length; m++) {
+        if (g[j][m] !== '.') fb.rect(x + m*k, y + j*k, k, k, col);
+      }
+    }
+    x += 6 * k;
+  }
+}
+
+var HILO_RING = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+
+function hiloMark(fb, x, y, k, shadow) {
+  if (!HILO_PACKED) {
+    HILO_PACKED = { hot: HILO_HOT.map(hex), cold: HILO_COLD.map(hex),
+                    white: hex(HILO_WHITE) };
+  }
+  var P2 = HILO_PACKED;
+  var rx = x + 11*k + HILO_GAP*k;              // where the divider stands
+  var lx = rx + k + HILO_GAP*k;                // where LO starts
+  var i;
+
+  /* A ring rather than an offset drop shadow. The mark lands on cream card
+     stock as often as on sky, and a shadow on one side only leaves the other
+     three sitting on a tone as light as the letters are. */
+  for (i = 0; i < HILO_RING.length; i++) {
+    hiloRows(fb, 'HI', x  + HILO_RING[i][0]*k, y + HILO_RING[i][1]*k, k, null, shadow);
+    hiloRows(fb, 'LO', lx + HILO_RING[i][0]*k, y + HILO_RING[i][1]*k, k, null, shadow);
+  }
+  hiloRows(fb, 'HI', x,  y, k, P2.hot);
+  hiloRows(fb, 'LO', lx, y, k, P2.cold);
+
+  /* The divider is white, and neutral on purpose: it stands between a hot word
+     and a cold one, so any tint in it would pull the crossing one way. It takes
+     the same ring the letters do, and it overshoots the caps at both ends —
+     which no letter does — so it reads as a rule rather than a second I. */
+  var top = y - HILO_OVER*k, tall = HILO_TALL*k;
+  fb.rect(rx - k, top - k, 3*k, tall + 2*k, shadow);
+  fb.rect(rx, top, k, tall, P2.white);
+}

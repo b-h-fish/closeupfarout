@@ -215,71 +215,8 @@
       return cache[idx];
     }
 
-    // ── the wordmark: HI runs hot, LO runs cold ───────────────────────
-    /* Seven steps each, one per row of the font, so the heat is a property of
-       the glyph rather than a gradient laid over it. Both ramps deliberately
-       stop short of their dark end: a red that falls to near-black and a blue
-       that falls to navy both lose the dark settings, and the mark has to hold
-       on all four. Hue carries the hot/cold read; brightness stays put. */
-    var HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
-    var COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
-    var HOT_C = null, COLD_C = null, WHITE = null;   // packed once, on first use
-
-    var WM_GAP = 5, WM_OVER = 2, WM_TALL = 11;
-    function wordmarkW(k) { return (11 + WM_GAP + 1 + WM_GAP + 11) * k; }
-
-    function ramps() {
-      if (!HOT_C) {
-        HOT_C = HOT.map(hex);
-        COLD_C = COLD.map(hex);
-        WHITE = hex('#ffffff');
-      }
-    }
-
-    /* The font renderer takes one colour for the whole string, so the ramp is
-       applied a row at a time here instead. */
-    function textRows(t, s, x, y, k, ramp, flat) {
-      for (var i = 0; i < s.length; i++) {
-        var gl = GLYPH[s[i]];
-        if (gl) for (var j = 0; j < gl.length; j++) {
-          var col = flat || ramp[Math.min(j, ramp.length - 1)];
-          for (var m = 0; m < gl[j].length; m++) {
-            if (gl[j][m] !== '.') t.rect(x + m * k, y + j * k, k, k, col);
-          }
-        }
-        x += 6 * k;
-      }
-    }
-
-    var RING = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
-
-    function wordmark(t, x, y, k, shadow) {
-      ramps();
-      var rx = x + 11 * k + WM_GAP * k;            // where the divider stands
-      var lx = rx + k + WM_GAP * k;                // where LO starts
-      var i;
-
-      /* A ring rather than an offset drop shadow. The mark lands on cream card
-         stock as often as on sky, and a shadow on one side only leaves the
-         other three sitting on a tone as light as the letters. */
-      for (i = 0; i < RING.length; i++) {
-        textRows(t, 'HI', x + RING[i][0] * k, y + RING[i][1] * k, k, null, shadow);
-        textRows(t, 'LO', lx + RING[i][0] * k, y + RING[i][1] * k, k, null, shadow);
-      }
-      textRows(t, 'HI', x, y, k, HOT_C);
-      textRows(t, 'LO', lx, y, k, COLD_C);
-
-      /* The divider is white, and neutral on purpose: it sits between a hot
-         word and a cold one, so any tint in it would pull the crossing one
-         way. It takes the same ring the letters do — the mark is centred over
-         the board, so a bare white rule would land on cream card stock with
-         nothing to separate it, which is the trouble the letters already have.
-         It overshoots the caps at both ends, which no letter does, and that is
-         what keeps it reading as a rule rather than as a second I. */
-      var top = y - WM_OVER * k, tall = WM_TALL * k;
-      t.rect(rx - k, top - k, 3 * k, tall + 2 * k, shadow);
-      t.rect(rx, top, k, tall, WHITE);
-    }
+    /* The mark itself lives in pixel.js — the game's menu draws the same one,
+       and two copies of a logo is exactly how they come to differ. */
 
     // ── the game clock ────────────────────────────────────────────────
     function newGame() {
@@ -514,7 +451,7 @@
            about to click. The mark carries itself on its own ring. */
         fb.dim(0, 0, W, H, 0.62);
         var wk = Math.max(1, Math.min(4, Math.round(W / 150)));
-        wordmark(fb, (W - wordmarkW(wk)) >> 1, (H - WM_TALL * wk) >> 1, wk,
+        hiloMark(fb, (W - hiloMarkW(wk)) >> 1, (H - HILO_TALL * wk) >> 1, wk,
                  pal().hudShadow);
       }
 
