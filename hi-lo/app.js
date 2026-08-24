@@ -104,6 +104,7 @@
 
   /* The setting, and in play the wordmark with it — both at the world scale. */
   function drawBackground() {
+    bgFb.clear();
     drawScene(bgFb, SCENES[pickScene], bgW, bgH);
     if (screen === 'GAME') wordmark(bgFb, WM_X + 6, WM_Y + 7, 1, pal().hudInk);
     var img = bgCtx.createImageData(bgW, bgH);
