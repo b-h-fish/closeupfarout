@@ -207,7 +207,7 @@ function drawScene(fb, S, W, H) {
        is what keeps it from reading as one flat colour. */
     cloud(fb, W, gy, -0.22, 0.50, 0.44, Math.max(18, gy*0.40), W*0.58, 0.92, p.band, p.bandMid, p.bandLit, 91);
     cloud(fb, W, gy,  0.34, 0.17, 0.40, Math.max(13, gy*0.27), W*0.17, 0.80, p.teal, p.tealMid, p.tealLit, 214);
-    cloud(fb, W, gy, -0.44, 0.84, 0.34, Math.max(12, gy*0.25), W*0.15, 0.76, p.rose, p.roseMid, p.roseLit, 377);
+    cloud(fb, W, gy, -0.44, 0.79, 0.39, Math.max(12, gy*0.25), W*0.22, 0.76, p.rose, p.roseMid, p.roseLit, 377);
     // the gold runs up into the top left, and fades as it goes
     /* Its faintest step is a dark violet, not a dark olive — where the gold
        thins out over the band it now settles into the sky instead of browning
