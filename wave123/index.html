@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wave field — closeupfarout</title>
+  <style>
+    /* ── WAVE FIELD ───────────────────────────────────────────
+       A standalone copy of the field that ran behind the front page, kept
+       whole so the front page can change without taking it down with it.
+       Deliberately self-contained: no shared stylesheet, no shared script,
+       nothing here reaching into ../index.html. Intended as the seed for an
+       ambient piece later, so it is the effect and nothing else. */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #090909;
+    }
+
+    /* The field's host: the script measures this for its size, and the canvas
+       is positioned against it. */
+    main {
+      position: fixed;
+      inset: 0;
+      background: #090909;
+    }
+
+    /* Must stay absolutely positioned. In flow a <canvas> is a replaced element
+       whose intrinsic size comes from its width/height attributes, and it would
+       size the layout rather than overlay it. */
+    #waves {
+      position: absolute;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+    }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+  </style>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+
+  <main><canvas id="waves" aria-hidden="true"></canvas></main>
+
+  <div class="grain"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // A dense field of light-blue lines. Each is a sum of three sines at
+    // unrelated frequencies rather than one clean sine, so the curve wanders
+    // instead of repeating — the difference between reading as water and
+    // reading as a signal trace.
+    //
+    // Parameters vary smoothly with position down the field rather than being
+    // drawn at random per line. At this density random parameters read as fizz;
+    // related ones read as a field, with neighbours moving almost together and
+    // the whole thing shearing slowly. The progressive `phase` is what makes
+    // the crests travel down the field rather than each line pulsing in place.
+    const host = document.querySelector('main');
+    const canvas = document.getElementById('waves');
+    if (!host || !canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const TAU = Math.PI * 2;
+
+    // Spacing, not CPU, is the binding constraint — much below ~1.2px apart the
+    // lines stop resolving and flatten into a wash. So the count is derived
+    // from the height on offer rather than fixed.
+    const SPACING = 1.2;
+    const N_MIN = 40, N_MAX = 700;
+    const STEP = 6;  // px between sampled points along a line
+
+    // Lines are grouped by colour and each group stroked as one path, so the
+    // frame costs a handful of stroke() calls rather than one per line.
+    const COLOURS = ['#8fc7e8', '#a8d8f0', '#6fb0d8', '#9ccde6', '#7dbfe0', '#b3dcf2'];
+    const ALPHA = 0.16;
+
+    // Math.sin is the hot path at this count — a table is several times quicker
+    // and the error is invisible at these amplitudes.
+    const LUT_BITS = 12, LUT_N = 1 << LUT_BITS;
+    const LUT = new Float32Array(LUT_N);
+    for (let i = 0; i < LUT_N; i++) LUT[i] = Math.sin(i / LUT_N * TAU);
+    const SCALE = LUT_N / TAU;
+    const fsin = a => LUT[((a * SCALE) | 0) & (LUT_N - 1)];
+
+    let lines = [];
+
+    function buildLines(n) {
+      lines = Array.from({ length: n }, (_, i) => {
+        const f = i / (n - 1); // 0 at the top of the field, 1 at the bottom
+        return {
+          y: 0.02 + f * 0.96,
+          amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
+          // Neighbouring lines sit slightly further through the same waveform,
+          // which is what turns a stack of curves into a travelling swell.
+          phase: f * 12.0,
+          k1: 1.10 + 0.45 * Math.sin(f * 3.3),
+          k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
+          k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
+          speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
+          bucket: i % COLOURS.length,
+        };
+      });
+    }
+    const NORM = 1.00 + 0.42 + 0.65;
+
+    // Flat colour, edge to edge — no end fade, so the lines carry their full
+    // weight right to both sides. Independent of size, so unlike a gradient
+    // these need no rebuilding on resize.
+    const STROKES = COLOURS.map(c => {
+      const n = parseInt(c.slice(1), 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' +
+             (n & 255) + ',' + ALPHA + ')';
+    });
+
+    let w = 0, h = 0;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = host.clientWidth;
+      h = host.clientHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      // Required, not belt-and-braces: <canvas> is a replaced element, so
+      // `inset: 0` with `width: auto` resolves to its intrinsic size (the
+      // attributes just set, in CSS px) rather than to the container. Without
+      // these the element is dpr times too large on a retina display.
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const n = Math.max(N_MIN, Math.min(N_MAX, Math.round(h / SPACING)));
+      if (n !== lines.length) buildLines(n);
+    }
+
+    function draw(t) {
+      if (!w || !h) return; // not laid out yet
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      for (let b = 0; b < COLOURS.length; b++) {
+        ctx.beginPath();
+        for (const ln of lines) {
+          if (ln.bucket !== b) continue;
+          const baseY = ln.y * h;
+          const amp = ln.amp * h;
+          const drift = ln.phase + t * ln.speed;
+          for (let x = 0; x <= w; x += STEP) {
+            const u = x / w;
+            const v = 1.00 * fsin(u * ln.k1 * TAU + drift)
+                    + 0.42 * fsin(u * ln.k2 * TAU + drift * 1.3)
+                    + 0.65 * fsin(u * ln.k3 * TAU + drift * 0.7);
+            const y = baseY + (v / NORM) * amp;
+            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+        }
+        ctx.strokeStyle = STROKES[b];
+        ctx.stroke();
+      }
+    }
+
+    let raf = null;
+    const startedAt = performance.now();
+
+    function frame(now) {
+      draw((now - startedAt) / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (raf || REDUCED) return;
+      raf = requestAnimationFrame(frame);
+    }
+    function stop() {
+      if (!raf) return;
+      cancelAnimationFrame(raf);
+      raf = null;
+    }
+
+    new ResizeObserver(() => { resize(); if (REDUCED) draw(0); }).observe(host);
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+    resize();
+    if (REDUCED) draw(0); else start();
+  })();
+  </script>
+
+</body>
+</html>
