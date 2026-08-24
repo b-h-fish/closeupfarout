@@ -137,11 +137,16 @@ var BIG = {
      '......#......','.....###.....','....#####....','...#######...','.............']
 };
 
+/* The club is seven wide where the others are five. Three lobes need a centre
+   column and two either side, and four-pixel lobes cannot be made symmetric in
+   five — which is why the old club was a spade with one pixel missing. Its flat
+   top is what separates it from the spade at a glance; rounding it gives back
+   the spade's own silhouette. Anything reading these is width-agnostic. */
 var SUIT = {
   S:['..#..','.###.','#####','#####','..#..','.###.'],
   H:['.#.#.','#####','#####','#####','.###.','..#..'],
   D:['..#..','.###.','#####','#####','.###.','..#..'],
-  C:['..#..','.###.','##.##','#####','..#..','.###.']
+  C:['..###..','..###..','#######','##.#.##','...#...','..###..']
 };
 
 FB.prototype.blit = function (art, x, y, c, flip) {
@@ -307,7 +312,7 @@ function cardFace(fb, x, y, w, h, rank, suit, P) {
       fb.blit(GLYPH[rank], ax, ay, ink, flip);
     }
     var iw = ten ? 8 : 5;
-    fb.blit(SUIT[suit], ax + ((iw-5)>>1), flip ? ay-7 : ay+8, ink, flip);
+    fb.blit(SUIT[suit], ax + ((iw - SUIT[suit][0].length) >> 1), flip ? ay-7 : ay+8, ink, flip);
   }
   index(x+3, y+4, false);
   index(x+w-3-(ten?8:5), y+h-11, true);
@@ -348,7 +353,8 @@ function cardFace(fb, x, y, w, h, rank, suit, P) {
   } else {
     var n = ten ? 10 : parseInt(rank, 10);
     PIPS[n].forEach(function (p) {
-      fb.blit(SUIT[suit], cols[p[0]]-2, top + Math.round(span*(p[1]/6)), ink, p[1] > 3);
+      fb.blit(SUIT[suit], cols[p[0]] - (SUIT[suit][0].length >> 1),
+              top + Math.round(span*(p[1]/6)), ink, p[1] > 3);
     });
   }
 }
