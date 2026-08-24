@@ -372,13 +372,49 @@ function drawScene(fb, S, W, H) {
     fb.skyBand(0, wbot, W, groundBand(H), [p.floorLit, p.floor]);
     // palms spread across whatever width we were given, rather than the four
     // hand-placed ones the mock could get away with
-    var n = Math.max(3, Math.round(W / 110));
+    /* Palms are placed rather than merely scattered: each one knows how far
+       its own fronds reach, so it can be held clear of its neighbour and of
+       the sun while keeping its jitter — the spacing reads as uneven without
+       any two of them running together. And since a palm grows with the
+       canvas, the count comes from the room each one wants rather than from
+       the width alone, so they stay evenly spread at any size. */
+    var need = H * 0.18 * 1.24 + 8;
+    var n = Math.max(3, Math.min(Math.round(W / 82), Math.floor(W / need)));
+    var cell = W / n;
+    /* How close a crown may come to the sun, tuned per side: the palm that
+       steps right of it tucks in under the disc, where the fronds droop away
+       and nothing actually meets. Checked against the drawn pixels, not the
+       bounding estimate, which is conservative here. */
+    var sunL = px2 - pr + 3, sunR = px2 + pr - 5;
+    /* Hold them apart only where there is room to. A narrow canvas cannot fit
+       three crowns side by side, and letting them crowd reads better than
+       shoving one off the edge to keep a rule. */
+    var roomy = cell >= need;
+    var prevX = -1e9, prevHalf = 0;
     for (var i = 0; i < n; i++) {
       var q = rng(41 + i*17);
-      var pxp = Math.round((i + 0.18 + q()*0.64) * (W / n));
+      var pxp = Math.round((i + 0.20 + q()*0.60) * cell);
       var ph  = Math.round(H * (0.13 + q()*0.10));
+      var half = Math.round(ph * 0.62) + 2;        // how far the fronds carry
+      var gap  = 5;
+
+      if (roomy) {
+        if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
+        if (pxp + half > sunL && pxp - half < sunR) {        // and clear of the sun
+          /* Step aside to whichever side it was already nearer. Always
+             stepping right cascades: one palm shoved past the sun pushes
+             every palm after it, and the last falls off the edge. */
+          var toLeft = sunL - half, toRight = sunR + half;
+          if (pxp < px2 && toLeft - half >= prevX + prevHalf + gap) pxp = toLeft;
+          else if (toRight + half <= W + half) pxp = toRight;
+          else pxp = toLeft;
+        }
+        if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
+      }
+
       palm(fb, pxp, wtop + Math.round(H*0.012) + Math.round(q()*H*0.03), ph,
            (i % 2 ? 1 : -1) * (4 + Math.round(q()*7)), p, 41 + i*17);
+      prevX = pxp; prevHalf = half;
     }
   }
 }
