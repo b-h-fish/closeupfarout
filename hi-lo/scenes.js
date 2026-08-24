@@ -58,6 +58,21 @@ var SCENES = [
       wall:'#04050d', floor:'#2b2f38', floorLit:'#474e5c',
       ui:'#e2e8f4', uiDim:'#8d95ab', uiShadow:'#04050d', btnBg:'#232936', btnInk:'#e2e8f4',
       pick:'#7fd4ff'
+    })) },
+  { key:'jungle', jp:'密林行', name:'Jungle Hike',
+    blurb:'Mid-morning deep in it. Light comes down in columns and the trail goes on.',
+    pal: P(Object.assign({}, DECK, {
+      sky:['#16302a','#173424','#1a3a1e','#204718','#2e5c1c','#457c26','#68a634','#9ac95a'],
+      mistFar:'#2a4a3c', mistNear:'#376248',
+      leafFar:'#27473a', leafMid:'#16300f', leafNear:'#0b1808',
+      trunkFar:'#2c4a2e', trunk:'#1d1610', trunkLit:'#3a2a1a',
+      shaftDim:'#4a6b22', shaftMid:'#8aa63e', shaftLit:'#f2e9a2',
+      pool:'#b9cf6a',
+      hazeMid:'#6f9a45', hazeLit:'#cfdc8a',
+      lit:'#eef6c0', litDim:'#84a05c',
+      wall:'#16302a', floor:'#2e2718', floorLit:'#54462a',
+      ui:'#eef5d8', uiDim:'#9aab84', uiShadow:'#0d1509', btnBg:'#26301c', btnInk:'#eef5d8',
+      pick:'#f5c460'
     })) }
 ];
 
@@ -182,6 +197,57 @@ function stars(fb, W, hz, p, n, seed) {
   }
 }
 
+/* A column of light through a gap in the canopy. Unlike gas this wants clean
+   edges — a beam that billows is smoke — so it is a plain distance falloff
+   with no noise in it, fading as it falls away from the gap. */
+function shaft(fb, W, hz, lean, cxf, wide, gain, dim, mid, lit) {
+  var c = Math.cos(lean), sn = Math.sin(lean), cx = W * cxf;
+  for (var y = 0; y < hz; y++) {
+    var fall = 1 - y / hz;
+    for (var x = 0; x < W; x++) {
+      var d = Math.abs((x - cx) * c - y * sn);
+      if (d >= wide) continue;
+      /* Linear across the beam, not squared — squared pulls it into a spine
+         and a beam of light has body. Three tones: glow, beam, core. */
+      var t = (1 - d / wide) * (0.66 + 0.34 * fall) * gain;
+      var thr = BAYER[y & 7][x & 7] / 64;
+      if (t <= thr) continue;
+      fb.px(x, y, t > 0.82 ? lit : (t > 0.46 ? mid : dim));
+    }
+  }
+}
+
+/* Foliage hanging from the top of the frame. Two octaves of the same noise
+   the gas clouds use — one for the overall sag of the canopy, one for the
+   leafiness of its edge — so it reads as a mass rather than a wave. */
+function canopy(fb, W, edge, depth, col, seed, coarse, up) {
+  var n1 = vnoise(seed), n2 = vnoise(seed + 61), n3 = vnoise(seed + 149);
+  for (var x = 0; x < W; x++) {
+    var sag  = n1(x / coarse, 0.5);                     // how the mass hangs
+    var lump = n2(x / (coarse * 0.26), 3.5) - 0.5;      // clusters of leaves
+    var jag  = n3(x / (coarse * 0.07), 9.5) - 0.5;      // the edge itself
+    var h = Math.round(depth * (0.40 + 0.60 * sag)
+                     + depth * 0.42 * lump
+                     + depth * 0.30 * jag);
+    if (h <= 0) continue;
+    if (up) fb.rect(x, edge - h, 1, h, col);          // rising from the trail
+    else    fb.rect(x, edge, 1, h, col);              // hanging from the top
+  }
+}
+
+/* A vine, falling from the canopy edge with a slow wander. Ends in a leaf,
+   which is the only thing that tells it from a scratch. */
+function vine(fb, x, top, len, p, seed) {
+  var q = rng(seed), drift = 0;
+  for (var i = 0; i < len; i++) {
+    if (q() > 0.72) drift += q() > 0.5 ? 1 : -1;
+    fb.px(x + drift, top + i, i > len - 4 ? p.leafFar : p.leafMid);
+  }
+  var ly = top + len;
+  fb.rect(x + drift - 1, ly, 3, 2, p.leafFar);
+  fb.px(x + drift, ly + 2, p.leafFar);
+}
+
 function drawScene(fb, S, W, H) {
   var p = S.pal;
   var r = function (f) { return Math.round(H * f); };
@@ -219,6 +285,67 @@ function drawScene(fb, S, W, H) {
     cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733);
     stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301);
     // the deck: flat, and a lit lip where it meets the dark, like the others
+    fb.rect(0, gy, W, H - gy, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
+
+  } else if (S.key === 'jungle') {
+    fb.skyBand(0, 0, W, gy, p.sky);        // dark overhead, bright down the trail
+
+    /* Depth is carried by colour as much as value: the far layers are cooler
+       and bluer, the near ones warm and almost black. */
+    cloud(fb, W, gy, -0.03, 0.50, 0.46, Math.max(12, gy*0.30), W*0.75, 0.62, null, p.mistFar, p.mistNear, 611);
+
+    /* Trees back in the haze. Dithered away toward the trail so they sink
+       into the mist rather than standing there like poles. */
+    var fq = rng(88), fn = Math.max(6, Math.round(W / 78));
+    for (var fi = 0; fi < fn; fi++) {
+      var fx = Math.round((fi + 0.1 + fq() * 0.8) * (W / fn));
+      var fw = Math.max(1, Math.round(W * 0.0035));
+      var ftop = Math.round(gy * fq() * 0.30);
+      for (var fy = ftop; fy < gy; fy++) {
+        var keep = 0.95 - 0.95 * ((fy - ftop) / (gy - ftop));
+        if (BAYER[fy & 7][fx & 7] / 64 > keep) continue;
+        fb.rect(fx, fy, fw, 1, p.trunkFar);
+      }
+    }
+
+    canopy(fb, W, 0, gy * 0.46, p.leafFar, 512, 52, false);
+
+    // light down through the gaps, and where each column lands on the trail
+    var beams = [[0.20, 0.24, 0.070, 0.86], [0.13, 0.45, 0.052, 0.88],
+                 [0.24, 0.66, 0.044, 0.80], [0.17, 0.87, 0.036, 0.70]];
+    for (var bi = 0; bi < beams.length; bi++) {
+      var bm = beams[bi];
+      shaft(fb, W, gy, bm[0], bm[1], Math.max(7, W*bm[2]), bm[3], p.shaftDim, p.shaftMid, p.shaftLit);
+      var px2 = Math.round(W*bm[1] + Math.sin(bm[0]) * gy), pw = Math.max(6, W*bm[2]*1.5);
+      for (var pxx = -pw; pxx <= pw; pxx++) {          // the pool it makes
+        var pt = (1 - Math.abs(pxx)/pw) * bm[3];
+        for (var pyy = -3; pyy <= 2; pyy++) {
+          if (pt * (1 - Math.abs(pyy)/4) > BAYER[(gy+pyy)&7][(px2+pxx)&7]/64)
+            fb.px(px2 + pxx, gy - 4 + pyy, p.pool);
+        }
+      }
+    }
+
+    canopy(fb, W, 0, gy * 0.36, p.leafMid, 733, 33, false);
+
+    var tq = rng(404), tn = Math.max(5, Math.round(W / 96));
+    for (var ti = 0; ti < tn; ti++) {
+      var tx = Math.round((ti + 0.12 + tq() * 0.76) * (W / tn));
+      var base = Math.max(3, Math.round(W * (0.005 + tq() * 0.014)));
+      var lean = (tq() - 0.5) * 0.07;
+      for (var ty = 0; ty < gy; ty++) {                // wider at the foot
+        var tw = Math.max(2, Math.round(base * (0.66 + 0.34 * ty / gy)));
+        var ox = Math.round(lean * (gy - ty));
+        fb.rect(tx + ox, ty, tw, 1, p.trunk);
+        fb.px(tx + ox + tw - 1, ty, p.trunkLit);
+      }
+    }
+
+    canopy(fb, W, 0, gy * 0.24, p.leafNear, 951, 17, false);
+    canopy(fb, W, gy, gy * 0.21, p.leafMid,  178, 21, true);
+    canopy(fb, W, gy, gy * 0.13, p.leafNear, 266, 12, true);
+
     fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
