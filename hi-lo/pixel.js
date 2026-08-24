@@ -132,13 +132,12 @@ var BIG = {
   D:['......#......','.....###.....','....#####....','...#######...','..#########..',
      '.###########.','#############','.###########.','..#########..','...#######...',
      '....#####....','.....###.....','......#......','.............','.............'],
-  /* Flat-topped, like the small one — the ace showed a rounded club above a
-     flat-topped index, two designs on one card. The slotted lobes stay: at
-     this size there is room for them to read, which is what the five-wide
-     glyph never had. */
-  C:['...#######...','...#######...','...#######...','..#########..','.###########.',
-     '###.#####.###','###.#####.###','###.#####.###','.###########.','..####.####..',
-     '......#......','.....###.....','....#####....','...#######...','.............']
+  /* The small club at double size, pixel for pixel. It is fourteen by twelve
+     where the others are thirteen by fifteen; nothing reads these sizes, they
+     are centred from the art itself. */
+  C:['....######....','....######....','....######....','....######....',
+     '##############','##############','####..##..####','####..##..####',
+     '......##......','......##......','....######....','....######....']
 };
 
 /* The club is seven wide where the others are five. Three lobes need a centre
