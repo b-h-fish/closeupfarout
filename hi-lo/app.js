@@ -32,9 +32,10 @@
     return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   })();
   var device = 'desktop';
-  /* Every setting lays its ground plane between these fractions of the canvas,
-     so text landing in the band sits on a horizon whichever one is playing. */
-  var GROUND_TOP = 0.42, GROUND_BOT = 0.47;
+  /* Every setting lays its ground plane on this fraction of the canvas — one
+     line now, not a band, so text only has to clear the one. Kept in step with
+     GROUND in scenes.js. */
+  var GROUND = 0.42;
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than
@@ -337,7 +338,7 @@
              than assume: if the figure would sit on the ground plane, drop it
              under the deck instead. Desktop is left exactly as tuned. */
           var pad = 12 / scale;
-          if (ty + 7 > GROUND_TOP*H - pad && ty < GROUND_BOT*H + pad) {
+          if (ty + 7 > GROUND*H - pad && ty < GROUND*H + pad) {
             ty = s.y + CARD_H + 6;
           }
         }

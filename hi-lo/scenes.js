@@ -101,14 +101,25 @@ function palm(fb, x, baseY, h, lean, P2, seed) {
   fb.rect(cx - 1, cy - 1, 3, 3, P2.trunkLit);      // coconuts at the crown
 }
 
+/* Where every setting stops being sky and starts being ground. One number,
+   shared, because the board is laid out against it: the deck-count and the
+   PICK A PILE of a two-row board fall near this line, and while the settings
+   each had their own the text had to clear all of them at once. A new setting
+   inherits the whole of that work by calling these two. */
+var GROUND = 0.42;
+function groundY(H)    { return Math.round(H * GROUND); }
+function groundBand(H) { return Math.min(22, Math.round(H * 0.05)); }
+
 function drawScene(fb, S, W, H) {
   var p = S.pal;
   var r = function (f) { return Math.round(H * f); };
+  var gy = groundY(H);
 
   if (S.key === 'window') {
     fb.rect(0, 0, W, H, p.wall);
     var ww = Math.min(W - 44, Math.round(W * 0.74));
-    var wh = r(0.40), wx = Math.round((W - ww) / 2), wy = r(0.07);
+    var wx = Math.round((W - ww) / 2), wy = r(0.07);
+    var wh = gy - wy - 2;                  // its sill is the ground plane
     fb.skyBand(wx, wy, ww, wh, p.sky);
     skyline(fb, wx, wy, ww, wy + wh - Math.round(wh*0.12), p.towerFar, p.lit, p.litDim, 7, 0.30);
     skyline(fb, wx, wy, ww, wy + wh, p.tower, p.lit, p.litDim, 19, 0.38);
@@ -118,10 +129,10 @@ function drawScene(fb, S, W, H) {
     for (var m = 1; m < panes; m++) fb.vline(wx + Math.round(ww*m/panes), wy, wh, p.floorLit);
     fb.hline(wx, wy + (wh >> 1), ww, p.floorLit);
     fb.rect(0, wy+wh+2, W, H-(wy+wh+2), p.floor);
-    fb.skyBand(0, wy+wh+2, W, Math.min(30, r(0.07)), [p.floorLit, p.floor]);
+    fb.skyBand(0, wy+wh+2, W, groundBand(H), [p.floorLit, p.floor]);
 
   } else if (S.key === 'dusk') {
-    var hz = r(0.44);
+    var hz = gy - r(0.02);                 // the skyline meets the ground plane
     fb.skyBand(0, 0, W, hz, p.sky);
     var sr = Math.max(16, Math.round(H * 0.085)), sx = (W>>1), sy = r(0.30);
     for (var y=-sr;y<=sr;y++) for (var x=-sr;x<=sr;x++) {
@@ -131,12 +142,12 @@ function drawScene(fb, S, W, H) {
       }
     }
     skyline(fb, 0, r(0.10), W, hz - r(0.03), p.towerFar, p.lit, p.litDim, 3, 0.16);
-    skyline(fb, 0, r(0.16), W, hz + r(0.02), p.tower, p.lit, p.litDim, 23, 0.26);
-    fb.rect(0, hz + r(0.02), W, H, p.floor);
-    fb.skyBand(0, hz + r(0.02), W, Math.min(28, r(0.06)), [p.floorLit, p.floor]);
+    skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26);
+    fb.rect(0, gy, W, H, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
   } else {
-    var wtop = r(0.30), wbot = r(0.42);
+    var wtop = r(0.30), wbot = gy;         // the waterline is the ground plane
     fb.skyBand(0, 0, W, wtop, p.sky);
     var pr = Math.max(12, Math.round(H*0.05)), px2 = Math.round(W*0.72), py2 = r(0.09);
     for (var yy=-pr;yy<=pr;yy++) for (var xx=-pr;xx<=pr;xx++) {
@@ -155,7 +166,7 @@ function drawScene(fb, S, W, H) {
       }
     }
     fb.rect(0, wbot, W, H-wbot, p.floor);
-    fb.skyBand(0, wbot, W, Math.min(22, r(0.05)), [p.floorLit, p.floor]);
+    fb.skyBand(0, wbot, W, groundBand(H), [p.floorLit, p.floor]);
     // palms spread across whatever width we were given, rather than the four
     // hand-placed ones the mock could get away with
     var n = Math.max(3, Math.round(W / 110));
