@@ -64,7 +64,8 @@ var HiLoLayout = (function () {
                 let the reserves set the height. On a tablet on its side it
                 sat at 94% where 2x3 and 4x3 sat at 85% — same reserve there */
              on: { phone: { fine:true, head:128, sideH:50 },
-                   'tablet-wide': { fine:true, sideH:42 } } },
+                   'tablet-wide': { fine:true, sideH:42 },
+                   desktop:       { fine:true, sideH:42 } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 },
                    phone:         { fine:true, head:134, sideH:140, sideFit:true },
@@ -96,7 +97,8 @@ var HiLoLayout = (function () {
     '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 },
-                   'tablet-wide': { fine:true, sideH:42 } } },
+                   'tablet-wide': { fine:true, sideH:42 },
+                   desktop:       { fine:true, sideH:42 } } },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              /* on a tablet on its side, stepped scaling tied with the stacked
                 arrangement and the tie went to stacking; 4x4's reserves put
