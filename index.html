@@ -262,19 +262,13 @@
       position: relative;
       z-index: 1;
       grid-column: 2;
-      grid-row: 2;
+      grid-row: 1;
       background: #090909;
       color: #f5f2ec;
       /* Mirror of the weave's margins: full against the page edge, half
          facing the left column. */
       padding: 0 2rem 0 1rem;
     }
-
-    /* The field keeps the top of its column; the game takes the bottom, and a
-       little more than half of it — two rows of cards need the height, and the
-       field reads the same at any size. */
-    main { grid-template-rows: 1fr 1.3fr; }
-    #weave-pane { grid-row: 1 / span 2; }
 
     #hilo-link {
       position: relative;
@@ -286,54 +280,35 @@
       text-decoration: none;
     }
 
-    /* The art is a bounded screen rather than a bleed. Every setting is
-       landscape by construction — ground plane at 42%, sky above — so a tall
-       pane filled edge to edge leaves the bottom half an empty table. Holding
-       a landscape ratio and centring it lets the same block sit in a strip, a
-       column or a phone without being recomposed. */
+    /* The art fills the pane. It is not stretched to do it: the board is
+       always drawn at the card's own size and the whole canvas is scaled by a
+       whole number, so what changes with the pane is how much setting sits
+       around the board — never the size of a card. */
     #hilo-stage {
       position: relative;
       flex: 1;
       min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.2rem 0 1rem;
+      /* Margin, not padding: the stage box is what the canvas measures itself
+         against, so it should already be the drawable area. */
+      margin: 1.2rem 0;
     }
     #hilo-canvas {
+      /* Sized in JS to a whole multiple of the art, then centred — the few
+         pixels of slack that leaves are the price of never scaling a pixel by
+         a fraction. */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       display: block;
-      aspect-ratio: 8 / 5;
-      width: 100%;
-      max-width: 100%;
-      max-height: 100%;
       /* Integer scaling is the whole aesthetic — never let the browser
          smooth it back into mush. */
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
 
-    /* Same anatomy as the weave's attributions — a rule, then small serif text
-       — so the two previews read as siblings rather than as two designs. */
-    #hilo-meta {
-      flex-shrink: 0;
-      border-top: 1px solid rgba(245, 242, 236, 0.14);
-      padding: 0.9rem 0 1.1rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.3rem 1.5rem;
-    }
-    #hilo-meta span {
-      font-family: 'EB Garamond', serif;
-      font-size: 0.83rem;
-      line-height: 1.4;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      opacity: 0.9;
-    }
-    #hilo-meta .right { text-align: right; }
 
-    /* ── MOBILE: the two previews stack, the field drops out ── */
+    /* ── MOBILE: the two previews stack ── */
     @media (max-width: 768px) {
       main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
       #weave-pane { grid-column: 1; grid-row: 1; }
@@ -363,10 +338,6 @@
     <div id="hilo-pane">
       <a id="hilo-link" href="/hi-lo/" aria-label="Open Hi Lo">
         <div id="hilo-stage"><canvas id="hilo-canvas" aria-hidden="true"></canvas></div>
-        <div id="hilo-meta">
-          <span id="hilo-setting"></span>
-          <span class="right">a card game</span>
-        </div>
       </a>
     </div>
 
@@ -389,13 +360,8 @@
     var cv = document.getElementById('hilo-canvas');
     if (!cv || !window.HiLoTeaser) return;
 
-    var nm = document.getElementById('hilo-setting');
-    var t = window.HiLoTeaser.make(cv, {
-      cols: 3, rows: 2,
-      onScene: function (name) { if (nm) nm.textContent = name; }
-    });
+    var t = window.HiLoTeaser.make(cv, { cols: 3, rows: 3 });
     if (!t) return;
-    if (nm) nm.textContent = t.name();
 
     var link = document.getElementById('hilo-link');
     if (link && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
