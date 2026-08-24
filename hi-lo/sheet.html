@@ -39,6 +39,7 @@
   <div class="row" id="rowDesk"><i>desktop</i></div>
   <div class="row" id="rowTablet"><i>tablet</i></div>
   <div class="row" id="rowTv"><i>tv</i></div>
+  <div class="row" id="rowScene"><i>theme</i></div>
   <div class="note" id="meta">measuring…</div>
   <div class="warn" id="warn"></div>
 </header>
@@ -50,7 +51,11 @@
   // Captured before the sheet can scroll, so "this window" gets the true viewport.
   var TRUE_W = window.innerWidth, TRUE_H = window.innerHeight;
   var DPR = window.devicePixelRatio || 1;
-  var SEED = 424242, SCENE = 1;
+  var SEED = 424242;
+  /* Index into SCENES in scenes.js — the same number the page takes as
+     ?scene=, so a panel shows exactly what that link would. */
+  var SCENES = [{ i:0, label:'Late Window' }, { i:1, label:'Dusk Terrace' }, { i:2, label:'Palm Court' }];
+  var SCENE = 1;
   var L = window.HiLoLayout;
 
   /* Sizes are the viewport the browser actually leaves a page — device height
@@ -96,6 +101,16 @@
     document.getElementById(d.g).appendChild(b);
   });
 
+  var current = DEVICES[0];
+  SCENES.forEach(function (sc) {
+    var b = document.createElement('button');
+    b.textContent = sc.label;
+    b.setAttribute('aria-pressed', sc.i === SCENE ? 'true' : 'false');
+    b.addEventListener('click', function () { SCENE = sc.i; build(current); });
+    sc.btn = b;
+    document.getElementById('rowScene').appendChild(b);
+  });
+
   /* Scaling is chosen per grid by pixel density, not by screen size, and the
      only thing that matters is whether it is 2x or better. A frame runs at this
      display's density whatever size we give it, so where the two disagree the
@@ -116,7 +131,9 @@
   function build(dev) {
     timers.forEach(clearTimeout); timers = [];
     sheet.textContent = '';
+    current = dev;
     DEVICES.forEach(function (d) { d.btn.setAttribute('aria-pressed', d === dev ? 'true' : 'false'); });
+    SCENES.forEach(function (sc) { sc.btn.setAttribute('aria-pressed', sc.i === SCENE ? 'true' : 'false'); });
 
     var VW = dev.w, VH = dev.h;
     var colW = (sheet.getBoundingClientRect().width - 3*12) / 4;
@@ -124,6 +141,7 @@
 
     meta.textContent =
       dev.label + ' — ' + VW + ' × ' + VH + ' css px at ' + dev.dpr + '×' +
+      '  ·  ' + SCENES[SCENE].label +
       '  ·  this display is ' + DPR + '×' +
       '  ·  panels are full size shown at ' + (k*100).toFixed(1) + '%' +
       '  ·  seed ' + SEED;
