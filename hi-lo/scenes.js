@@ -44,6 +44,20 @@ var SCENES = [
       wall:'#2a5f66', floor:'#255760', floorLit:'#3d7a80',
       ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
       pick:'#5fe0c8'
+    })) },
+  { key:'space', jp:'宇宙遊泳', name:'Space Walk',
+    blurb:'Outside the station, tethered. Gas and starlight overhead, deck plate underfoot.',
+    pal: P(Object.assign({}, DECK, {
+      sky:['#0a0e28','#0b1030','#0d1338','#0f1740','#111a48','#131e50'],
+      band:'#241f4a', bandMid:'#3f3474', bandLit:'#8779c4',
+      teal:'#0d3a46', tealMid:'#186a76', tealLit:'#43b3ae',
+      rose:'#3d1c3c', roseMid:'#77315c', roseLit:'#c9628f',
+      gold:'#241f42', goldMid:'#7a5a2c', goldLit:'#d9a75a',
+      coral:'#43203a', coralMid:'#95452f', coralLit:'#f0a05c',
+      lit:'#fff6e2', litDim:'#93a0c6', litWarm:'#ffd2a0', litCool:'#a8dcff',
+      wall:'#04050d', floor:'#2b2f38', floorLit:'#474e5c',
+      ui:'#e2e8f4', uiDim:'#8d95ab', uiShadow:'#04050d', btnBg:'#232936', btnInk:'#e2e8f4',
+      pick:'#7fd4ff'
     })) }
 ];
 
@@ -101,6 +115,71 @@ var GROUND = 0.42;
 function groundY(H)    { return Math.round(H * GROUND); }
 function groundBand(H) { return Math.min(22, Math.round(H * 0.05)); }
 
+/* A galactic band. skyBand only ramps vertically, so this is the one genuinely
+   new primitive the setting needs: distance from a tilted line, dithered so the
+   dust breaks up rather than banding. Three steps of brightness, not a
+   gradient — the spine reads as a spine that way. */
+/* Smooth value noise. Gas has no straight edges, and a clean falloff drawn
+   straight gives ribbons — this is what turns the ribbon into billows. */
+function vnoise(seed) {
+  function h(ix, iy) {
+    var n = (ix * 374761393 + iy * 668265263 + seed * 1274126177) | 0;
+    n = (n ^ (n >> 13)) * 1274126177;
+    return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
+  }
+  return function (x, y) {
+    var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    var sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    var a0 = h(x0, y0), b0 = h(x0 + 1, y0), c0 = h(x0, y0 + 1), d0 = h(x0 + 1, y0 + 1);
+    var top = a0 + (b0 - a0) * sx, bot = c0 + (d0 - c0) * sx;
+    return top + (bot - top) * sy;
+  };
+}
+
+/* A cloud of gas: a tilted lens for the overall shape, broken up by two
+   octaves of noise, then quantised to three steps of one hue. Several can
+   overlap without turning to mud because each only ever writes its own three. */
+function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright, seed) {
+  var ca = Math.cos(tilt), sa = Math.sin(tilt);
+  var cx = W * cxf, cy = hz * cyf;
+  var n1 = vnoise(seed), n2 = vnoise(seed + 37);
+  var s1 = Math.max(5, across * 0.30), s2 = Math.max(3, across * 0.11);
+  for (var y = 0; y < hz; y++) {
+    for (var x = 0; x < W; x++) {
+      var dx = x - cx, dy = y - cy;
+      var u =  ca * dx + sa * dy;
+      var v = -sa * dx + ca * dy;
+      var fu = 1 - Math.min(1, Math.abs(u) / along);
+      var fv = 1 - Math.min(1, Math.abs(v) / across);
+      if (fu <= 0 || fv <= 0) continue;
+      var shape = fv * (0.40 + 0.60 * fu);
+      var billow = 0.22 + 0.90 * n1(x / s1, y / s1) + 0.40 * n2(x / s2, y / s2);
+      var t = shape * billow * gain;
+      var thr = BAYER[y & 7][x & 7] / 64;
+      if (t <= thr) continue;                        // full dither: gas thins out
+      var col = t > 0.88 ? bright : (t > 0.62 ? mid : dim);
+      if (col == null) continue;                     // a cloud may skip its
+      fb.px(x, y, col);                              // faintest step entirely
+    }
+  }
+}
+
+/* Stars in a few temperatures, so the field is not one grey. The near ones
+   get rays; the rest are single pixels, which is all a star is at this size. */
+function stars(fb, W, hz, p, n, seed) {
+  var q = rng(seed);
+  for (var i = 0; i < n; i++) {
+    var x = Math.round(q() * (W - 1)), y = Math.round(q() * (hz - 1)), b = q(), h = q();
+    var col = h > 0.82 ? p.litWarm : (h > 0.62 ? p.litCool : p.lit);
+    if (b > 0.972) {
+      fb.px(x, y, col);
+      fb.px(x - 1, y, p.litDim); fb.px(x + 1, y, p.litDim);
+      fb.px(x, y - 1, p.litDim); fb.px(x, y + 1, p.litDim);
+    } else if (b > 0.58) fb.px(x, y, col);
+    else fb.px(x, y, p.litDim);
+  }
+}
+
 function drawScene(fb, S, W, H) {
   var p = S.pal;
   var r = function (f) { return Math.round(H * f); };
@@ -119,6 +198,26 @@ function drawScene(fb, S, W, H) {
     skyline(fb, 0, r(0.10), W, hz - r(0.03), p.towerFar, p.lit, p.litDim, 3, 0.16);
     skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26);
     fb.rect(0, gy, W, H, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
+
+  } else if (S.key === 'space') {
+    fb.skyBand(0, 0, W, gy, p.sky);
+    /* One galactic band across the whole sky, then gas at three temperatures
+       laid over it at different angles. They overlap rather than tile, which
+       is what keeps it from reading as one flat colour. */
+    cloud(fb, W, gy, -0.22, 0.50, 0.44, Math.max(18, gy*0.40), W*0.58, 0.92, p.band, p.bandMid, p.bandLit, 91);
+    cloud(fb, W, gy,  0.34, 0.17, 0.40, Math.max(13, gy*0.27), W*0.17, 0.80, p.teal, p.tealMid, p.tealLit, 214);
+    cloud(fb, W, gy, -0.44, 0.84, 0.34, Math.max(12, gy*0.25), W*0.15, 0.76, p.rose, p.roseMid, p.roseLit, 377);
+    // the gold runs up into the top left, and fades as it goes
+    /* Its faintest step is a dark violet, not a dark olive — where the gold
+       thins out over the band it now settles into the sky instead of browning
+       it, and only shows its own colour where it is actually dense. */
+    cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508);
+    // and a warm bank low on the right, under the rose
+    cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733);
+    stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301);
+    // the deck: flat, and a lit lip where it meets the dark, like the others
+    fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
   } else {
