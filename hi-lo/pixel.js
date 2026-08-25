@@ -421,6 +421,13 @@ FB.prototype.cardEdge = function (cx, y, w, h, face, P) {
 var SPLIT_HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
 var SPLIT_COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
 var SPLIT_WORD = 'SPLIT', SPLIT_ROWS = 7;
+
+/* The mark keeps its own P below the cut. The cut falls inside row 3 — the
+   bottom of the bowl — so the sliver landing under the rule is the bowl's full
+   four-wide base, which reads as a stray tick rather than as the loop turning
+   back down toward the stalk. One column narrower and it makes the corner.
+   Only the cold side is overridden; above the rule the bowl is the font's. */
+var SPLIT_COLD_ROWS = { P: { 3: '###..' } };
 var SPLIT_PACKED = null;
 
 /* How far each half draws back from the cut. The word is only seven art pixels
@@ -447,8 +454,10 @@ function splitPixels(k, part, fn) {
         var ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
         var idx = warm ? Math.round(f * (ramp.length - 1))
                        : Math.round((1 - f) * (ramp.length - 1));
-        for (var m = 0; m < g[j].length; m++) {
-          if (g[j][m] !== '.') {
+        var over = !warm && SPLIT_COLD_ROWS[SPLIT_WORD[i]];
+        var row = (over && over[j]) || g[j];
+        for (var m = 0; m < row.length; m++) {
+          if (row[m] !== '.') {
             fn(i*6*k + m*k, sy + (warm ? -part : part),
                ramp[Math.min(idx, ramp.length - 1)]);
           }
