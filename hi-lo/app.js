@@ -145,14 +145,18 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
-  function button(x, y, w, label, act, on) {
+  function button(x, y, w, label, act, on, mode) {
     var p = pal();
     var r = { x:x, y:y, w:w, h:18 };
     var hot = on && inside(r);
     fb.rect(x, y, w, 18, hot ? p.hudInk : p.hudShadow);
     fb.frame(x, y, w, 18, on ? p.hudInk : p.hudDim);
-    fb.text(label, x + ((w - fb.textW(label,1)) >> 1), y + 6,
-            hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
+    var lx = x + ((w - fb.textW(label,1)) >> 1);
+    /* The temperature shows on the resting state only. Hovering fills the
+       button with cream, and the ramps' bright steps have nothing left to
+       carry them there — the inversion is the hover signal anyway. */
+    if (mode && on && !hot) callText(fb, label, lx, y + 6, 1, mode);
+    else fb.text(label, lx, y + 6, hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
     if (on) hit(x, y, w, 18, act);
     return r;
   }
@@ -381,9 +385,11 @@
         hud('REVIVE A PILE', mid('REVIVE A PILE'), cy + 38, p.hudInk);
         return;
       }
-      button(cx, cy, cw, 'HI', { t:'call', call:'HI' }, on);
-      button(cx, cy + ch + gp, cw, 'LO', { t:'call', call:'LO' }, on);
-      button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on);
+      /* The label is not the action. game.js still hears HI, LO and SPLIT,
+         so a log replays the same whatever these come to read. */
+      button(cx, cy, cw, 'HIGH', { t:'call', call:'HI' }, on, 'hot');
+      button(cx, cy + ch + gp, cw, 'LOW', { t:'call', call:'LO' }, on, 'cold');
+      button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
       if (!on) {
         var under = L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
         hud('PICK A PILE', mid('PICK A PILE'),
@@ -399,9 +405,9 @@
       return;
     }
     var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = (W - tot) >> 1;
-    button(bx, by, wid[0], 'HI', { t:'call', call:'HI' }, on);
-    button(bx+wid[0]+7, by, wid[1], 'LO', { t:'call', call:'LO' }, on);
-    button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on);
+    button(bx, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');
+    button(bx+wid[0]+7, by, wid[1], 'LOW', { t:'call', call:'LO' }, on, 'cold');
+    button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
     if (!on) {
       var m = 'PICK A PILE';
       hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);

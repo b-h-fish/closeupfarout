@@ -320,17 +320,22 @@
     }
 
     /* app.js's button(), with the bot's choice standing in for the cursor. */
-    function button(x, y, w, label, hot, on, P2) {
+    function button(x, y, w, label, hot, on, P2, mode) {
       fb.rect(x, y, w, BTN_H, hot ? P2.hudInk : P2.hudShadow);
       fb.frame(x, y, w, BTN_H, on ? P2.hudInk : P2.hudDim);
-      fb.text(label, x + ((w - fb.textW(label, 1)) >> 1), y + 6,
-              hot ? P2.hudShadow : (on ? P2.hudInk : P2.hudDim));
+      var lx = x + ((w - fb.textW(label, 1)) >> 1);
+      if (mode && on && !hot) callText(fb, label, lx, y + 6, 1, mode);
+      else fb.text(label, lx, y + 6,
+                   hot ? P2.hudShadow : (on ? P2.hudInk : P2.hudDim));
     }
 
     function drawCalls(P2) {
       var on = g.selected >= 0;
       var picked = (phase === 'call' && pending) ? pending.call : null;
-      var names = ['HI', 'LO', 'SPLIT'];
+      /* Action, label, temperature. The first is what game.js is told; the
+         other two are only ever seen. */
+      var CALLS = [['HI', 'HIGH', 'hot'], ['LO', 'LOW', 'cold'],
+                   ['SPLIT', 'SPLIT', 'cut']];
       var i, x, y;
 
       if (g.phase === 'RESURRECT') {
@@ -347,8 +352,8 @@
 
       if (beside) {
         for (i = 0; i < 3; i++) {
-          button(geo.cx, geo.cy + i * (BTN_H + BTN_GAP), SIDE_W, names[i],
-                 picked === names[i], on, P2);
+          button(geo.cx, geo.cy + i * (BTN_H + BTN_GAP), SIDE_W, CALLS[i][1],
+                 picked === CALLS[i][0], on, P2, CALLS[i][2]);
         }
         if (!on) {
           hud('PICK A PILE', geo.cx + ((SIDE_W - fb.textW('PICK A PILE', 1)) >> 1),
@@ -361,7 +366,8 @@
       x = (W - tot) >> 1; y = geo.by + boardH + 14;
       var offs = [0, wid[0] + 7, wid[0] + wid[1] + 14];
       for (i = 0; i < 3; i++) {
-        button(x + offs[i], y, wid[i], names[i], picked === names[i], on, P2);
+        button(x + offs[i], y, wid[i], CALLS[i][1],
+               picked === CALLS[i][0], on, P2, CALLS[i][2]);
       }
       if (!on) {
         hud('PICK A PILE', (W - fb.textW('PICK A PILE', 1)) >> 1, y + 24, P2.hudDim, P2);

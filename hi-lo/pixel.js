@@ -501,3 +501,45 @@ function splitMark(fb, x, y, k, shadow) {
   fb.rect(bx, gy + Math.round(mid - part), bw, 2 * part, shadow);
   fb.rect(bx, gy + Math.round(mid - k/2), bw, k, SPLIT_PACKED.white);
 }
+
+/* Small text in the mark's two temperatures, for the call buttons. The font is
+   seven rows and each ramp is seven steps, so at k=1 it is exactly one step per
+   row — no interpolation, and the same colours the logo is built from.
+
+   'hot' and 'cold' are the mark's own halves taken on their own: hot runs
+   bright at the top and deepens downward, cold does the reverse, so HIGH and
+   LOW read as the two ends of the same scale. 'cut' is the whole thing, hot
+   over cold, which is what SPLIT wears. */
+function callText(fb, s, x, y, k, mode) {
+  if (!SPLIT_PACKED) {
+    SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),
+                     white: hex('#ffffff') };
+  }
+  var total = SPLIT_ROWS * k, mid = total / 2;
+  for (var i = 0; i < s.length; i++) {
+    var g = GLYPH[s[i]];
+    if (!g) continue;
+    for (var j = 0; j < g.length; j++) {
+      for (var sub = 0; sub < k; sub++) {
+        var sy = j*k + sub, ramp, idx, f;
+        if (mode === 'cut') {
+          var warm = sy < mid;
+          ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
+          f = warm ? sy / mid : (sy - mid) / (total - mid);
+          idx = warm ? Math.round(f * (ramp.length - 1))
+                     : Math.round((1 - f) * (ramp.length - 1));
+        } else {
+          ramp = mode === 'cold' ? SPLIT_PACKED.cold : SPLIT_PACKED.hot;
+          f = sy / (total - 1);
+          idx = Math.round((mode === 'cold' ? 1 - f : f) * (ramp.length - 1));
+        }
+        for (var m = 0; m < g[j].length; m++) {
+          if (g[j][m] !== '.') {
+            fb.rect(x + i*6*k + m*k, y + sy, k, 1,
+                    ramp[Math.min(idx, ramp.length - 1)]);
+          }
+        }
+      }
+    }
+  }
+}
