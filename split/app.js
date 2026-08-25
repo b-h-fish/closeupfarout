@@ -220,43 +220,55 @@
     }
   }
 
+  /* One skeleton for both the front page and solo setup, so the panel, the
+     mark, and every row hold their ground while only the contents change —
+     the shift between the two screens reads as a swap, not a jump.
+       mark
+       content band (GWID tall: the grid picker, or the card fan centred in it)
+       label row    ("3 X 1", or empty)
+       row1         (setting selector, or SOLO)
+       row2         (DEAL, or MULTIPLAYER)
+       row3         (BACK, or empty)                                          */
+  function menuGeom() {
+    var markH = splitMarkH(3);
+    var g = { PAD: 16, markH: markH };
+    g.bandY  = markH + 16;
+    g.labelY = g.bandY + GWID + 8;
+    g.row1Y  = g.labelY + 7 + 12;
+    g.row2Y  = g.row1Y + 20 + 14;
+    g.row3Y  = g.row2Y + 20 + 8;
+    g.blockH = g.row3Y + 14;
+    g.pw = Math.min(Math.round(W * 0.84), 320);
+    g.top = Math.max(8, Math.round((H - g.blockH) / 2));
+    return g;
+  }
+
+  function panelFrame(m) {
+    var p = pal(), cx = W >> 1;
+    fb.dim(cx - (m.pw >> 1), m.top - m.PAD, m.pw, m.blockH + m.PAD * 2, 0.42);
+    fb.frame(cx - (m.pw >> 1), m.top - m.PAD, m.pw, m.blockH + m.PAD * 2, p.hudDim);
+    splitMark(fb, cx - (splitMarkW(3) >> 1), m.top, 3, p.hudShadow);
+  }
+
+  function menuButton(y, w, label, act) {
+    var p = pal(), cx = W >> 1, bx = cx - (w >> 1);
+    var hot = mouse.x >= bx && mouse.x < bx + w && mouse.y >= y && mouse.y < y + 20;
+    fb.rect(bx, y, w, 20, hot ? p.hudInk : p.hudShadow);
+    fb.frame(bx, y, w, 20, p.hudInk);
+    fb.text(label, bx + ((w - fb.textW(label, 1)) >> 1), y + 7, hot ? p.hudShadow : p.hudInk);
+    hit(bx, y, w, 20, act);
+  }
+
   function drawMenu() {
-    var p = pal();
-    var cx = W >> 1, PAD = 14;
-    var pw = Math.min(Math.round(W * 0.84), 280);
-    var markK = 3;
-    var markH = splitMarkH(markK);
-    var btnW = Math.min(160, pw - 32);
-    var cardAreaH = menuCh + 8;
-    var blockH = markH + 10 + cardAreaH + 10 + 20 + 10 + 20;
-    var ph = blockH + PAD * 2;
-    var top = Math.max(8, Math.round((H - blockH) / 2));
+    var m = menuGeom(), cx = W >> 1;
+    panelFrame(m);
 
-    fb.dim(cx - (pw >> 1), top - PAD, pw, ph, 0.42);
-    fb.frame(cx - (pw >> 1), top - PAD, pw, ph, p.hudDim);
+    // the fan holds the grid picker's band, centred in it
+    var btnW = Math.min(160, m.pw - 32);
+    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
-    var y = top;
-    splitMark(fb, cx - (splitMarkW(markK) >> 1), y, markK, p.hudShadow);
-    y += markH + 10;
-
-    drawMenuCards(cx, y, btnW);
-    y += cardAreaH + 10;
-
-    var bx = cx - (btnW >> 1);
-    var soloHot = mouse.x >= bx && mouse.x < bx + btnW && mouse.y >= y && mouse.y < y + 20;
-    fb.rect(bx, y, btnW, 20, soloHot ? p.hudInk : p.hudShadow);
-    fb.frame(bx, y, btnW, 20, p.hudInk);
-    var sl = 'SOLO';
-    fb.text(sl, bx + ((btnW - fb.textW(sl, 1)) >> 1), y + 7, soloHot ? p.hudShadow : p.hudInk);
-    hit(bx, y, btnW, 20, { t: 'solo' });
-    y += 20 + 10;
-
-    var friendHot = mouse.x >= bx && mouse.x < bx + btnW && mouse.y >= y && mouse.y < y + 20;
-    fb.rect(bx, y, btnW, 20, friendHot ? p.hudInk : p.hudShadow);
-    fb.frame(bx, y, btnW, 20, p.hudInk);
-    var fl = 'MULTIPLAYER';
-    fb.text(fl, bx + ((btnW - fb.textW(fl, 1)) >> 1), y + 7, friendHot ? p.hudShadow : p.hudInk);
-    hit(bx, y, btnW, 20, { t: 'multiplayer' });
+    menuButton(m.top + m.row1Y, btnW, 'SOLO', { t: 'solo' });
+    menuButton(m.top + m.row2Y, btnW, 'MULTIPLAYER', { t: 'multiplayer' });
   }
 
   /* ═══ SETUP ═══════════════════════════════════════════════════════════ */
@@ -264,24 +276,10 @@
   function drawSetup() {
     var p = pal();
 
-    var cx = W >> 1, PAD = 20;
-    // a share of the canvas rather than all of it, so the setting frames it
-    var pw = Math.min(Math.round(W * 0.84), 340);
-    var blockH = splitMarkH(3) + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20 + 10 + 14;
-    var ph = blockH + PAD*2;
-    var top = Math.max(8, Math.round((H - blockH) / 2));
+    var m = menuGeom(), cx = W >> 1;
+    panelFrame(m);
 
-    fb.dim(cx - (pw>>1), top - PAD, pw, ph, 0.42);
-    fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
-
-    var y = top;
-    /* The same mark the corner of a live game carries, three times the size.
-       Drawn, not typed: a typed space around the cut would be far wider than
-       the mark wants. */
-    splitMark(fb, cx - (splitMarkW(3) >> 1), y, 3, p.hudShadow);
-    y += splitMarkH(3) + 20;
-
-    var gx = cx - (GWID >> 1), gy = y, r, c;
+    var gx = cx - (GWID >> 1), gy = m.top + m.bandY, r, c;
     if (!(mouse.x >= gx && mouse.x < gx + GWID && mouse.y >= gy && mouse.y < gy + GWID)) {
       hovC = 0; hovR = 0;
     }
@@ -301,15 +299,15 @@
       // the tappable area takes the gap with it, so there is no dead seam
       hit(bx2 - 2, by2 - 2, CELL + 4, CELL + 4, { t:'grid', c:c+1, r:r+1 });
     }
-    y += GWID + 10;
-
     var lbl = shC + ' X ' + shR;
-    hud(lbl, cx - (fb.textW(lbl,1) >> 1), y, p.hudInk);
-    y += 7 + 14;
+    hud(lbl, cx - (fb.textW(lbl,1) >> 1), m.top + m.labelY, p.hudInk);
 
     /* The settings cycle rather than all showing at once: one row holds any
-       number of them, and the panel does not have to grow to add more. */
-    var rowW = Math.min(pw - 28, 210), rx = cx - (rowW >> 1), aw = 22;
+       number of them, and the panel does not have to grow to add more. The
+       row takes the exact frame SOLO wears on the front page, as DEAL takes
+       MULTIPLAYER's — crossing between the screens, the boxes stand still. */
+    var rowW = Math.min(160, m.pw - 32), rx = cx - (rowW >> 1), aw = 22;
+    var y = m.top + m.row1Y;
     var n = SCENES.length;
 
     function arrow(ax, glyph, to) {
@@ -327,22 +325,16 @@
     fb.frame(nx, y, nw, 20, p.hudDim);
     var nm = SCENES[pickScene].name.toUpperCase();
     fb.text(nm, nx + ((nw - fb.textW(nm,1)) >> 1), y + 7, p.hudInk);
-    y += 20 + 16;
 
-    var dw = Math.min(120, pw - 40), dx = cx - (dw>>1);
-    var dhot = mouse.x >= dx && mouse.x < dx+dw && mouse.y >= y && mouse.y < y+20;
-    fb.rect(dx, y, dw, 20, dhot ? p.hudInk : p.hudShadow);
-    fb.frame(dx, y, dw, 20, p.hudInk);
-    fb.text('DEAL', dx + ((dw - fb.textW('DEAL',1)) >> 1), y + 7, dhot ? p.hudShadow : p.hudInk);
-    hit(dx, y, dw, 20, { t:'deal' });
-    y += 20 + 10;
+    menuButton(m.top + m.row2Y, rowW, 'DEAL', { t:'deal' });
 
+    var by = m.top + m.row3Y;
     var bl = 'BACK';
     var bkw = fb.textW(bl, 1) + 12;
     var bkx = cx - (bkw >> 1);
-    var bkHot = mouse.x >= bkx && mouse.x < bkx + bkw && mouse.y >= y && mouse.y < y + 14;
-    fb.text(bl, bkx + 6, y + 4, bkHot ? p.hudInk : p.hudDim);
-    hit(bkx, y, bkw, 14, { t:'back' });
+    var bkHot = mouse.x >= bkx && mouse.x < bkx + bkw && mouse.y >= by && mouse.y < by + 14;
+    fb.text(bl, bkx + 6, by + 4, bkHot ? p.hudInk : p.hudDim);
+    hit(bkx, by, bkw, 14, { t:'back' });
   }
 
   /* ═══ GAME ════════════════════════════════════════════════════════════ */
