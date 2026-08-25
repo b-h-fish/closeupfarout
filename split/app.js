@@ -174,17 +174,17 @@
       j = (Math.random() * (i + 1)) | 0;
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
     }
-    menuHand = deck.slice(0, 5);
+    menuHand = deck.slice(0, 3);
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
-  /* Smaller than the game's cards, and deliberately so. The fan is capped at
-     the SOLO button's edge, which fixes the total width — so card size is
-     what decides how much of each face survives the overlap. At play size or
-     above, the visible strip is narrower than the first pip column and every
-     card behind the front one reads as blank stock. At this size the strip
-     clears the pips, so the whole hand shows as printed cards. */
-  var menuCw = 46, menuCh = Math.round(menuCw * CARD_H / CARD_W);
+  /* Sized to fill the content band exactly, which is what closes the air
+     between the mark and the buttons. The fan is capped at the SOLO button's
+     edge, so this size and the card count together decide how much of each
+     face survives the overlap: at three the visible strip clears the first
+     pip column, at four it cuts the pips mid-glyph, and at five every card
+     behind the front one is back to blank stock. */
+  var menuCh = GWID, menuCw = Math.round(menuCh * CARD_W / CARD_H);
 
   function drawMenuCards(cx, y, maxW) {
     var p = pal();
