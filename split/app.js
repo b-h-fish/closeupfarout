@@ -17,7 +17,7 @@
      the player the one look they get at it — and a dead pile's cards are still
      information, both for counting and for choosing what to buy back with a
      Split. It now sits face up for a beat before it turns. */
-  var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
+  var DEAL_MS = 380, HOLD_MS = 740, FLIP_MS = 380;
 
   var WM_X = 6, WM_Y = 6;                // the mark's corner, in world units
   /* A coarse pointer is the only thing that tells a tablet from a desktop

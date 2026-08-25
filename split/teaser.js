@@ -26,7 +26,7 @@
   var GAP_C = 5;                 // between cards on the board
   var SIDE_W = 88, BTN_H = 18, BTN_GAP = 8;
   var STOCK_GAP = 26, CALLS_GAP = 26;
-  var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
+  var DEAL_MS = 380, HOLD_MS = 740, FLIP_MS = 380;
 
   /* The teaser's own beats: the pauses where a player would be deciding. */
   var T_SELECT = 420, T_CALL = 440, T_SETTLE = 320, T_OVER = 2200, T_START = 520;
