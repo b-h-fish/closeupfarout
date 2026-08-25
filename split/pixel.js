@@ -436,6 +436,18 @@ var SPLIT_PACKED = null;
    and the letters' own rings darken that gap from both sides, so the white gets
    its separation without costing the letterforms anything. */
 function splitPart(k) { return Math.max(1, Math.round(k * 0.6)); }
+
+/* How far the ring sits out from the letters. Half an art pixel, not a whole
+   one: at a whole pixel the rings of neighbouring letters meet in the gaps
+   between them and the outline stops being an outline — the word sits in a
+   black slab, which is what it did on the teaser at k=4. Half still separates
+   the mark from cream card stock, which is the ring's only job.
+
+   It scales with k rather than being a fixed number of screen pixels, because
+   at k=1 — the corner of a live game — the letters are one pixel wide and a
+   two-pixel ring would be thicker than the strokes it surrounds. There it
+   floors at one, which is what the corner already had. */
+function splitRing(k) { return Math.max(1, Math.round(k * 0.5)); }
 function splitMarkW(k) { return SPLIT_WORD.length * 6 * k - k; }
 function splitMarkH(k) { return SPLIT_ROWS * k + 2 * splitPart(k); }
 
@@ -482,10 +494,11 @@ function splitMark(fb, x, y, k, shadow) {
   /* A ring rather than an offset drop shadow. The mark lands on cream card
      stock as often as on sky, and a shadow on one side only leaves the other
      three sitting on a tone as light as the letters are. */
+  var ring = splitRing(k);
   for (r = 0; r < SPLIT_RING.length; r++) {
     (function (d) {
       splitPixels(k, part, function (px, py) {
-        fb.rect(x + px + d[0]*k, gy + py + d[1]*k, k, 1, shadow);
+        fb.rect(x + px + d[0]*ring, gy + py + d[1]*ring, k, 1, shadow);
       });
     })(SPLIT_RING[r]);
   }
