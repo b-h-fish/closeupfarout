@@ -184,7 +184,7 @@
     var cx = W >> 1, PAD = 20;
     // a share of the canvas rather than all of it, so the setting frames it
     var pw = Math.min(Math.round(W * 0.84), 340);
-    var blockH = 21 + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20;
+    var blockH = splitMarkH(3) + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20;
     var ph = blockH + PAD*2;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
@@ -192,11 +192,11 @@
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    /* The menu gets the hot/cold mark. In play the wordmark stays plain and
-       small in the corner — the board is what should be carrying colour
-       there, not the masthead. */
-    hiloMark(fb, cx - (hiloMarkW(3) >> 1), y, 3, p.hudShadow);
-    y += 21 + 20;
+    /* The menu gets the cut mark. In play the wordmark stays plain and small
+       in the corner — the board is what should be carrying colour there, not
+       the masthead. */
+    splitMark(fb, cx - (splitMarkW(3) >> 1), y, 3, p.hudShadow);
+    y += splitMarkH(3) + 20;
 
     var gx = cx - (GWID >> 1), gy = y, r, c;
     if (!(mouse.x >= gx && mouse.x < gx + GWID && mouse.y >= gy && mouse.y < gy + GWID)) {

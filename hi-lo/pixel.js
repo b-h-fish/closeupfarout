@@ -399,67 +399,96 @@ FB.prototype.cardEdge = function (cx, y, w, h, face, P) {
   if (w > 2) this.rect(x+1, y+1, w-2, h-2, face);
 };
 
-/* ── the HI | LO mark ──────────────────────────────────────────────────── */
+/* ── the SPLIT mark ────────────────────────────────────────────────────── */
 
-/* HI runs hot and LO runs cold: seven steps each, one per row of the font, so
-   the heat belongs to the glyph rather than being a gradient laid over it.
+/* The word cut in half: the top runs hot, the bottom runs cold, and a white
+   rule lies along the cut.
 
-   Both ramps stop short of their dark end on purpose. A red that falls to
-   near-black and a blue that falls to navy each lose a setting, and the mark
-   has to hold on all four — so hue does the hot/cold work and brightness stays
-   put. Lives here rather than in either caller because the front-page teaser
-   and the game's own menu both draw it, and a mark that drifts between the two
-   is worse than no mark at all. */
-var HILO_HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
-var HILO_COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
-var HILO_WHITE = '#ffffff';
-var HILO_PACKED = null;
+   Seven steps to a ramp, one per row of the font, so the heat belongs to the
+   glyph rather than being a gradient laid over it. Both ramps stop short of
+   their dark end on purpose — a red that falls to near-black and a blue that
+   falls to navy each lose a setting, and the mark has to hold on all four, so
+   hue does the hot/cold work and brightness stays put.
 
-var HILO_GAP = 5, HILO_OVER = 2, HILO_TALL = 11;
-function hiloMarkW(k) { return (11 + HILO_GAP + 1 + HILO_GAP + 11) * k; }
+   Each half runs bright at the outside and deep at the seam. That is what makes
+   the cut read as a cut, the two darkest steps meeting along it, and it keeps
+   the word's top and bottom edges — the ones working against the setting — at
+   their brightest.
 
-/* The font renderer takes one colour for a whole string, so the ramp has to be
-   applied a row at a time here instead. */
-function hiloRows(fb, s, x, y, k, ramp, flat) {
-  for (var i = 0; i < s.length; i++) {
-    var g = GLYPH[s[i]];
-    if (g) for (var j = 0; j < g.length; j++) {
-      var col = flat || ramp[Math.min(j, ramp.length - 1)];
-      for (var m = 0; m < g[j].length; m++) {
-        if (g[j][m] !== '.') fb.rect(x + m*k, y + j*k, k, k, col);
+   Lives here rather than in either caller because the front-page teaser and the
+   game's own menu both draw it, and a mark that drifts between the two is worse
+   than no mark at all. */
+var SPLIT_HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
+var SPLIT_COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
+var SPLIT_WORD = 'SPLIT', SPLIT_ROWS = 7;
+var SPLIT_PACKED = null;
+
+/* How far each half draws back from the cut. The word is only seven art pixels
+   tall, so a rule with a ring of its own would eat it — one pixel of white plus
+   one of ring either side is three of the seven. The halves make room instead,
+   and the letters' own rings darken that gap from both sides, so the white gets
+   its separation without costing the letterforms anything. */
+function splitPart(k) { return Math.max(1, Math.round(k * 0.6)); }
+function splitMarkW(k) { return SPLIT_WORD.length * 6 * k - k; }
+function splitMarkH(k) { return SPLIT_ROWS * k + 2 * splitPart(k); }
+
+/* The cut is measured in screen pixels, not source rows: seven rows cannot be
+   halved evenly, so colouring by row would put the seam off centre and make
+   where it lands depend on k. */
+function splitPixels(k, part, fn) {
+  var total = SPLIT_ROWS * k, mid = total / 2;
+  for (var i = 0; i < SPLIT_WORD.length; i++) {
+    var g = GLYPH[SPLIT_WORD[i]];
+    if (!g) continue;
+    for (var j = 0; j < SPLIT_ROWS; j++) {
+      for (var sub = 0; sub < k; sub++) {
+        var sy = j*k + sub, warm = sy < mid;
+        var f = warm ? sy / mid : (sy - mid) / (total - mid);
+        var ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
+        var idx = warm ? Math.round(f * (ramp.length - 1))
+                       : Math.round((1 - f) * (ramp.length - 1));
+        for (var m = 0; m < g[j].length; m++) {
+          if (g[j][m] !== '.') {
+            fn(i*6*k + m*k, sy + (warm ? -part : part),
+               ramp[Math.min(idx, ramp.length - 1)]);
+          }
+        }
       }
     }
-    x += 6 * k;
   }
 }
 
-var HILO_RING = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+var SPLIT_RING = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
 
-function hiloMark(fb, x, y, k, shadow) {
-  if (!HILO_PACKED) {
-    HILO_PACKED = { hot: HILO_HOT.map(hex), cold: HILO_COLD.map(hex),
-                    white: hex(HILO_WHITE) };
+/* `y` is the top of the whole mark, the drawn-back half included, so a caller
+   can place it against splitMarkH without knowing how the cut is built. */
+function splitMark(fb, x, y, k, shadow) {
+  if (!SPLIT_PACKED) {
+    SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),
+                     white: hex('#ffffff') };
   }
-  var P2 = HILO_PACKED;
-  var rx = x + 11*k + HILO_GAP*k;              // where the divider stands
-  var lx = rx + k + HILO_GAP*k;                // where LO starts
-  var i;
+  var part = splitPart(k), gy = y + part;
+  var r, i;
 
   /* A ring rather than an offset drop shadow. The mark lands on cream card
      stock as often as on sky, and a shadow on one side only leaves the other
      three sitting on a tone as light as the letters are. */
-  for (i = 0; i < HILO_RING.length; i++) {
-    hiloRows(fb, 'HI', x  + HILO_RING[i][0]*k, y + HILO_RING[i][1]*k, k, null, shadow);
-    hiloRows(fb, 'LO', lx + HILO_RING[i][0]*k, y + HILO_RING[i][1]*k, k, null, shadow);
+  for (r = 0; r < SPLIT_RING.length; r++) {
+    (function (d) {
+      splitPixels(k, part, function (px, py) {
+        fb.rect(x + px + d[0]*k, gy + py + d[1]*k, k, 1, shadow);
+      });
+    })(SPLIT_RING[r]);
   }
-  hiloRows(fb, 'HI', x,  y, k, P2.hot);
-  hiloRows(fb, 'LO', lx, y, k, P2.cold);
+  splitPixels(k, part, function (px, py, col) {
+    fb.rect(x + px, gy + py, k, 1, col);
+  });
 
-  /* The divider is white, and neutral on purpose: it stands between a hot word
-     and a cold one, so any tint in it would pull the crossing one way. It takes
-     the same ring the letters do, and it overshoots the caps at both ends —
-     which no letter does — so it reads as a rule rather than a second I. */
-  var top = y - HILO_OVER*k, tall = HILO_TALL*k;
-  fb.rect(rx - k, top - k, 3*k, tall + 2*k, shadow);
-  fb.rect(rx, top, k, tall, P2.white);
+  /* The rule overshoots the word at both ends — the old vertical divider
+     overshot the caps for the same reason — so it reads as a cut across the
+     word rather than as a stroke belonging to a letter. */
+  var mid = (SPLIT_ROWS * k) / 2, over = 2 * k;
+  var bx = x - over, bw = splitMarkW(k) + 2 * over;
+  fb.rect(bx, gy + Math.round(mid - part), bw, 2 * part, shadow);
+  fb.rect(bx, gy + Math.round(mid - k/2), bw, k, SPLIT_PACKED.white);
 }

@@ -451,8 +451,8 @@
            about to click. The mark carries itself on its own ring. */
         fb.dim(0, 0, W, H, 0.62);
         var wk = Math.max(1, Math.min(4, Math.round(W / 150)));
-        hiloMark(fb, (W - hiloMarkW(wk)) >> 1, (H - HILO_TALL * wk) >> 1, wk,
-                 pal().hudShadow);
+        splitMark(fb, (W - splitMarkW(wk)) >> 1, (H - splitMarkH(wk)) >> 1, wk,
+                  pal().hudShadow);
       }
 
       var img = ctx.createImageData(W, H);
