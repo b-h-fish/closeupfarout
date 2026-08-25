@@ -448,7 +448,50 @@ function splitPart(k) { return Math.max(1, Math.round(k * 0.6)); }
    two-pixel ring would be thicker than the strokes it surrounds. There it
    floors at one, which is what the corner already had. */
 function splitRing(k) { return Math.max(1, Math.round(k * 0.5)); }
-function splitMarkW(k) { return SPLIT_WORD.length * 6 * k - k; }
+
+/* How far apart the letters sit. The font's own advance leaves one art pixel
+   between them, which was fine when the mark had no ring — but the ring reaches
+   out on both sides and eats exactly that. It only showed on S, P and L, whose
+   facing edges carry ink; L, I and T are hollow down their sides, so their gap
+   survived and the word read as SPL·I·T. The advance now carries the two rings
+   on top of the pixel, so every pair keeps the same k-wide gap whatever the
+   letters happen to be. */
+/* Spaced by ink, not by box. Every letter of the font occupies five columns,
+   but I only draws in the middle three — so spacing on the box hands I an empty
+   column either side that no other letter carries, and it floats away from its
+   neighbours while S, P and L crowd together. Measuring the real extents and
+   holding the gap between them constant is what makes the five read evenly. */
+var SPLIT_EXT = null;
+function splitExtents() {
+  if (!SPLIT_EXT) {
+    SPLIT_EXT = [];
+    for (var i = 0; i < SPLIT_WORD.length; i++) {
+      var g = GLYPH[SPLIT_WORD[i]], l = 99, r = -1;
+      for (var j = 0; j < g.length; j++) {
+        for (var m = 0; m < g[j].length; m++) {
+          if (g[j][m] !== '.') { if (m < l) l = m; if (m > r) r = m; }
+        }
+      }
+      SPLIT_EXT.push({ l: l, r: r });
+    }
+  }
+  return SPLIT_EXT;
+}
+
+/* The gap carries the two rings plus k of clear dark, so it widens with the
+   mark rather than closing up as the ring grows. */
+function splitOffsets(k) {
+  var e = splitExtents(), gap = k + 2 * splitRing(k), xs = [], i;
+  xs.push(-e[0].l * k);                       // the first letter's ink starts at 0
+  for (i = 1; i < e.length; i++) {
+    xs.push(xs[i - 1] + (e[i - 1].r + 1) * k + gap - e[i].l * k);
+  }
+  return xs;
+}
+function splitMarkW(k) {
+  var e = splitExtents(), xs = splitOffsets(k), n = e.length - 1;
+  return xs[n] + (e[n].r + 1) * k;
+}
 function splitMarkH(k) { return SPLIT_ROWS * k + 2 * splitPart(k); }
 
 /* The cut is measured in screen pixels, not source rows: seven rows cannot be
@@ -476,6 +519,7 @@ function splitGap(k) {
 
 function splitPixels(k, part, fn) {
   var total = SPLIT_ROWS * k, mid = total / 2, warmN = splitWarmRows(k);
+  var xs = splitOffsets(k);
   for (var i = 0; i < SPLIT_WORD.length; i++) {
     var g = GLYPH[SPLIT_WORD[i]];
     if (!g) continue;
@@ -491,7 +535,7 @@ function splitPixels(k, part, fn) {
         var row = (over && over[j]) || g[j];
         for (var m = 0; m < row.length; m++) {
           if (row[m] !== '.') {
-            fn(i*6*k + m*k, sy + (warm ? -part : part),
+            fn(xs[i] + m*k, sy + (warm ? -part : part),
                ramp[Math.min(idx, ramp.length - 1)]);
           }
         }
