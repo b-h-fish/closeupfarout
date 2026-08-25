@@ -174,15 +174,15 @@
       j = (Math.random() * (i + 1)) | 0;
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
     }
-    menuHand = deck.slice(0, 3);
+    menuHand = deck.slice(0, 4);
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
   /* Sized to fill the content band exactly, which is what closes the air
      between the mark and the buttons. The fan is capped at the SOLO button's
      edge, so this size and the card count together decide how much of each
-     face survives the overlap: at three the visible strip clears the first
-     pip column, at four it cuts the pips mid-glyph, and at five every card
+     face survives the overlap: at four the visible strip runs through the
+     first pip column, which is the volume this wants; at five every card
      behind the front one is back to blank stock. */
   var menuCh = GWID, menuCw = Math.round(menuCh * CARD_W / CARD_H);
 
