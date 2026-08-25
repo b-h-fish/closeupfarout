@@ -45,8 +45,8 @@ var SCENES = [
       ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
       pick:'#5fe0c8'
     })) },
-  { key:'space', jp:'宇宙遊泳', name:'Space Walk',
-    blurb:'Outside the station, tethered. Gas and starlight overhead, deck plate underfoot.',
+  { key:'space', jp:'宇宙港', name:'Space Port',
+    blurb:'Docked, waiting on a berth. Gas and starlight overhead, deck plate underfoot.',
     pal: P(Object.assign({}, DECK, {
       sky:['#0a0e28','#0b1030','#0d1338','#0f1740','#111a48','#131e50'],
       band:'#241f4a', bandMid:'#3f3474', bandLit:'#8779c4',
