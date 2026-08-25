@@ -1,6 +1,21 @@
 {
   "redirects": [
     {
+      "source": "/hi-lo",
+      "destination": "/split/",
+      "permanent": true
+    },
+    {
+      "source": "/hi-lo/",
+      "destination": "/split/",
+      "permanent": true
+    },
+    {
+      "source": "/hi-lo/:path*",
+      "destination": "/split/:path*",
+      "permanent": true
+    },
+    {
       "source": "/instrument-01",
       "destination": "/cento",
       "permanent": true

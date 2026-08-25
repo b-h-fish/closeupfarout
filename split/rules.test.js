@@ -1,5 +1,5 @@
-/* ── HI LO · the rules ─────────────────────────────────────────────────────
-   Run with:  node hi-lo/rules.test.js        (exits non-zero on a failure)
+/* ── SPLIT · the rules ─────────────────────────────────────────────────────
+   Run with:  node split/rules.test.js        (exits non-zero on a failure)
 
    These cover decisions that were settled by conversation and are not
    guessable from the game's name — an ace plays high, a tie kills a Hi or a

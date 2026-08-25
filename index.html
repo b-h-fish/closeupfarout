@@ -58,14 +58,14 @@
       white-space: nowrap;
     }
 
-    /* ── MAIN: Cento teaser left, Hi Lo teaser lower right ── */
+    /* ── MAIN: Cento teaser left, Split teaser lower right ── */
     main {
       position: fixed;
       top: var(--nav-h);
       left: 0; right: 0;
       bottom: 0;
       display: grid;
-      /* Cento teaser takes 40%, Hi Lo the remaining 60%. */
+      /* Cento teaser takes 40%, Split the remaining 60%. */
       grid-template-columns: 2fr 3fr;
       background: #090909;
     }
@@ -250,7 +250,7 @@
       background-size: 200px 200px;
     }
 
-    /* ── Hi Lo teaser ──
+    /* ── Split teaser ──
        Built on the same idea as the Cento block beside it: the page shows the
        actual thing rather than a picture of it. The game plays itself here
        through its own rules engine, renderer and palettes, so a card on the
@@ -336,7 +336,7 @@
     </div>
 
     <div id="hilo-pane">
-      <a id="hilo-link" href="/hi-lo/" aria-label="Open Hi Lo">
+      <a id="hilo-link" href="/split/" aria-label="Open Split">
         <div id="hilo-stage"><canvas id="hilo-canvas" aria-hidden="true"></canvas></div>
       </a>
     </div>
@@ -346,13 +346,13 @@
 
   <div class="grain"></div>
 
-  <!-- The game's own files, unmodified and shared with /hi-lo — the teaser
+  <!-- The game's own files, unmodified and shared with /split — the teaser
        runs the real rules engine rather than a copy of it, so the two can
        never drift. Deferred: nothing here should hold up the weave. -->
-  <script defer src="/hi-lo/pixel.js"></script>
-  <script defer src="/hi-lo/game.js"></script>
-  <script defer src="/hi-lo/scenes.js"></script>
-  <script defer src="/hi-lo/teaser.js"></script>
+  <script defer src="/split/pixel.js"></script>
+  <script defer src="/split/game.js"></script>
+  <script defer src="/split/scenes.js"></script>
+  <script defer src="/split/teaser.js"></script>
   <script>
   /* Deferred scripts have all run by the time DOMContentLoaded fires, so the
      renderer and the rules engine are both in hand here. */

@@ -1,4 +1,4 @@
-/* ── HI LO · sizing ───────────────────────────────────────────────────────
+/* ── SPLIT · sizing ───────────────────────────────────────────────────────
    Every grid gets its own row. Nothing here is shared between them beyond
    the card's dimensions, so a change to one board cannot reach another —
    which is the whole reason this is a table and not a formula with flags.

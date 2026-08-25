@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Hi Lo — all 16 grids</title>
+<title>Split — all 16 grids</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 14px; }
@@ -45,7 +45,7 @@
 </header>
 <div class="sheet" id="sheet"></div>
 
-<script src="/hi-lo/layout.js"></script>
+<script src="/split/layout.js"></script>
 <script>
 (function () {
   // Captured before the sheet can scroll, so "this window" gets the true viewport.
@@ -182,7 +182,7 @@
       f.style.height = VH + 'px';
       f.style.transform = 'scale(' + k + ')';
       f.loading = 'eager';
-      f.src = '/hi-lo/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE
+      f.src = '/split/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE
             + (COARSE === null ? '' : '&coarse=' + COARSE);
       // Read back what the frame actually measured. If it does not match the
       // size we asked for, the panel is a different layout from the real thing

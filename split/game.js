@@ -1,4 +1,4 @@
-/* ── HI LO · rules ────────────────────────────────────────────────────────
+/* ── SPLIT · rules ────────────────────────────────────────────────────────
    Pure and deterministic. No DOM, no rendering, no timers. A whole game is
    reconstructible from (seed, cols, rows) plus the action log, which is what
    will let a live game between friends sync by replaying actions rather than

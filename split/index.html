@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Hi Lo — closeupfarout</title>
-<meta name="description" content="Hi Lo: a card game about reading what is left in the deck.">
+<title>Split — closeupfarout</title>
+<meta name="description" content="Split: a card game about reading what is left in the deck.">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -42,14 +42,17 @@
   <div id="stack">
     <canvas id="bg" width="640" height="400" aria-hidden="true"></canvas>
     <canvas id="stage" width="640" height="400" tabindex="0"
-            aria-label="Hi Lo. Arrow keys move between piles, Enter selects, then H for higher, L for lower, S for split."></canvas>
+            aria-label="Split. Arrow keys move between piles, Enter selects, then H for high, L for low, S for split."></canvas>
   </div>
   <div id="say" class="vh" role="status" aria-live="polite"></div>
 
-  <script src="pixel.js"></script>
-  <script src="layout.js"></script>
-  <script src="scenes.js"></script>
-  <script src="game.js"></script>
-  <script src="app.js"></script>
+  <!-- Absolute, not relative. Relative paths resolve against the URL rather
+       than the directory, so at /split (no trailing slash) they would look for
+       /pixel.js and the game would come up blank. -->
+  <script src="/split/pixel.js"></script>
+  <script src="/split/layout.js"></script>
+  <script src="/split/scenes.js"></script>
+  <script src="/split/game.js"></script>
+  <script src="/split/app.js"></script>
 </body>
 </html>

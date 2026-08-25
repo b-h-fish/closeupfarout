@@ -1,4 +1,4 @@
-/* The Hi Lo teaser: the game playing itself, in a setting that keeps changing.
+/* The Split teaser: the game playing itself, in a setting that keeps changing.
 
    Same idea as the Cento block beside it — the page shows the actual thing
    rather than a picture of it. This runs the real rules engine, the real

@@ -1,4 +1,4 @@
-/* ── HI LO · presentation ─────────────────────────────────────────────────
+/* ── SPLIT · presentation ─────────────────────────────────────────────────
    Everything that is not a rule: layout, drawing, input, animation. The game
    state is owned by game.js and is only ever changed by dispatching an action,
    which is what keeps a future networked game honest — this file can be
@@ -489,7 +489,7 @@
     screen = 'SETUP'; g = null; fx = null; confirmMenu = false;
     fit();
     if (history.replaceState) history.replaceState(null, '', location.pathname);
-    say('Hi Lo. Choose a grid size and a setting, then deal.');
+    say('Split. Choose a grid size and a setting, then deal.');
   }
 
   function describe() {
@@ -704,7 +704,7 @@
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointerleave', function () { mouse.x = mouse.y = -1e5; });
     window.addEventListener('keydown', onKey);
-    say('Hi Lo. Choose a grid size and a setting, then deal.');
+    say('Split. Choose a grid size and a setting, then deal.');
     requestAnimationFrame(frame);
   }
 
