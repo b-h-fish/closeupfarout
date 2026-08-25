@@ -174,10 +174,7 @@
       j = (Math.random() * (i + 1)) | 0;
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
     }
-    /* Three, not five: at band size, five cards inside the fan's cap bury
-       each other to the corner index and read as blank stock. Three leaves
-       most of every face showing — a flop, not a fistful. */
-    menuHand = deck.slice(0, 3);
+    menuHand = deck.slice(0, 5);
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
@@ -269,9 +266,12 @@
     var m = menuGeom(), cx = W >> 1;
     panelFrame(m);
 
-    // the fan holds the grid picker's band, centred in it
+    /* The fan holds the grid picker's band, centred in it, and spreads to
+       the panel's interior rather than the button below — at band-size cards
+       the button's width buries every face but the front one, while this
+       leaves all three pip columns showing on the whole hand. */
     var btnW = Math.min(160, m.pw - 32);
-    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
+    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), m.pw - 16);
 
     menuButton(m.top + m.row1Y, btnW, 'SOLO', { t: 'solo' });
     menuButton(m.top + m.row2Y, btnW, 'MULTIPLAYER', { t: 'multiplayer' });
