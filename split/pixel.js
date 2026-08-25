@@ -454,14 +454,35 @@ function splitMarkH(k) { return SPLIT_ROWS * k + 2 * splitPart(k); }
 /* The cut is measured in screen pixels, not source rows: seven rows cannot be
    halved evenly, so colouring by row would put the seam off centre and make
    where it lands depend on k. */
+/* Where the rule sits, and how much room the halves leave it. Seven rows times
+   an odd k is an odd number of screen rows, and `sy < mid` handed the spare one
+   to the hot half — so red ran a row deeper than blue, and the gap sat a row
+   low, leaving dark under the rule but none over it. Both favoured red. The hot
+   half gives the row up: it falls under the rule, where nothing is visible
+   anyway. */
+function splitWarmRows(k) {
+  var total = SPLIT_ROWS * k;
+  /* Not at k=1. There the mark is seven rows full stop, and the row under the
+     rule is the middle of every letter — the S's waist, the P's bowl. Giving it
+     up costs the word its legibility, where at any larger k it costs a sliver
+     of one screen row nobody can see. The corner keeps its lopsided pixel. */
+  return Math.ceil(total / 2) - (k > 1 ? total % 2 : 0);
+}
+function splitGap(k) {
+  var total = SPLIT_ROWS * k, part = splitPart(k);
+  var top = splitWarmRows(k);
+  return { top: top, h: Math.ceil(total / 2) + 2 * part - top };
+}
+
 function splitPixels(k, part, fn) {
-  var total = SPLIT_ROWS * k, mid = total / 2;
+  var total = SPLIT_ROWS * k, mid = total / 2, warmN = splitWarmRows(k);
   for (var i = 0; i < SPLIT_WORD.length; i++) {
     var g = GLYPH[SPLIT_WORD[i]];
     if (!g) continue;
     for (var j = 0; j < SPLIT_ROWS; j++) {
       for (var sub = 0; sub < k; sub++) {
         var sy = j*k + sub, warm = sy < mid;
+        if (warm && sy >= warmN) continue;      // that row lives under the rule
         var f = warm ? sy / mid : (sy - mid) / (total - mid);
         var ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
         var idx = warm ? Math.round(f * (ramp.length - 1))
@@ -509,10 +530,11 @@ function splitMark(fb, x, y, k, shadow) {
   /* The rule overshoots the word at both ends — the old vertical divider
      overshot the caps for the same reason — so it reads as a cut across the
      word rather than as a stroke belonging to a letter. */
-  var mid = (SPLIT_ROWS * k) / 2, over = 2 * k;
+  var gap = splitGap(k), over = 2 * k;
   var bx = x - over, bw = splitMarkW(k) + 2 * over;
-  fb.rect(bx, gy + Math.round(mid - part), bw, 2 * part, shadow);
-  fb.rect(bx, gy + Math.round(mid - k/2), bw, k, SPLIT_PACKED.white);
+  fb.rect(bx, y + gap.top, bw, gap.h, shadow);
+  // centred in the gap, so the dark either side of it comes out even
+  fb.rect(bx, y + gap.top + ((gap.h - k) >> 1), bw, k, SPLIT_PACKED.white);
 }
 
 /* Small text in the mark's two temperatures, for the call buttons. The font is
