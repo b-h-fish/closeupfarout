@@ -178,7 +178,10 @@
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
-  var menuCw = CARD_W, menuCh = CARD_H;
+  /* Sized to the content band rather than to the game's cards: the fan is
+     the front page's centrepiece, and at play size it left the grid picker's
+     slot half empty. Same stock proportions, grown to fill the height. */
+  var menuCh = GWID - 9, menuCw = Math.round(menuCh * CARD_W / CARD_H);
 
   function drawMenuCards(cx, y, maxW) {
     var p = pal();
