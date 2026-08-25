@@ -244,7 +244,12 @@
     g.row1Y  = g.labelY + 7 + 12;
     g.row2Y  = g.row1Y + 20 + 14;
     g.blockH = g.row2Y + 20;
-    g.pw = Math.min(Math.round(W * 0.84), 320);
+    /* Wide enough for the widest thing in it and no wider: the buttons and
+       the fan both stop at 160, so 16 either side matches the 16 above and
+       below and the panel comes out evenly padded. Anything more than this
+       was empty margin. The cap stays a share of the canvas underneath, so
+       a narrow viewport still shrinks the panel rather than overflowing. */
+    g.pw = Math.min(Math.round(W * 0.84), 160 + g.PAD * 2);
     g.top = Math.max(8, Math.round((H - g.blockH) / 2));
     return g;
   }
