@@ -50,7 +50,7 @@
      takes the most expensive thing on screen out of the per-frame path. */
   var bgCanvas, bgCtx, bgFb = null, worldScale = 2, bgW = 0, bgH = 0, bgDirty = true;
 
-  var screen = 'SETUP';
+  var screen = 'MENU';
   var pickC = 3, pickR = 3, pickScene = 0;   // Dusk Terrace, the load-in default
   var g = null, fx = null, focus = 0, confirmMenu = false;
   /* Keyboard focus is only drawn once the keyboard is in use — otherwise
@@ -73,9 +73,7 @@
     var vw = window.innerWidth, vh = window.innerHeight;
     var dpr = window.devicePixelRatio || 1;
     device = L.device(vw, vh, COARSE);
-    if (screen === 'SETUP') {
-      // fine scaling here too: a 14px grid cell was an impossible target for a
-      // finger, and the cells only grow if the menu can
+    if (screen === 'MENU' || screen === 'SETUP') {
       scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
       uiSide = false;
     } else {
@@ -161,6 +159,91 @@
     return r;
   }
 
+  /* ═══ MENU ════════════════════════════════════════════════════════════ */
+
+  var MENU_CARDS = [
+    { r: 'A', s: 'S' }, { r: '7', s: 'H' }, { r: '3', s: 'D' },
+    { r: '9', s: 'C' }, { r: '5', s: 'H' }
+  ];
+  var SHUF_CYCLE = 4000;
+  var menuCw = CARD_W, menuCh = CARD_H;
+
+  function drawMenuCards(cx, y, maxW) {
+    var p = pal();
+    var n = MENU_CARDS.length;
+    var mid = (n - 1) / 2;
+    var fanSpread = Math.floor((maxW - menuCw) / (2 * mid));
+    var stackOff = 2;
+
+    var raw = (now % SHUF_CYCLE) / SHUF_CYCLE;
+    var phase;
+    if (raw < 0.15)      phase = { id: 'open',  t: raw / 0.15 };
+    else if (raw < 0.55) phase = { id: 'hold',  t: (raw - 0.15) / 0.4 };
+    else if (raw < 0.70) phase = { id: 'close', t: (raw - 0.55) / 0.15 };
+    else                 phase = { id: 'stack', t: (raw - 0.70) / 0.3 };
+
+    var fan = 0;
+    if (phase.id === 'open')  fan = phase.t;
+    else if (phase.id === 'hold')  fan = 1;
+    else if (phase.id === 'close') fan = 1 - phase.t;
+
+    var ease = fan < 0.5 ? 2 * fan * fan : 1 - 2 * (1 - fan) * (1 - fan);
+
+    for (var i = 0; i < n; i++) {
+      var offset = (i - mid) * fanSpread * ease;
+      var stackX = (i - mid) * stackOff;
+      var bx = Math.round(cx - (menuCw >> 1) + stackX * (1 - ease) + offset);
+      var by = y;
+
+      fb.dim(bx + 3, by + 4, menuCw, menuCh, 0.45);
+
+      if (ease > 0.3) {
+        cardFace(fb, bx, by, menuCw, menuCh, MENU_CARDS[i].r, MENU_CARDS[i].s, p);
+      } else {
+        cardBack(fb, bx, by, menuCw, menuCh, p);
+      }
+    }
+  }
+
+  function drawMenu() {
+    var p = pal();
+    var cx = W >> 1, PAD = 14;
+    var pw = Math.min(Math.round(W * 0.84), 280);
+    var markK = 3;
+    var markH = splitMarkH(markK);
+    var btnW = Math.min(160, pw - 32);
+    var cardAreaH = menuCh + 8;
+    var blockH = markH + 10 + cardAreaH + 10 + 20 + 10 + 20;
+    var ph = blockH + PAD * 2;
+    var top = Math.max(8, Math.round((H - blockH) / 2));
+
+    fb.dim(cx - (pw >> 1), top - PAD, pw, ph, 0.42);
+    fb.frame(cx - (pw >> 1), top - PAD, pw, ph, p.hudDim);
+
+    var y = top;
+    splitMark(fb, cx - (splitMarkW(markK) >> 1), y, markK, p.hudShadow);
+    y += markH + 10;
+
+    drawMenuCards(cx, y, btnW);
+    y += cardAreaH + 10;
+
+    var bx = cx - (btnW >> 1);
+    var soloHot = mouse.x >= bx && mouse.x < bx + btnW && mouse.y >= y && mouse.y < y + 20;
+    fb.rect(bx, y, btnW, 20, soloHot ? p.hudInk : p.hudShadow);
+    fb.frame(bx, y, btnW, 20, p.hudInk);
+    var sl = 'SOLO';
+    fb.text(sl, bx + ((btnW - fb.textW(sl, 1)) >> 1), y + 7, soloHot ? p.hudShadow : p.hudInk);
+    hit(bx, y, btnW, 20, { t: 'solo' });
+    y += 20 + 10;
+
+    var friendHot = mouse.x >= bx && mouse.x < bx + btnW && mouse.y >= y && mouse.y < y + 20;
+    fb.rect(bx, y, btnW, 20, friendHot ? p.hudInk : p.hudShadow);
+    fb.frame(bx, y, btnW, 20, p.hudInk);
+    var fl = 'MULTIPLAYER';
+    fb.text(fl, bx + ((btnW - fb.textW(fl, 1)) >> 1), y + 7, friendHot ? p.hudShadow : p.hudInk);
+    hit(bx, y, btnW, 20, { t: 'multiplayer' });
+  }
+
   /* ═══ SETUP ═══════════════════════════════════════════════════════════ */
 
   function drawSetup() {
@@ -169,7 +252,7 @@
     var cx = W >> 1, PAD = 20;
     // a share of the canvas rather than all of it, so the setting frames it
     var pw = Math.min(Math.round(W * 0.84), 340);
-    var blockH = splitMarkH(3) + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20;
+    var blockH = splitMarkH(3) + 20 + GWID + 10 + 7 + 14 + 20 + 16 + 20 + 10 + 14;
     var ph = blockH + PAD*2;
     var top = Math.max(8, Math.round((H - blockH) / 2));
 
@@ -237,6 +320,14 @@
     fb.frame(dx, y, dw, 20, p.hudInk);
     fb.text('DEAL', dx + ((dw - fb.textW('DEAL',1)) >> 1), y + 7, dhot ? p.hudShadow : p.hudInk);
     hit(dx, y, dw, 20, { t:'deal' });
+    y += 20 + 10;
+
+    var bl = 'BACK';
+    var bkw = fb.textW(bl, 1) + 12;
+    var bkx = cx - (bkw >> 1);
+    var bkHot = mouse.x >= bkx && mouse.x < bkx + bkw && mouse.y >= y && mouse.y < y + 14;
+    fb.text(bl, bkx + 6, y + 4, bkHot ? p.hudInk : p.hudDim);
+    hit(bkx, y, bkw, 14, { t:'back' });
   }
 
   /* ═══ GAME ════════════════════════════════════════════════════════════ */
@@ -486,10 +577,10 @@
   function say(msg) { if (live) live.textContent = msg; }
 
   function toMenu() {
-    screen = 'SETUP'; g = null; fx = null; confirmMenu = false;
+    screen = 'MENU'; g = null; fx = null; confirmMenu = false;
     fit();
     if (history.replaceState) history.replaceState(null, '', location.pathname);
-    say('Split. Choose a grid size and a setting, then deal.');
+    say('Split. Solo or play with friends.');
   }
 
   function describe() {
@@ -544,6 +635,9 @@
 
   function dispatch(act) {
     if (!act) return;
+    if (act.t === 'solo')  { screen = 'SETUP'; fit(); say('Choose a grid size and a setting, then deal.'); return; }
+    if (act.t === 'multiplayer') { return; }
+    if (act.t === 'back')  { toMenu(); return; }
     if (act.t === 'grid')  { pickC = act.c; pickR = act.r; return; }
     if (act.t === 'scene') { pickScene = act.i; bgDirty = true; return; }
     if (act.t === 'deal')  {
@@ -616,8 +710,14 @@
 
   function onKey(e) {
     var k = e.key;
+    if (screen === 'MENU') {
+      if (k === 'Enter' || k === ' ') { dispatch({ t:'solo' }); e.preventDefault(); }
+      else return;
+      e.preventDefault(); return;
+    }
     if (screen === 'SETUP') {
       if (k === 'Enter' || k === ' ') { dispatch({ t:'deal' }); e.preventDefault(); }
+      else if (k === 'Escape') { dispatch({ t:'back' }); e.preventDefault(); }
       else if (k === 'ArrowRight') pickC = Math.min(4, pickC+1);
       else if (k === 'ArrowLeft')  pickC = Math.max(1, pickC-1);
       else if (k === 'ArrowDown')  pickR = Math.min(4, pickR+1);
@@ -673,7 +773,9 @@
 
     hits.length = 0;
     fb.clear();
-    if (screen === 'SETUP') drawSetup(); else { drawGame(); if (confirmMenu) drawConfirm(); }
+    if (screen === 'MENU') drawMenu();
+    else if (screen === 'SETUP') drawSetup();
+    else { drawGame(); if (confirmMenu) drawConfirm(); }
 
     var img = ctx.createImageData(W, H);
     img.data.set(fb.d);
@@ -704,7 +806,7 @@
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointerleave', function () { mouse.x = mouse.y = -1e5; });
     window.addEventListener('keydown', onKey);
-    say('Split. Choose a grid size and a setting, then deal.');
+    say('Split. Solo or play with friends.');
     requestAnimationFrame(frame);
   }
 
