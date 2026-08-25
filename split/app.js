@@ -161,10 +161,22 @@
 
   /* ═══ MENU ════════════════════════════════════════════════════════════ */
 
-  var MENU_CARDS = [
-    { r: 'A', s: 'S' }, { r: '7', s: 'H' }, { r: '3', s: 'D' },
-    { r: '9', s: 'C' }, { r: '5', s: 'H' }
-  ];
+  var MENU_RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
+  var MENU_SUITS = ['S','H','D','C'];
+  var menuHand = [];
+  var lastCycle = -1;
+  function shuffleHand() {
+    var deck = [], i, j, tmp;
+    for (i = 0; i < MENU_RANKS.length; i++)
+      for (j = 0; j < MENU_SUITS.length; j++)
+        deck.push({ r: MENU_RANKS[i], s: MENU_SUITS[j] });
+    for (i = deck.length - 1; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+    }
+    menuHand = deck.slice(0, 5);
+  }
+  shuffleHand();
   var SHUF_CYCLE = 4000;
   var menuCw = CARD_W, menuCh = CARD_H;
 
@@ -174,6 +186,9 @@
     var mid = (n - 1) / 2;
     var fanSpread = Math.floor((maxW - menuCw) / (2 * mid));
     var stackOff = 2;
+
+    var cycle = Math.floor(now / SHUF_CYCLE);
+    if (cycle !== lastCycle) { shuffleHand(); lastCycle = cycle; }
 
     var raw = (now % SHUF_CYCLE) / SHUF_CYCLE;
     var phase;
@@ -198,7 +213,7 @@
       fb.dim(bx + 3, by + 4, menuCw, menuCh, 0.45);
 
       if (ease > 0.3) {
-        cardFace(fb, bx, by, menuCw, menuCh, MENU_CARDS[i].r, MENU_CARDS[i].s, p);
+        cardFace(fb, bx, by, menuCw, menuCh, menuHand[i].r, menuHand[i].s, p);
       } else {
         cardBack(fb, bx, by, menuCw, menuCh, p);
       }
