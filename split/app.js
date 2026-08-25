@@ -234,7 +234,8 @@
        label row    ("3 X 1", or empty)
        row1         (setting selector, or SOLO)
        row2         (DEAL, or MULTIPLAYER)
-       row3         (BACK, or empty)                                          */
+     The way back is a corner arrow rather than a row of its own — a whole
+     row for one word made the panel taller than it had any need to be. */
   function menuGeom() {
     var markH = splitMarkH(3);
     var g = { PAD: 16, markH: markH };
@@ -242,8 +243,7 @@
     g.labelY = g.bandY + GWID + 8;
     g.row1Y  = g.labelY + 7 + 12;
     g.row2Y  = g.row1Y + 20 + 14;
-    g.row3Y  = g.row2Y + 20 + 8;
-    g.blockH = g.row3Y + 14;
+    g.blockH = g.row2Y + 20;
     g.pw = Math.min(Math.round(W * 0.84), 320);
     g.top = Math.max(8, Math.round((H - g.blockH) / 2));
     return g;
@@ -254,6 +254,29 @@
     fb.dim(cx - (m.pw >> 1), m.top - m.PAD, m.pw, m.blockH + m.PAD * 2, 0.42);
     fb.frame(cx - (m.pw >> 1), m.top - m.PAD, m.pw, m.blockH + m.PAD * 2, p.hudDim);
     splitMark(fb, cx - (splitMarkW(3) >> 1), m.top, 3, p.hudShadow);
+  }
+
+  /* Drawn rather than typed: the font's '<' already means "previous setting"
+     one row down, and the way out of the screen should not wear the same
+     glyph as the thing that cycles a setting. */
+  var BACK_ARROW = [
+    '..##...',
+    '.##....',
+    '#######',
+    '.##....',
+    '..##...'
+  ];
+
+  /* Sits in the panel's top-left corner, clear of the mark. The target takes
+     a good deal more than the glyph, so a thumb can find it. */
+  function backArrow(m) {
+    var p = pal(), cx = W >> 1;
+    var ax = cx - (m.pw >> 1) + 10, ay = m.top - m.PAD + 10;
+    var r = { x: ax - 7, y: ay - 8, w: 21, h: 21 };
+    var hot = inside(r);
+    if (hot) fb.frame(r.x, r.y, r.w, r.h, p.hudDim);
+    fb.blit(BACK_ARROW, ax, ay, hot ? p.hudInk : p.hudDim);
+    hit(r.x, r.y, r.w, r.h, { t: 'back' });
   }
 
   function menuButton(y, w, label, act) {
@@ -334,14 +357,7 @@
     fb.text(nm, nx + ((nw - fb.textW(nm,1)) >> 1), y + 7, p.hudInk);
 
     menuButton(m.top + m.row2Y, rowW, 'DEAL', { t:'deal' });
-
-    var by = m.top + m.row3Y;
-    var bl = 'BACK';
-    var bkw = fb.textW(bl, 1) + 12;
-    var bkx = cx - (bkw >> 1);
-    var bkHot = mouse.x >= bkx && mouse.x < bkx + bkw && mouse.y >= by && mouse.y < by + 14;
-    fb.text(bl, bkx + 6, by + 4, bkHot ? p.hudInk : p.hudDim);
-    hit(bkx, by, bkw, 14, { t:'back' });
+    backArrow(m);
   }
 
   /* ═══ GAME ════════════════════════════════════════════════════════════ */
