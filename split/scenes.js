@@ -25,7 +25,7 @@ var DECK = {
 };
 
 var SCENES = [
-  { key:'dusk', jp:'黄昏', name:'Dusk Terrace',
+  { key:'dusk', name:'Dusk Terrace',
     blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
     pal: P(Object.assign({}, DECK, {
       sky:['#2b1a4e','#4a2263','#77296a','#a83a63','#d25a51','#ef8248','#ffb267'],
@@ -34,7 +34,7 @@ var SCENES = [
       ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
       pick:'#ff7a5c'
     })) },
-  { key:'palms', jp:'常夏', name:'Palm Court',
+  { key:'palms', name:'Palm Court',
     blurb:'Daylight, somewhere warm. Turquoise water, palms, and a sun that never quite sets.',
     pal: P(Object.assign({}, DECK, {
       sky:['#1f8fc0','#3fb0d8','#6fcde6','#a8e4f0','#d8f4f4','#ffd9cf'],
@@ -45,7 +45,7 @@ var SCENES = [
       ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
       pick:'#5fe0c8'
     })) },
-  { key:'space', jp:'宇宙港', name:'Space Port',
+  { key:'space', name:'Space Port',
     blurb:'Docked, waiting on a berth. Gas and starlight overhead, deck plate underfoot.',
     pal: P(Object.assign({}, DECK, {
       sky:['#0a0e28','#0b1030','#0d1338','#0f1740','#111a48','#131e50'],
@@ -59,7 +59,7 @@ var SCENES = [
       ui:'#e2e8f4', uiDim:'#8d95ab', uiShadow:'#04050d', btnBg:'#232936', btnInk:'#e2e8f4',
       pick:'#7fd4ff'
     })) },
-  { key:'jungle', jp:'密林行', name:'Jungle Hike',
+  { key:'jungle', name:'Jungle Hike',
     blurb:'Mid-morning deep in it. Light comes down in columns and the trail goes on.',
     pal: P(Object.assign({}, DECK, {
       sky:['#16302a','#173424','#1a3a1e','#204718','#2e5c1c','#457c26','#68a634','#9ac95a'],
