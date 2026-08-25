@@ -174,7 +174,10 @@
       j = (Math.random() * (i + 1)) | 0;
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
     }
-    menuHand = deck.slice(0, 5);
+    /* Three, not five: at band size, five cards inside the fan's cap bury
+       each other to the corner index and read as blank stock. Three leaves
+       most of every face showing — a flop, not a fistful. */
+    menuHand = deck.slice(0, 3);
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
