@@ -178,10 +178,13 @@
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
-  /* Sized to the content band rather than to the game's cards: the fan is
-     the front page's centrepiece, and at play size it left the grid picker's
-     slot half empty. Same stock proportions, grown to fill the height. */
-  var menuCh = GWID - 9, menuCw = Math.round(menuCh * CARD_W / CARD_H);
+  /* Smaller than the game's cards, and deliberately so. The fan is capped at
+     the SOLO button's edge, which fixes the total width — so card size is
+     what decides how much of each face survives the overlap. At play size or
+     above, the visible strip is narrower than the first pip column and every
+     card behind the front one reads as blank stock. At this size the strip
+     clears the pips, so the whole hand shows as printed cards. */
+  var menuCw = 46, menuCh = Math.round(menuCw * CARD_H / CARD_W);
 
   function drawMenuCards(cx, y, maxW) {
     var p = pal();
@@ -266,12 +269,10 @@
     var m = menuGeom(), cx = W >> 1;
     panelFrame(m);
 
-    /* The fan holds the grid picker's band, centred in it, and spreads to
-       the panel's interior rather than the button below — at band-size cards
-       the button's width buries every face but the front one, while this
-       leaves all three pip columns showing on the whole hand. */
+    // the fan holds the grid picker's band, centred in it, and concludes
+    // above the button's edge rather than reaching past it
     var btnW = Math.min(160, m.pw - 32);
-    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), m.pw - 16);
+    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
     menuButton(m.top + m.row1Y, btnW, 'SOLO', { t: 'solo' });
     menuButton(m.top + m.row2Y, btnW, 'MULTIPLAYER', { t: 'multiplayer' });
