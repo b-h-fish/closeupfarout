@@ -19,7 +19,7 @@
      Split. It now sits face up for a beat before it turns. */
   var DEAL_MS = 380, HOLD_MS = 800, FLIP_MS = 420;
 
-  var WM_X = 6, WM_Y = 6;                // the wordmark's corner, in world units
+  var WM_X = 6, WM_Y = 6;                // the mark's corner, in world units
   /* A coarse pointer is the only thing that tells a tablet from a desktop
      window of the same shape; read once, since it cannot change under us.
      ?coarse=1/0 overrides it, so the contact sheet can stand a desktop frame
@@ -102,11 +102,11 @@
     bgDirty = true;
   }
 
-  /* The setting, and in play the wordmark with it — both at the world scale. */
+  /* The setting, and in play the mark with it — both at the world scale. */
   function drawBackground() {
     bgFb.clear();
     drawScene(bgFb, SCENES[pickScene], bgW, bgH);
-    if (screen === 'GAME') wordmark(bgFb, WM_X + 6, WM_Y + 7, 1, pal().hudInk);
+    if (screen === 'GAME') splitMark(bgFb, WM_X + 6, WM_Y + 5, 1, pal().hudShadow);
     var img = bgCtx.createImageData(bgW, bgH);
     img.data.set(bgFb.d);
     bgCtx.putImageData(img, 0, 0);
@@ -145,25 +145,6 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
-  /* The wordmark is drawn, not typed. Two reasons: a typed space either side
-     of the divider is far wider than the mark wants, and a divider set on the
-     cap height reads as a second letter I. This rule overshoots the caps top
-     and bottom, which no letter does, so it reads as a separator. */
-  var WM_GAP = 5, WM_OVER = 2, WM_TALL = 11;
-  function wordmarkW(k) { return (11 + WM_GAP + 1 + WM_GAP + 11) * k; }
-  function wordmark(t, x, y, k, col) {
-    var p = pal();
-    function put(str, sx) {
-      t.textBig(str, sx + k, y + k, p.hudShadow, k);
-      t.textBig(str, sx, y, col, k);
-    }
-    put('HI', x);
-    var rx = x + 11*k + WM_GAP*k;
-    t.rect(rx + k, y - WM_OVER*k + k, k, WM_TALL*k, p.hudShadow);
-    t.rect(rx,     y - WM_OVER*k,     k, WM_TALL*k, col);
-    put('LO', rx + k + WM_GAP*k);
-  }
-
   function button(x, y, w, label, act, on) {
     var p = pal();
     var r = { x:x, y:y, w:w, h:18 };
@@ -192,9 +173,9 @@
     fb.frame(cx - (pw>>1), top - PAD, pw, ph, p.hudDim);
 
     var y = top;
-    /* The menu gets the cut mark. In play the wordmark stays plain and small
-       in the corner — the board is what should be carrying colour there, not
-       the masthead. */
+    /* The same mark the corner of a live game carries, three times the size.
+       Drawn, not typed: a typed space around the cut would be far wider than
+       the mark wants. */
     splitMark(fb, cx - (splitMarkW(3) >> 1), y, 3, p.hudShadow);
     y += splitMarkH(3) + 20;
 
@@ -327,7 +308,7 @@
       if (g.phase === 'PLAY' || g.phase === 'RESURRECT') {
         /* Above the deck by default, so the count stays clear of the calls.
            A board one row deep starts at the top, which puts that figure up
-           beside the wordmark — those rows ask for it underneath instead.
+           beside the mark — those rows ask for it underneath instead.
            One line, figure then label, centred on the card: at six pixels a
            character the longest it ever reads is 41 against the card's 54. */
         var sc = String(HiLo.stockLeft(g));
@@ -352,14 +333,15 @@
     }
 
     // ── HUD ──
-    // The wordmark is the way back to the menu. Nothing else lives up here:
+    // The mark is the way back to the menu. Nothing else lives up here:
     // the stock count is already under the deck, and how many piles are alive
     // is plain from the board.
     /* Drawn on the layer behind, so its box has to be converted from that
        layer's units into these to stay clickable and to draw its hover. */
     var q = worldScale / scale;
     var wmR = { x: Math.round(WM_X*q), y: Math.round(WM_Y*q),
-                w: Math.round((wordmarkW(1) + 12)*q), h: Math.round(21*q) };
+                w: Math.round((splitMarkW(1) + 12)*q),
+                h: Math.round((splitMarkH(1) + 10)*q) };
     if (inside(wmR)) fb.frame(wmR.x, wmR.y, wmR.w, wmR.h, p.hudInk);
     hit(wmR.x, wmR.y, wmR.w, wmR.h, { t:'menu' });
 
