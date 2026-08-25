@@ -182,7 +182,7 @@
 
   function drawMenuCards(cx, y, maxW) {
     var p = pal();
-    var n = MENU_CARDS.length;
+    var n = menuHand.length;
     var mid = (n - 1) / 2;
     var fanSpread = Math.floor((maxW - menuCw) / (2 * mid));
     var stackOff = 2;
