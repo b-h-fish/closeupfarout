@@ -59,13 +59,20 @@ var HiLoLayout = (function () {
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
     '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
+             /* On a desktop the three-row board leaves room under the deck
+                and under the calls, and both readings sit better there than
+                squeezed above: the count clears the horizon and PICK A PILE
+                stops crowding the top button. Desktop only — the smaller
+                formats have no such room. Neither term is read by this file,
+                so nothing here moves. */
              /* three cards tall ran to nine tenths of a phone; stepped it
                 lands anywhere from 72% to 89%, so scale it continuously and
                 let the reserves set the height. On a tablet on its side it
                 sat at 94% where 2x3 and 4x3 sat at 85% — same reserve there */
              on: { phone: { fine:true, head:128, sideH:50 },
                    'tablet-wide': { fine:true, sideH:42 },
-                   desktop:       { fine:true, sideH:42 } } },
+                   desktop:       { fine:true, sideH:42,
+                                    count:'below', pickUnder:true } } },
     '1x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { tablet: { sideFit:true }, 'tablet-wide': { fine:true, sideH:54 },
                    phone:         { fine:true, head:134, sideH:140, sideFit:true },
@@ -79,7 +86,14 @@ var HiLoLayout = (function () {
                    'phone-wide':  { callsBeside:true } } },
     '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true,
-             on: { phone: { head:128, sideH:50 } } },
+             /* On a desktop the three-row board leaves room under the deck
+                and under the calls, and both readings sit better there than
+                squeezed above: the count clears the horizon and PICK A PILE
+                stops crowding the top button. Desktop only — the smaller
+                formats have no such room. Neither term is read by this file,
+                so nothing here moves. */
+             on: { phone:   { head:128, sideH:50 },
+                   desktop: { count:'below', pickUnder:true } } },
     '2x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              /* on a tablet on its side, stepped scaling tied with the stacked
                 arrangement and the tie went to stacking; 4x4's reserves put
@@ -98,7 +112,8 @@ var HiLoLayout = (function () {
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 },
                    'tablet-wide': { fine:true, sideH:42 },
-                   desktop:       { fine:true, sideH:42 } } },
+                   desktop:       { fine:true, sideH:42,
+                                    count:'below', pickUnder:true } } },
     '3x4': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              /* on a tablet on its side, stepped scaling tied with the stacked
                 arrangement and the tie went to stacking; 4x4's reserves put
@@ -120,7 +135,8 @@ var HiLoLayout = (function () {
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false,
              /* centred on the board alone it left 96px one side and 10px the
                 other on an iPad Air; centre the whole row instead */
-             on: { 'tablet-wide': { sideFit:true } } },
+             on: { 'tablet-wide': { sideFit:true },
+                   desktop:       { count:'below', pickUnder:true } } },
     '4x4': { count:'above', edge:26, head:64, sideH:54, fine:true,  hudGap:false,
              /* on a tablet held upright the board filled the screen: cards over
                 the wordmark, and PICK A PILE a unit off the bottom edge */
