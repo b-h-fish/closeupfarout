@@ -163,6 +163,7 @@
 
   var MENU_RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
   var MENU_SUITS = ['S','H','D','C'];
+  var MENU_CARDS = 5;
   var menuHand = [];
   var lastCycle = -1;
   function shuffleHand() {
@@ -174,16 +175,20 @@
       j = (Math.random() * (i + 1)) | 0;
       tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
     }
-    menuHand = deck.slice(0, 4);
+    menuHand = deck.slice(0, MENU_CARDS);
   }
   shuffleHand();
   var SHUF_CYCLE = 4000;
   /* Sized to fill the content band exactly, which is what closes the air
-     between the mark and the buttons. The fan is capped at the SOLO button's
-     edge, so this size and the card count together decide how much of each
-     face survives the overlap: at four the visible strip runs through the
-     first pip column, which is the volume this wants; at five every card
-     behind the front one is back to blank stock. */
+     between the mark and the buttons.
+
+     The fan is capped at the SOLO button's edge and `fanSpread` divides that
+     same width by however many cards there are, so the count changes the
+     overlap and never the outer bounds — five cards occupy exactly the span
+     four did. What it does change is how much of each face survives: the strip
+     goes from 26px to 19px, which still clears the corner index but no longer
+     reaches the first pip column at 26. So every card behind the front one
+     shows its index on blank stock. That is the trade the count buys. */
   var menuCh = GWID, menuCw = Math.round(menuCh * CARD_W / CARD_H);
 
   function drawMenuCards(cx, y, maxW) {
