@@ -507,7 +507,6 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
       }
       if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
     }
-
     out.push({ x: pxp, h: ph,
                baseY: wtop + Math.round(H*0.012) + Math.round(q()*H*0.03),
                lean: (i % 2 ? 1 : -1) * (4 + Math.round(q()*7)),
@@ -558,6 +557,11 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     var ni = out.indexOf(np);
     if (ni > 0) out.splice(ni - 1, 1);
   }
+  /* The rightmost palm sits a few pixels further out, so the row runs off the
+     edge rather than stopping short of it. Deliberately unbounded: a clamp here
+     was tried and removed. */
+  if (out.length) out[out.length - 1].x += 6;
+
   return out;
 }
 
