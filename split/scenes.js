@@ -560,19 +560,6 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     var ni = out.indexOf(np);
     if (ni > 0) out.splice(ni - 1, 1);
   }
-  /* The rightmost palm goes as far out as it can while its trunk still reads.
-     Two things had to be squared: it was asked to move further right twice, and
-     a palm whose trunk clears the edge leaves fronds hanging on nothing, which
-     was reported as a fault in its own right. So it pushes hard and stops at
-     the last column that keeps the trunk — further out than a flat nudge
-     everywhere there is room, and no further where there is not. That also
-     settles the 427-wide case, where the placement's own unbounded pushes were
-     already putting it past the edge before any nudge was added. */
-  if (out.length) {
-    var lastP = out[out.length - 1];
-    lastP.x = Math.min(lastP.x + 32, W - 3);
-  }
-
   return out;
 }
 
