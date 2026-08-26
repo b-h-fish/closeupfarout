@@ -428,7 +428,10 @@ function drawScene(fb, S, W, H, noMotion) {
        local period, so it thickens with the spacing for free, and the wobble is
        divided by that period so it stays a row or two of lateral wander at
        either end rather than growing with it. */
-    water(fb, p, W, wtop, wbot, 0);
+    /* Crests are part of the moving pass, so the still keeps the flat gradient
+       only — redrawing them over a still that already had them would stack one
+       set of crests on another. */
+    if (!noMotion) water(fb, p, W, wtop, wbot, 0);
     fb.rect(0, wbot, W, H-wbot, p.floor);
     fb.skyBand(0, wbot, W, groundBand(H), [p.floorLit, p.floor]);
     // palms spread across whatever width we were given, rather than the four
@@ -533,11 +536,13 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
 
 /* Drawn back to front so a nearer crown overlaps the one behind it. `t` is
    milliseconds; each palm takes its own phase off its seed so they do not
-   sway in unison, which would read as the whole grove tipping. */
+   sway in unison, which would read as the whole grove tipping. Nine seconds a
+   cycle — slow enough that you notice the scene is alive without being able to
+   point at what moved. */
 function palms(fb, P2, spots, t) {
   for (var i = 0; i < spots.length; i++) {
     var sp = spots[i];
-    var sway = t ? Math.sin(t * 0.0011 + (sp.seed % 17) * 0.37) : 0;
+    var sway = t ? Math.sin(t * 0.0007 + (sp.seed % 17) * 0.37) : 0;
     palm(fb, sp.x, sp.baseY, sp.h, sp.lean, P2, sp.seed, sway);
   }
 }
@@ -557,15 +562,18 @@ function palms(fb, P2, spots, t) {
 
 function sceneMotion(S, H) {
   if (S.key !== 'palms') return null;
-  /* Crowns reach from about 0.02H down to the trunk foot just under the
-     waterline. Rounded out to 0.37 so a frond tip never falls outside the band
-     being repainted and leaves a smear behind. */
-  return { y0: 0, y1: Math.min(H, Math.ceil(H * 0.37)) };
+  /* Down to the waterline's foot: the crowns reach from about 0.02H to just
+     under it, and the crests run the whole way. The floor below never moves. */
+  return { y0: 0, y1: Math.min(H, groundY(H) + 1) };
 }
 
 function drawSceneMotion(fb, S, W, H, t) {
   if (S.key !== 'palms') return;
-  var wtop = Math.round(H * 0.30);
+  var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
+  /* Crests roll shoreward. One crest's spacing every six seconds or so, which
+     at three rows near the horizon and ten by the shore reads as a slow set
+     rather than a current. */
+  water(fb, S.pal, W, wtop, wbot, t * 0.00017);
   palms(fb, S.pal, palmSpots(W, H, wtop, px2, pr), t);
 }
