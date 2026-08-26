@@ -237,7 +237,7 @@ function stars(fb, W, hz, p, n, seed, collect, defer) {
 /* A column of light through a gap in the canopy. Unlike gas this wants clean
    edges — a beam that billows is smoke — so it is a plain distance falloff
    with no noise in it, fading as it falls away from the gap. */
-function shaft(fb, W, hz, lean, cxf, wide, gain, dim, mid, lit) {
+function shaft(fb, W, hz, lean, cxf, wide, gain, dim, mid, lit, bag) {
   var c = Math.cos(lean), sn = Math.sin(lean), cx = W * cxf;
   for (var y = 0; y < hz; y++) {
     var fall = 1 - y / hz;
@@ -248,10 +248,105 @@ function shaft(fb, W, hz, lean, cxf, wide, gain, dim, mid, lit) {
          and a beam of light has body. Three tones: glow, beam, core. */
       var t = (1 - d / wide) * (0.66 + 0.34 * fall) * gain;
       var thr = BAYER[y & 7][x & 7] / 64;
+      if (bag) {
+        if (t > thr * BEAM_KEEP) {
+          bag.idx.push(y * W + x); bag.t.push(t); bag.thr.push(thr); bag.ci.push(bag.n);
+        }
+        continue;
+      }
       if (t <= thr) continue;
       fb.px(x, y, t > 0.82 ? lit : (t > 0.46 ? mid : dim));
     }
   }
+  if (bag) { bag.cols.push(dim, mid, lit); bag.n++; }
+}
+
+/* Jungle Hike's light, which strengthens and fades.
+
+   Same trick as Space Port's gas: a beam is a distance falloff dithered
+   against Bayer, so holding the falloff still and putting a slow gain on it
+   walks the cut, and the column brightens and thins without being redrawn.
+
+   One thing here that the gas did not have to deal with. The beams are drawn
+   early, under three layers of canopy and a stand of near trunks, so most of
+   what a beam lights is covered by leaves before the frame is finished.
+   Repainting all of it would put light in front of the foliage. So the still
+   is snapshotted at the moment the beams would go down, the rest of the scene
+   is drawn on top as usual, and any candidate pixel the later layers wrote
+   over is dropped: what survives is exactly the light that shows through the
+   gaps, which is the only light there is anything to animate.
+
+   Each beam and the pool it lays on the trail share a phase, so the column
+   and the patch at its foot brighten together. */
+var BEAM_SWING = 0.14, BEAM_KEEP = 1 / (1 + BEAM_SWING);
+var JUNGLE = null;
+
+function jungleBag() { return { idx: [], t: [], thr: [], ci: [], cols: [], n: 0 }; }
+
+function jungleDone(bag, pre, fb, W) {
+  var d = fb.d, keep = [], kt = [], kh = [], kc = [], y0 = 1e9, y1 = 0;
+  for (var i = 0; i < bag.idx.length; i++) {
+    var o = bag.idx[i] * 4;
+    /* Untouched since the snapshot means nothing was drawn in front of it. */
+    if (d[o] !== pre[o] || d[o+1] !== pre[o+1] || d[o+2] !== pre[o+2]) continue;
+    keep.push(bag.idx[i]); kt.push(bag.t[i]); kh.push(bag.thr[i]); kc.push(bag.ci[i]);
+    var y = (bag.idx[i] / W) | 0;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  var pk = new Uint32Array(bag.cols.length);
+  for (var j = 0; j < bag.cols.length; j++) {
+    var c = bag.cols[j];
+    pk[j] = c ? (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0] : 0;
+  }
+  JUNGLE = {
+    n: keep.length, idx: new Int32Array(keep), t: new Float32Array(kt),
+    thr: new Float32Array(kh), ci: new Uint8Array(kc), pk: pk,
+    g: new Float32Array(bag.n),
+    y0: keep.length ? y0 : 0, y1: keep.length ? y1 : 0
+  };
+}
+
+/* One frame of light. Beam i and pool i are slots 2i and 2i+1 and take the
+   same phase, which is why the gain is indexed by the pair and not the slot. */
+function jungleBeams(fb, t) {
+  var J = JUNGLE;
+  if (!J || !J.n) return;
+  var g = J.g, c;
+  for (c = 0; c < g.length; c++) g[c] = 1 + BEAM_SWING * Math.sin(t * 0.00035 + ((c >> 1) * 1.9));
+  var u32 = new Uint32Array(fb.d.buffer, fb.d.byteOffset);
+  var n = J.n, idx = J.idx, tt = J.t, thr = J.thr, ci = J.ci, pk = J.pk;
+  for (var i = 0; i < n; i++) {
+    var k = ci[i], v = tt[i] * g[k];
+    if (v <= thr[i]) continue;
+    var col = pk[k * 3 + (v > 0.82 ? 2 : (v > 0.46 ? 1 : 0))];
+    if (col) u32[idx[i]] = col;
+  }
+}
+
+/* The patch of light a beam lays on the trail, at the foot of its column.
+   Pulled out of the scene so it can be recorded the same way the beam is —
+   the two belong together and have to brighten as one. */
+function pool(fb, W, gy, lean, cxf, wide, gain, col, bag) {
+  var px2 = Math.round(W * cxf + Math.sin(lean) * gy), pw = Math.max(6, wide * 1.5);
+  for (var pxx = -pw; pxx <= pw; pxx++) {
+    var pt = (1 - Math.abs(pxx) / pw) * gain;
+    for (var pyy = -3; pyy <= 2; pyy++) {
+      var d = pt * (1 - Math.abs(pyy) / 4);
+      var thr = BAYER[(gy + pyy) & 7][(px2 + pxx) & 7] / 64;
+      if (bag) {
+        /* fb.px truncates and bounds-checks; the bag has to do both itself or
+           a beam near an edge would write into the wrong row. */
+        var bx = (px2 + pxx) | 0, by = (gy - 4 + pyy) | 0;
+        if (d > thr * BEAM_KEEP && bx >= 0 && bx < W && by >= 0 && by < fb.h) {
+          bag.idx.push(by * W + bx); bag.t.push(d); bag.thr.push(thr); bag.ci.push(bag.n);
+        }
+        continue;
+      }
+      if (d > thr) fb.px(px2 + pxx, gy - 4 + pyy, col);
+    }
+  }
+  if (bag) { bag.cols.push(col, col, col); bag.n++; }
 }
 
 /* Foliage hanging from the top of the frame. Two octaves of the same noise
@@ -634,17 +729,15 @@ function drawScene(fb, S, W, H, noMotion) {
     // light down through the gaps, and where each column lands on the trail
     var beams = [[0.20, 0.24, 0.070, 0.86], [0.13, 0.45, 0.052, 0.88],
                  [0.24, 0.66, 0.044, 0.80], [0.17, 0.87, 0.036, 0.70]];
+    /* Everything drawn from here on sits in front of the light, so the still
+       is snapshotted at exactly this point: whatever the later layers write
+       over is a beam pixel the frame must not repaint. */
+    var bag = noMotion ? jungleBag() : null;
+    var pre = bag ? fb.d.slice(0) : null;
     for (var bi = 0; bi < beams.length; bi++) {
-      var bm = beams[bi];
-      shaft(fb, W, gy, bm[0], bm[1], Math.max(7, W*bm[2]), bm[3], p.shaftDim, p.shaftMid, p.shaftLit);
-      var px2 = Math.round(W*bm[1] + Math.sin(bm[0]) * gy), pw = Math.max(6, W*bm[2]*1.5);
-      for (var pxx = -pw; pxx <= pw; pxx++) {          // the pool it makes
-        var pt = (1 - Math.abs(pxx)/pw) * bm[3];
-        for (var pyy = -3; pyy <= 2; pyy++) {
-          if (pt * (1 - Math.abs(pyy)/4) > BAYER[(gy+pyy)&7][(px2+pxx)&7]/64)
-            fb.px(px2 + pxx, gy - 4 + pyy, p.pool);
-        }
-      }
+      var bm = beams[bi], bwide = Math.max(7, W*bm[2]);
+      shaft(fb, W, gy, bm[0], bm[1], bwide, bm[3], p.shaftDim, p.shaftMid, p.shaftLit, bag);
+      pool(fb, W, gy, bm[0], bm[1], bwide, bm[3], p.pool, bag);
     }
 
     canopy(fb, W, 0, gy * 0.36, p.leafMid, 733, 33, false);
@@ -668,6 +761,7 @@ function drawScene(fb, S, W, H, noMotion) {
 
     fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
+    if (bag) jungleDone(bag, pre, fb, W);
 
   } else {
     var wtop = r(0.30), wbot = gy;         // the waterline is the ground plane
@@ -881,7 +975,8 @@ function palms(fb, P2, spots, t) {
    until the sky has put them down. The caller needs this first, to decide
    whether to keep a still. */
 function sceneAnimates(S) {
-  return S.key === 'palms' || S.key === 'dusk' || S.key === 'space';
+  return S.key === 'palms' || S.key === 'dusk' || S.key === 'space' ||
+         S.key === 'jungle';
 }
 
 /* Returns the regions a frame repaints, or null for a still scene. A list
@@ -903,6 +998,13 @@ function sceneMotion(S, H, W) {
      answer, and the star squares are inside this anyway. Two thirds of the
      canvas, the same share Palm Court repaints. */
   if (S.key === 'space') return [{ x: 0, y: 0, w: W, h: groundY(H) }];
+  /* Just the rows the surviving light actually occupies — the beams reach the
+     top of the frame but the pools stop a few rows short of the trail, and
+     everything below that is floor. */
+  if (S.key === 'jungle') {
+    if (!JUNGLE || !JUNGLE.n) return null;
+    return [{ x: 0, y: JUNGLE.y0, w: W, h: JUNGLE.y1 - JUNGLE.y0 + 1 }];
+  }
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
      under it, and the crests run the whole way. The floor below never moves. */
@@ -912,6 +1014,7 @@ function sceneMotion(S, H, W) {
 function drawSceneMotion(fb, S, W, H, t) {
   if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); duskWindows(fb, t); return; }
   if (S.key === 'space') { spaceSky(fb, t); return; }
+  if (S.key === 'jungle') { jungleBeams(fb, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
