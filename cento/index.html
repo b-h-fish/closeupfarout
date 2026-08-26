@@ -95,21 +95,15 @@
     #top-center { display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
     #top-right { display: flex; align-items: center; justify-content: flex-end; }
 
+    /* A wordmark, not a control — it used to toggle the light colourway. */
     #instrument-label {
-      background: none;
-      border: none;
       font-family: 'Spectral', serif;
       font-style: italic;
       font-size: 1.05rem;
       font-weight: 400;
       letter-spacing: 0.1em;
       color: var(--fg);
-      cursor: pointer;
-      padding: 0;
-      transition: color 0.2s;
-    }
-    @media (hover: hover) {
-      #instrument-label:hover { color: var(--dim); }
+      user-select: none;
     }
 
     #mode-toggle {
@@ -769,7 +763,7 @@
 
   <header id="top-bar">
     <div id="top-left">
-      <button id="instrument-label"><span style="color:#c07a2b">C</span><span style="color:#8b3d6b">E</span><span style="color:#2b6e8b">N</span><span style="color:#4a7a46">T</span><span style="color:#c07a2b">O</span></button>
+      <span id="instrument-label"><span style="color:#c07a2b">C</span><span style="color:#8b3d6b">E</span><span style="color:#2b6e8b">N</span><span style="color:#4a7a46">T</span><span style="color:#c07a2b">O</span></span>
     </div>
     <div id="top-center">
       <div id="mode-group">
@@ -1360,10 +1354,9 @@
     }
 
     // ── Events ─────────────────────────────────────────────────
-    document.getElementById('instrument-label').addEventListener('click', () => {
-      document.documentElement.classList.toggle('light');
-      syncColorLabel();
-    });
+    // The wordmark used to toggle the light colourway on click. The `:root.light`
+    // rules are left in place, dormant, so it can be switched back on by
+    // restoring this listener.
 
     const countInput = document.getElementById('count-input');
     const refreshBtn = document.getElementById('words-refresh');
