@@ -343,15 +343,13 @@ function cardFace(fb, x, y, w, h, rank, suit, P) {
   } else if (rank === 'A') {
     var big = BIG[suit], mid2 = y + (h>>1);
     var bw = big[0].length, bh = big.length;
-    if (suit === 'S') {   // the ace of spades gets the maker's flourish
-      fb.frame(cx-12, mid2-16, 25, 33, ink);
-      fb.frame(cx-11, mid2-15, 23, 31, P.linen);
-      for (var q = 0; q < 4; q++) {
-        var qx = q & 1 ? cx+10 : cx-12, qy = q & 2 ? mid2+14 : mid2-16;
-        fb.px(qx, qy, P.linen); fb.px(qx + (q&1?-1:1), qy, ink);
-        fb.px(qx, qy + (q&2?-1:1), ink);
-      }
-    }
+    /* The ace of spades keeps its rule, and only the rule. The flourish that
+       used to sit inside it put a notch at each corner, but only the top-left
+       one landed on a corner: the right and bottom marks were figured two
+       pixels short of the edges the box actually draws at, so three of them
+       floated and the bottom-right pair touched neither side. The frame under
+       them was drawn in linen over linen and never showed at all. */
+    if (suit === 'S') fb.frame(cx-12, mid2-16, 25, 33, ink);
     fb.blit(big, cx - (bw>>1), mid2 - (bh>>1), ink);
   } else {
     var n = ten ? 10 : parseInt(rank, 10);
