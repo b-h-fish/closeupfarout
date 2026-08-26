@@ -171,7 +171,7 @@ function vnoise(seed) {
 /* A cloud of gas: a tilted lens for the overall shape, broken up by two
    octaves of noise, then quantised to three steps of one hue. Several can
    overlap without turning to mud because each only ever writes its own three. */
-function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright, seed, tail) {
+function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright, seed, tail, gas) {
   var ca = Math.cos(tilt), sa = Math.sin(tilt);
   var cx = W * cxf, cy = hz * cyf;
   var n1 = vnoise(seed), n2 = vnoise(seed + 37);
@@ -190,24 +190,41 @@ function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright,
       var billow = 0.22 + 0.90 * n1(x / s1, y / s1) + 0.40 * n2(x / s2, y / s2);
       var t = shape * billow * gain;
       var thr = BAYER[y & 7][x & 7] / 64;
+      /* Handed a bag, the cloud is recorded rather than drawn. Every pixel the
+         swell could ever reach is kept, not just the ones lit at rest, so the
+         gas has somewhere to grow into; and none are drawn, because the still
+         underneath has to be bare sky. Draw them here and the repaint would
+         bury the stars, which go down last. */
+      if (gas) {
+        if (t > thr * GAS_KEEP) {
+          gas.idx.push(y * W + x); gas.t.push(t); gas.thr.push(thr); gas.ci.push(gas.n);
+        }
+        continue;
+      }
       if (t <= thr) continue;                        // full dither: gas thins out
       var col = t > 0.88 ? bright : (t > 0.62 ? mid : dim);
       if (col == null) continue;                     // a cloud may skip its
       fb.px(x, y, col);                              // faintest step entirely
     }
   }
+  /* One bag holds all five clouds, so each closes its own slot on the way out
+     and the next one lands in the next. */
+  if (gas) { gas.cols.push(dim, mid, bright); gas.n++; }
 }
 
 /* Stars in a few temperatures, so the field is not one grey. The near ones
    get rays; the rest are single pixels, which is all a star is at this size. */
-function stars(fb, W, hz, p, n, seed, collect) {
+function stars(fb, W, hz, p, n, seed, collect, defer) {
   var q = rng(seed);
   for (var i = 0; i < n; i++) {
     var x = Math.round(q() * (W - 1)), y = Math.round(q() * (hz - 1)), b = q(), h = q();
     var col = h > 0.82 ? p.litWarm : (h > 0.62 ? p.litCool : p.lit);
-    /* Collected as they are drawn, with the colour each one got, so whatever
-       makes them twinkle later works from the same list the sky was made from. */
-    if (collect && b > 0.58) collect.push({ x: x, y: y, col: col });
+    /* Collected with the colour and the shape each one got, so whatever
+       repaints them later works from the same list the sky was made from.
+       All of them now, not just the bright ones: the gas is repainted every
+       frame and the whole field has to go back down on top of it. */
+    if (collect) collect.push({ x: x, y: y, col: col, ray: b > 0.972, lit: b > 0.58 });
+    if (defer) continue;
     if (b > 0.972) {
       fb.px(x, y, col);
       fb.px(x - 1, y, p.litDim); fb.px(x + 1, y, p.litDim);
@@ -362,47 +379,121 @@ function driftCloud(fb, W, cx, cy, halfW, halfH, dim, mid, lit, seed) {
 
 /* The strip the clouds drift through: above every tower, so repainting it costs
    nothing but the clouds themselves. */
-/* Eighteen stars that will breathe, chosen once from the ones the sky actually
-   put down. Everything else holds still.
+/* Space Port's sky, which breathes.
 
-   Space Port cannot animate the way Palm Court does: a full redraw of it
-   measures 39ms at 960x540, because `cloud()` walks the whole sky once per
-   cloud and there are five of them. But a star is a pixel with four arms at
-   most, and it is drawn last, over the gas — so restoring a three-by-three
-   square puts the cloud back underneath and the star can be redrawn at a new
-   brightness on top. Eighteen of those is a few hundred pixels a frame.
+   A full redraw of this setting measures 39ms at 960x540: `cloud()` walks the
+   whole sky once per cloud and there are five of them, each sampling two
+   octaves of value noise per pixel. Redrawing that sixty times a second is not
+   close to possible, which is why the first pass here moved eighteen stars and
+   nothing else — true, and too small to notice.
 
-   Three steps rather than a fade: dim, its own colour, and white. Anything
-   smoother is invisible at this size and costs the same. */
-var SPACE_LIVE = null, SPACE_LIVE_KEY = '';
-function spacePickLive(seen, W, H, p) {
-  var key = W + 'x' + H;
-  if (SPACE_LIVE_KEY === key) return;
-  SPACE_LIVE_KEY = key; SPACE_LIVE = [];
-  if (!seen.length) return;
-  var q = rng(1487), want = Math.min(18, seen.length), taken = {};
-  for (var i = 0; i < want * 6 && SPACE_LIVE.length < want; i++) {
-    var k = (q() * seen.length) | 0;
+   So the gas moves without being redrawn. Each cloud pixel is walked once, at
+   load, and remembers two numbers: how dense the gas is there, and the Bayer
+   threshold it is dithered against. Density over threshold is what decides
+   whether the pixel is lit and how brightly. Hold the noise still and put a
+   slow gain on the density, and the cut walks: the ragged edge of each cloud
+   advances and retreats, pixels at the margin come and go, and the gas reads
+   as billowing. It is the dither doing the work, which is the one kind of
+   motion this renderer gets for free.
+
+   About seven per cent of the sky changes at any moment, over a fourteen
+   second breath, five clouds out of phase. Nothing shifts position and nothing
+   changes colour — held at rest it is pixel-for-pixel the sky `drawScene`
+   draws. */
+var GAS_SWING = 0.13, GAS_KEEP = 1 / (1 + GAS_SWING);
+var SPACE_GAS = null, SPACE_STARS = null, SPACE_PAL = null;
+
+/* An empty bag for the five clouds to record themselves into. Deliberately not
+   cached by size: a null bag means "draw normally", so handing one back for a
+   size we had already seen would put the gas into the still and bury the stars
+   under the first repaint. Filling it costs what drawing the clouds costs,
+   which the scene was paying at this moment anyway. */
+function spaceGasBag() {
+  return { idx: [], t: [], thr: [], ci: [], cols: [], n: 0 };
+}
+
+/* Close the bag into typed arrays and pack the fifteen colours into one
+   Uint32Array, so a frame is an index, a multiply, a compare and a single
+   32-bit store. Done as plain arrays of boxed numbers it was eight times
+   slower and would not have fitted in a frame. */
+function spaceGasDone(gas, W) {
+  var n = gas.idx.length;
+  var pk = new Uint32Array(gas.cols.length);
+  for (var i = 0; i < gas.cols.length; i++) {
+    var c = gas.cols[i];
+    pk[i] = c ? (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0] : 0;
+  }
+  SPACE_GAS = {
+    n: n, W: W,
+    idx: new Int32Array(gas.idx), t: new Float32Array(gas.t),
+    thr: new Float32Array(gas.thr), ci: new Uint8Array(gas.ci),
+    pk: pk, g: new Float32Array(gas.n)
+  };
+}
+
+/* Which stars breathe, and how fast. Eighteen of the bright ones, out of
+   phase, so the field never pulses together. */
+function spaceSetLive(seen, p) {
+  SPACE_STARS = seen; SPACE_PAL = p;
+  var bright = [], i;
+  for (i = 0; i < seen.length; i++) if (seen[i].lit) bright.push(seen[i]);
+  if (!bright.length) return;
+  var q = rng(1487), want = Math.min(18, bright.length), taken = {};
+  for (i = 0; i < want * 6 && want > 0; i++) {
+    var k = (q() * bright.length) | 0;
     if (taken[k]) continue;
-    taken[k] = 1;
-    var st = seen[k];
-    SPACE_LIVE.push({
-      x: st.x, y: st.y, col: st.col, dim: p.litDim, hot: p.lit,
-      /* Radians per ms: a full breath is 2*PI/rate, so these are 3s to 8s.
-         The first numbers here were a quarter of that and gave a 28-second
-         cycle, which is not a twinkle. */
-      rate: 0.00079 + q() * 0.00130,
-      phase: q() * Math.PI * 2
-    });
+    taken[k] = 1; want--;
+    /* Radians per ms: a full breath is 2*PI/rate, so these are 3s to 8s.
+       The first numbers here were a quarter of that and gave a 28-second
+       cycle, which is not a twinkle. */
+    bright[k].rate = 0.00079 + q() * 0.00130;
+    bright[k].phase = q() * Math.PI * 2;
   }
 }
 
-function spaceStars(fb, t) {
-  if (!SPACE_LIVE) return;
-  for (var i = 0; i < SPACE_LIVE.length; i++) {
-    var s = SPACE_LIVE[i];
-    var v = 0.5 + 0.5 * Math.sin(t * s.rate + s.phase);
-    fb.px(s.x, s.y, v > 0.80 ? s.hot : (v > 0.30 ? s.col : s.dim));
+/* One frame of sky: the gas at its current density, then the whole star field
+   back on top of it.
+
+   The gas does not move and is not redrawn — redrawing means walking two
+   octaves of value noise over five overlapping clouds, which is most of the
+   39ms a full Space Port costs and is hopeless at any frame rate. What moves
+   is where each cloud's dither cuts off. Every pixel already knows its own
+   density and its own threshold; a slow gain on the density walks the cut
+   back and forth, so the ragged edge of each cloud advances and retreats and
+   the gas reads as breathing. Five clouds, out of phase, about fourteen
+   seconds each.
+
+   The stars go down after, because they always did — they are drawn over the
+   gas, and repainting the gas without them would bury a couple of hundred. */
+function spaceSky(fb, t) {
+  var G = SPACE_GAS;
+  if (G) {
+    var g = G.g, c;
+    for (c = 0; c < g.length; c++) g[c] = 1 + GAS_SWING * Math.sin(t * 0.00045 + c * 1.7);
+    var u32 = new Uint32Array(fb.d.buffer, fb.d.byteOffset);
+    var n = G.n, idx = G.idx, tt = G.t, thr = G.thr, ci = G.ci, pk = G.pk;
+    for (var i = 0; i < n; i++) {
+      var k = ci[i], v = tt[i] * g[k];
+      if (v <= thr[i]) continue;
+      var col = pk[k * 3 + (v > 0.88 ? 2 : (v > 0.62 ? 1 : 0))];
+      if (col) u32[idx[i]] = col;
+    }
+  }
+  var S2 = SPACE_STARS, p = SPACE_PAL;
+  if (!S2 || !p) return;
+  for (var j = 0; j < S2.length; j++) {
+    var s = S2[j], col = s.col;
+    /* Three steps rather than a fade: dim, its own colour, and white. Anything
+       smoother is invisible at this size and costs the same. */
+    if (s.rate) {
+      var b = 0.5 + 0.5 * Math.sin(t * s.rate + s.phase);
+      col = b > 0.80 ? p.lit : (b > 0.30 ? s.col : p.litDim);
+    } else if (!s.lit) col = p.litDim;
+    if (s.ray) {
+      fb.px(s.x, s.y, col);
+      fb.px(s.x - 1, s.y, p.litDim); fb.px(s.x + 1, s.y, p.litDim);
+      fb.px(s.x, s.y - 1, p.litDim); fb.px(s.x, s.y + 1, p.litDim);
+    } else fb.px(s.x, s.y, col);
   }
 }
 
@@ -490,19 +581,23 @@ function drawScene(fb, S, W, H, noMotion) {
     /* One galactic band across the whole sky, then gas at three temperatures
        laid over it at different angles. They overlap rather than tile, which
        is what keeps it from reading as one flat colour. */
-    cloud(fb, W, gy, -0.22, 0.50, 0.44, Math.max(18, gy*0.40), W*0.58, 0.92, p.band, p.bandMid, p.bandLit, 91);
-    cloud(fb, W, gy,  0.34, 0.17, 0.40, Math.max(13, gy*0.27), W*0.17, 0.80, p.teal, p.tealMid, p.tealLit, 214);
-    cloud(fb, W, gy, -0.44, 0.79, 0.39, Math.max(12, gy*0.25), W*0.22, 0.76, p.rose, p.roseMid, p.roseLit, 377);
+    /* When the setting is going to move, the clouds are recorded into `gas`
+       rather than drawn, and the still keeps nothing but the sky gradient. */
+    var gas = noMotion ? spaceGasBag() : null;
+    cloud(fb, W, gy, -0.22, 0.50, 0.44, Math.max(18, gy*0.40), W*0.58, 0.92, p.band, p.bandMid, p.bandLit, 91, 1, gas);
+    cloud(fb, W, gy,  0.34, 0.17, 0.40, Math.max(13, gy*0.27), W*0.17, 0.80, p.teal, p.tealMid, p.tealLit, 214, 1, gas);
+    cloud(fb, W, gy, -0.44, 0.79, 0.39, Math.max(12, gy*0.25), W*0.22, 0.76, p.rose, p.roseMid, p.roseLit, 377, 1, gas);
     // the gold runs up into the top left, and fades as it goes
     /* Its faintest step is a dark violet, not a dark olive — where the gold
        thins out over the band it now settles into the sky instead of browning
        it, and only shows its own colour where it is actually dense. */
-    cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508, 0.42);
+    cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508, 0.42, gas);
     // and a warm bank low on the right, under the rose
-    cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733);
+    cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733, 1, gas);
+    if (gas) spaceGasDone(gas, W);
     var seen = [];
-    stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301, seen);
-    spacePickLive(seen, W, H, p);
+    stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301, seen, noMotion);
+    if (noMotion) spaceSetLive(seen, p);
     // the deck: flat, and a lit lip where it meets the dark, like the others
     fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
@@ -797,15 +892,11 @@ function sceneMotion(S, H, W) {
     }
     return out;
   }
-  if (S.key === 'space') {
-    if (!SPACE_LIVE || !SPACE_LIVE.length) return null;
-    var st = [];
-    for (var j = 0; j < SPACE_LIVE.length; j++) {
-      var v = SPACE_LIVE[j];
-      st.push({ x: Math.max(0, v.x - 1), y: Math.max(0, v.y - 1), w: 3, h: 3 });
-    }
-    return st;
-  }
+  /* The whole sky, in one piece. It was eighteen little squares when only the
+     stars moved; now the gas breathes underneath them there is no smaller
+     answer, and the star squares are inside this anyway. Two thirds of the
+     canvas, the same share Palm Court repaints. */
+  if (S.key === 'space') return [{ x: 0, y: 0, w: W, h: groundY(H) }];
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
      under it, and the crests run the whole way. The floor below never moves. */
@@ -814,7 +905,7 @@ function sceneMotion(S, H, W) {
 
 function drawSceneMotion(fb, S, W, H, t) {
   if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); duskWindows(fb, t); return; }
-  if (S.key === 'space') { spaceStars(fb, t); return; }
+  if (S.key === 'space') { spaceSky(fb, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
