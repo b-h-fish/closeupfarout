@@ -428,7 +428,7 @@ function pool(fb, W, gy, lean, cxf, wide, gain, col, bag) {
 /* Foliage hanging from the top of the frame. Two octaves of the same noise
    the gas clouds use — one for the overall sag of the canopy, one for the
    leafiness of its edge — so it reads as a mass rather than a wave. */
-function canopy(fb, W, edge, depth, col, seed, coarse, up, heights) {
+function canopy(fb, W, edge, depth, col, seed, coarse, up, heights, drop) {
   var n1 = vnoise(seed), n2 = vnoise(seed + 61), n3 = vnoise(seed + 149);
   for (var x = 0; x < W; x++) {
     var sag  = n1(x / coarse, 0.5);                     // how the mass hangs
@@ -437,6 +437,7 @@ function canopy(fb, W, edge, depth, col, seed, coarse, up, heights) {
     var h = Math.round(depth * (0.40 + 0.60 * sag)
                      + depth * 0.42 * lump
                      + depth * 0.30 * jag);
+    if (drop) h += Math.round(drop(x));               // hangs lower over a corner
     if (h <= 0) continue;
     if (heights) heights[x] = h;                      // for whoever disturbs it later
     if (up) fb.rect(x, edge - h, 1, h, col);          // rising from the trail
@@ -803,9 +804,21 @@ function drawScene(fb, S, W, H, noMotion) {
 
     canopy(fb, W, 0, gy * 0.46, p.leafFar, 512, 52, false);
 
+    /* The far left carries a beam too, and one starting at the top of the
+       frame would put light up behind the wordmark. So the two hanging layers
+       reach lower over that corner and the new column emerges from under them,
+       below the logo, rather than from the top edge. Squared, so it is a
+       thickening at the corner and not a slope across the frame; by a third of
+       the width it is gone and the other beams are untouched. */
+    var cornerDrop = function (x) {
+      var u = 1 - Math.min(1, x / (W * 0.30));
+      return u * u * gy * 0.38;
+    };
+
     // light down through the gaps, and where each column lands on the trail
-    var beams = [[0.20, 0.24, 0.070, 0.86], [0.13, 0.45, 0.052, 0.88],
-                 [0.24, 0.66, 0.044, 0.80], [0.17, 0.87, 0.036, 0.70]];
+    var beams = [[0.26, 0.055, 0.038, 0.74], [0.20, 0.24, 0.070, 0.86],
+                 [0.13, 0.45, 0.052, 0.88], [0.24, 0.66, 0.044, 0.80],
+                 [0.17, 0.87, 0.036, 0.70]];
     /* Everything drawn from here on sits in front of the light, so the still
        is snapshotted at exactly this point: whatever the later layers write
        over is a beam pixel the frame must not repaint. */
@@ -817,7 +830,7 @@ function drawScene(fb, S, W, H, noMotion) {
       pool(fb, W, gy, bm[0], bm[1], bwide, bm[3], p.pool, bag);
     }
 
-    canopy(fb, W, 0, gy * 0.36, p.leafMid, 733, 33, false);
+    canopy(fb, W, 0, gy * 0.36, p.leafMid, 733, 33, false, null, cornerDrop);
 
     var tq = rng(404), tn = Math.max(5, Math.round(W / 96));
     for (var ti = 0; ti < tn; ti++) {
@@ -832,7 +845,7 @@ function drawScene(fb, S, W, H, noMotion) {
       }
     }
 
-    canopy(fb, W, 0, gy * 0.24, p.leafNear, 951, 17, false);
+    canopy(fb, W, 0, gy * 0.24, p.leafNear, 951, 17, false, null, cornerDrop);
     var bh1 = bag ? new Int16Array(W) : null, bh2 = bag ? new Int16Array(W) : null;
     canopy(fb, W, gy, gy * 0.21, p.leafMid,  178, 21, true, bh1);
     canopy(fb, W, gy, gy * 0.13, p.leafNear, 266, 12, true, bh2);
