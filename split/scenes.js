@@ -515,6 +515,16 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     prevX = pxp; prevHalf = half;
   }
 
+  /* Two hand-set heights, applied after placement so no x moves: the loop
+     above derives each palm's frond reach from its height and spaces the row on
+     it, so changing a height before it would shuffle the whole beach.
+
+     The first stands where the corner mark does — its fronds reached y=11 into
+     a mark whose box is y 10..29 — and it drew a third taller than its
+     neighbours besides. The third sat low between two that did not. */
+  if (out.length > 0) out[0].h = Math.round(out[0].h * 0.72);
+  if (out.length > 2) out[2].h = Math.round(out[2].h * 1.35);
+
   /* One more between the fifth and the sixth — the gap that falls nearest the
      sun, which the sun-avoidance above opens up. Inserted after the fact rather
      than by raising the count, because the count sets the cell width and every
