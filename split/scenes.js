@@ -582,7 +582,7 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
        Height comes off the double already standing at the right-hand end,
        where the shorter is roughly four fifths of the taller. */
     var c2 = out[1], qc = rng(877);
-    var ch2 = Math.round(c2.h * (0.80 + qc() * 0.10));
+    var ch2 = Math.round(c2.h * 1.5 * (0.80 + qc() * 0.10));
     var cx2 = c2.x - Math.round(c2.h * (0.09 + qc() * 0.05));
     var cr2 = Math.round(ch2 * 0.62) + 10;
     if (cx2 + cr2 > W - 2) cx2 = W - 2 - cr2;
