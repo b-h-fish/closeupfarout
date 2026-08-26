@@ -577,9 +577,13 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
      and then re-sorted, so every palm already placed keeps its position — the
      three tuned by hand included. */
   if (out.length > 1) {
+    /* Sized and spaced off the double that already stands at the right-hand
+       end: that pair sits about a third of a palm's height apart with the
+       shorter at roughly four fifths of the taller. This one mirrors it, to the
+       left of its partner rather than the right. */
     var c2 = out[1], qc = rng(877);
-    var ch2 = Math.round(c2.h * (0.58 + qc() * 0.18));
-    var cx2 = c2.x + Math.round(c2.h * (0.16 + qc() * 0.06));
+    var ch2 = Math.round(c2.h * (0.80 + qc() * 0.10));
+    var cx2 = c2.x - Math.round(c2.h * (0.32 + qc() * 0.08));
     var cr2 = Math.round(ch2 * 0.62) + 10;
     if (cx2 + cr2 > W - 2) cx2 = W - 2 - cr2;
     if (cx2 - cr2 < 2) cx2 = 2 + cr2;
