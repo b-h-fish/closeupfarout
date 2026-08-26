@@ -809,10 +809,13 @@ function drawScene(fb, S, W, H, noMotion) {
        reach lower over that corner and the new column emerges from under them,
        below the logo, rather than from the top edge. Squared, so it is a
        thickening at the corner and not a slope across the frame; by a third of
-       the width it is gone and the other beams are untouched. */
+       the width it is gone and the other beams are untouched.
+
+       The taper stays wide because the arc it throws around the scene is the
+       point; only the depth came back, from 0.38, which hung too far down. */
     var cornerDrop = function (x) {
       var u = 1 - Math.min(1, x / (W * 0.30));
-      return u * u * gy * 0.38;
+      return u * u * gy * 0.29;
     };
 
     // light down through the gaps, and where each column lands on the trail
