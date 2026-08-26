@@ -572,6 +572,26 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     var ni = out.indexOf(np);
     if (ni > 0) out.splice(ni - 1, 1);
   }
+  /* A companion beside the second palm, so that one reads as a clump rather
+     than a lone trunk. Shorter, a little to its right, its own seed. Added last
+     and then re-sorted, so every palm already placed keeps its position — the
+     three tuned by hand included. */
+  if (out.length > 1) {
+    var c2 = out[1], qc = rng(877);
+    var ch2 = Math.round(c2.h * (0.58 + qc() * 0.18));
+    var cx2 = c2.x + Math.round(c2.h * (0.16 + qc() * 0.06));
+    var cr2 = Math.round(ch2 * 0.62) + 10;
+    if (cx2 + cr2 > W - 2) cx2 = W - 2 - cr2;
+    if (cx2 - cr2 < 2) cx2 = 2 + cr2;
+    out.push({
+      x: cx2, h: ch2,
+      baseY: wtop + Math.round(H*0.012) + Math.round(qc()*H*0.03),
+      lean: 4 + Math.round(qc()*7),
+      seed: 877
+    });
+    out.sort(function (u, v) { return u.x - v.x; });
+  }
+
   return out;
 }
 
