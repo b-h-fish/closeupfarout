@@ -50,6 +50,18 @@
     var nextScene = -1, fadeT = 0, sceneT = 0;
     var fb = null, W = 0, H = 0, scale = 2, beside = true;
     var hover = false, running = false, cache = [];
+    var mixA = null, mixB = null, clock = 0;
+
+    /* The settings move here the same way they do in the game. Checked rather
+       than assumed: a stale cached scenes.js should cost the teaser its
+       weather, not its existence. */
+    var CAN_MOVE = typeof sceneAnimates === 'function' &&
+                   typeof drawSceneMotion === 'function';
+    var REDUCED = !!(global.matchMedia &&
+                     global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    function animates(idx) {
+      return CAN_MOVE && !REDUCED && sceneAnimates(SCENES[idx]);
+    }
 
     var g = null, phase = '', phaseT = 0, pending = null, shown = null;
 
@@ -199,6 +211,7 @@
 
       fb = new FB(W, H);
       cache = [];
+      mixA = mixB = null;
       layout();
       return true;
     }
@@ -209,10 +222,21 @@
     function sceneBytes(idx) {
       if (!cache[idx]) {
         var t = new FB(W, H);
-        drawScene(t, SCENES[idx], W, H);
+        /* A setting that moves is cached without its moving parts, and they
+           go back on every frame — the same still-plus-motion split app.js
+           uses. One that does not move is cached whole, as before. */
+        drawScene(t, SCENES[idx], W, H, animates(idx));
         cache[idx] = t.d.slice(0);
       }
       return cache[idx];
+    }
+
+    /* Drawn straight onto whatever buffer is being built, because the teaser
+       redraws the whole frame and uploads the whole canvas anyway. The game
+       has to track which rectangles changed; here there is nothing to save. */
+    function paintMotion(idx, target) {
+      if (!animates(idx)) return;
+      drawSceneMotion(target, SCENES[idx], W, H, clock);
     }
 
     /* The mark itself lives in pixel.js — the game's menu draws the same one,
@@ -424,6 +448,7 @@
 
     function frame(dt) {
       if (!fb) return;
+      clock += dt;                         // the settings run on the same clock
 
       // the setting gives way on its own clock, independent of the game
       sceneT += dt;
@@ -441,10 +466,22 @@
 
       var a = sceneBytes(scene);
       if (nextScene >= 0) {
-        var b2 = sceneBytes(nextScene), f = fadeT / FADE_MS, d = fb.d;
-        for (var i = 0; i < d.length; i++) d[i] = a[i] + (b2[i] - a[i]) * f;
+        var b2 = sceneBytes(nextScene), f = fadeT / FADE_MS, d = fb.d, i;
+        if (animates(scene) || animates(nextScene)) {
+          /* Each setting has to be finished before the two are mixed. Motion
+             is opaque pixel writes, not a layer with an alpha, so there is no
+             way to blend it in after the fact. */
+          if (!mixA) { mixA = new FB(W, H); mixB = new FB(W, H); }
+          mixA.d.set(a);  paintMotion(scene, mixA);
+          mixB.d.set(b2); paintMotion(nextScene, mixB);
+          var da = mixA.d, db = mixB.d;
+          for (i = 0; i < d.length; i++) d[i] = da[i] + (db[i] - da[i]) * f;
+        } else {
+          for (i = 0; i < d.length; i++) d[i] = a[i] + (b2[i] - a[i]) * f;
+        }
       } else {
         fb.d.set(a);
+        paintMotion(scene, fb);
       }
 
       phaseT -= dt;
@@ -481,8 +518,7 @@
       newGame();
       /* Reduced motion still gets a board and a setting — it simply does not
          animate through them. */
-      if (global.matchMedia &&
-          global.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (REDUCED) {
         phase = 'start'; phaseT = 1e9;
         frame(0);
         return;
