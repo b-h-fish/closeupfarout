@@ -85,7 +85,7 @@ var SCENES = [
    0.58 and gave the sky half again as much room. The cap is deliberate: at
    0.63 of the band the tallest tower still stops short of the strip the clouds
    drift through, so that strip can be repainted without redrawing a skyline. */
-function skyline(fb, x0, y0, w, baseY, col, litCol, litDimCol, seed, density) {
+function skyline(fb, x0, y0, w, baseY, col, litCol, litDimCol, seed, density, collect) {
   var r = rng(seed), x = x0, band = Math.max(8, baseY - y0);
   while (x < x0 + w) {
     var bw = 10 + Math.floor(r()*20);
@@ -95,7 +95,13 @@ function skyline(fb, x0, y0, w, baseY, col, litCol, litDimCol, seed, density) {
     fb.rect(x, by, Math.min(bw, x0+w-x), baseY-by, col);
     for (var wy = by+3; wy < baseY-3; wy += 4) {
       for (var wx = x+2; wx < x+bw-3 && wx < x0+w-2; wx += 4) {
-        if (r() < density) fb.rect(wx, wy, 2, 2, r() < 0.45 ? litDimCol : litCol);
+        if (r() < density) {
+          fb.rect(wx, wy, 2, 2, r() < 0.45 ? litDimCol : litCol);
+          /* Where the lit windows are, for whoever wants to turn one off later.
+             Collected as they are drawn rather than recomputed, so the two can
+             never disagree about which pixels are a window. */
+          if (collect) collect.push({ x: wx, y: wy, off: col });
+        }
       }
     }
     x += bw + 1 + Math.floor(r()*3);
@@ -355,6 +361,49 @@ function driftCloud(fb, W, cx, cy, halfW, halfH, dim, mid, lit, seed) {
    nothing but the clouds themselves. */
 function duskCloudBand(H) { return Math.round(H * 0.22); }
 
+/* A dozen windows that will turn over, chosen once from the ones the skyline
+   actually drew. Everything else stays exactly as the still has it.
+
+   Repainting a band the way the clouds do would mean redrawing the whole sky,
+   since the windows sit inside the skylines — 2.7ms at 640x360 against the
+   cloud strip's 1.0, and a far bigger upload. A window is a 2x2 rect, so the
+   cheaper thing by a long way is to repaint the dozen and nothing else.
+
+   Twelve is chosen for the effect as much as the cost: a city where a light
+   goes off now and then, not a string of fairy lights. Each keeps its own rate
+   so they never turn together. */
+var DUSK_LIVE = null, DUSK_LIVE_KEY = '';
+function duskPickLive(found, W, H, p) {
+  var key = W + 'x' + H;
+  if (DUSK_LIVE_KEY === key) return;
+  DUSK_LIVE_KEY = key; DUSK_LIVE = [];
+  if (!found.length) return;
+  var q = rng(1201), want = Math.min(12, found.length);
+  var taken = {};
+  for (var i = 0; i < want * 6 && DUSK_LIVE.length < want; i++) {
+    var k = (q() * found.length) | 0;
+    if (taken[k]) continue;
+    taken[k] = 1;
+    var f = found[k];
+    DUSK_LIVE.push({
+      x: f.x, y: f.y, off: f.off,
+      on: q() < 0.55 ? p.lit : p.litDim,
+      rate: 0.00004 + q() * 0.00007,     // a turn every four to sixteen seconds
+      phase: q(),
+      duty: 0.45 + q() * 0.25
+    });
+  }
+}
+
+function duskWindows(fb, t) {
+  if (!DUSK_LIVE) return;
+  for (var i = 0; i < DUSK_LIVE.length; i++) {
+    var w = DUSK_LIVE[i];
+    var f = ((t * w.rate) + w.phase) % 1;
+    fb.rect(w.x, w.y, 2, 2, f < w.duty ? w.on : w.off);
+  }
+}
+
 function duskClouds(fb, W, H, p, t) {
   var drift = (t || 0) * 0.0000085;          // a lap of the sky in a couple of minutes
   var band = duskCloudBand(H);
@@ -382,8 +431,10 @@ function drawScene(fb, S, W, H, noMotion) {
        means to animate them — it keeps the still free of clouds and composites
        them itself. */
     if (!noMotion) duskClouds(fb, W, H, p, 0);
-    skyline(fb, 0, r(0.10), W, hz - r(0.03), p.towerFar, p.lit, p.litDim, 3, 0.16);
-    skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26);
+    var found = [];
+    skyline(fb, 0, r(0.10), W, hz - r(0.03), p.towerFar, p.lit, p.litDim, 3, 0.16, found);
+    skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26, found);
+    duskPickLive(found, W, H, p);
     fb.rect(0, gy, W, H, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
@@ -675,18 +726,28 @@ function palms(fb, P2, spots, t) {
    compete with it to read a card. The water is left still on the same grounds:
    at a ground plane of 0.58 it sits squarely behind the board. */
 
-function sceneMotion(S, H) {
-  /* Dusk moves only the strip above its towers, so the still keeps the sky, the
-     skylines and the floor and nothing has to be redrawn under the clouds. */
-  if (S.key === 'dusk') return { y0: 0, y1: duskCloudBand(H) };
+/* Returns the regions a frame repaints, or null for a still scene. A list
+   rather than one band: Dusk moves a wide strip of sky and a dozen 2x2 windows
+   scattered under it, and repainting one band big enough to hold both would
+   mean redrawing every tower sixty times a second. */
+function sceneMotion(S, H, W) {
+  if (S.key === 'dusk') {
+    var out = [{ x: 0, y: 0, w: W, h: duskCloudBand(H) }];
+    if (DUSK_LIVE) {
+      for (var i = 0; i < DUSK_LIVE.length; i++) {
+        out.push({ x: DUSK_LIVE[i].x, y: DUSK_LIVE[i].y, w: 2, h: 2 });
+      }
+    }
+    return out;
+  }
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
      under it, and the crests run the whole way. The floor below never moves. */
-  return { y0: 0, y1: Math.min(H, groundY(H) + 1) };
+  return [{ x: 0, y: 0, w: W, h: Math.min(H, groundY(H) + 1) }];
 }
 
 function drawSceneMotion(fb, S, W, H, t) {
-  if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); return; }
+  if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); duskWindows(fb, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);

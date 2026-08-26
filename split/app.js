@@ -111,10 +111,15 @@
   /* The setting, and in play the mark with it — both at the world scale. */
   function drawBackground() {
     var S = SCENES[pickScene];
-    bgMotion = REDUCED ? null : sceneMotion(S, bgH);
+    bgMotion = REDUCED ? null : sceneMotion(S, bgH, bgW);
     bgFb.clear();
     drawScene(bgFb, S, bgW, bgH, !!bgMotion);
     if (bgMotion) {
+      /* Asked again now the scene has been drawn. Some of what moves is only
+         known once it has: Dusk picks its live windows out of the ones the
+         skyline actually put down, so the first call returns the cloud strip
+         alone and this one returns the windows with it. */
+      bgMotion = sceneMotion(S, bgH, bgW);
       /* Cached before the moving parts go on, so a frame can restore the band
          and put them back somewhere new. */
       bgStill = bgFb.d.slice(0);
@@ -137,15 +142,30 @@
     if (screen === 'GAME') splitMark(bgFb, WM_X + 6, WM_Y + 5, 1, pal().hudShadow);
   }
 
-  /* Restore the moving band from the still, move it, put the mark back, and
-     upload only those rows. */
+  /* Restore each moving region from the still, repaint them, put the mark back,
+     and upload only those rectangles. A list rather than one band because Dusk
+     moves a strip of sky and a dozen 2x2 windows well below it — one band
+     spanning both would drag every tower into the per-frame path. */
   function drawBackgroundMotion() {
-    var n = bgMotion.y1 * bgW * 4;
-    bgFb.d.set(bgStill.subarray(0, n), 0);
+    var i, r;
+    for (i = 0; i < bgMotion.length; i++) {
+      r = bgMotion[i];
+      for (var y = r.y; y < r.y + r.h; y++) {
+        var o = (y * bgW + r.x) * 4;
+        bgFb.d.set(bgStill.subarray(o, o + r.w * 4), o);
+      }
+    }
     drawSceneMotion(bgFb, SCENES[pickScene], bgW, bgH, now);
     markBg();
-    bgImg.data.set(bgFb.d.subarray(0, n), 0);
-    bgCtx.putImageData(bgImg, 0, 0, 0, 0, bgW, bgMotion.y1);
+    /* The mark sits in the first region, so copy after it is drawn. */
+    for (i = 0; i < bgMotion.length; i++) {
+      r = bgMotion[i];
+      for (var y2 = r.y; y2 < r.y + r.h; y2++) {
+        var o2 = (y2 * bgW + r.x) * 4;
+        bgImg.data.set(bgFb.d.subarray(o2, o2 + r.w * 4), o2);
+      }
+      bgCtx.putImageData(bgImg, 0, 0, r.x, r.y, r.w, r.h);
+    }
   }
 
   /* ── layout ── */
