@@ -261,6 +261,82 @@ function shaft(fb, W, hz, lean, cxf, wide, gain, dim, mid, lit, bag) {
   if (bag) { bag.cols.push(dim, mid, lit); bag.n++; }
 }
 
+/* Something moving through the undergrowth.
+
+   Not wind. Wind would shiver the whole hedge at once, and what this wants is
+   the other thing — a small animal crossing behind the leaves every twenty
+   seconds or so, which is Dusk Terrace's lit windows rather than Space Port's
+   gas: an event with a beginning and an end, not a cycle. Same sawtooth Dusk
+   uses, with a short duty at the front of it.
+
+   During a crossing the disturbance travels: a narrow bulge in the silhouette
+   that slides along the bush, rises as the animal enters cover and falls as it
+   leaves, with a fast tremble on top so it shakes rather than glides. Only the
+   leaf edge is touched.
+
+   It only ever adds leaves, never removes them. That is what keeps this cheap
+   and exact: the still already holds the bush at rest, so a frame draws the
+   few pixels standing proud of it and nothing has to be erased or restored. At
+   rest it draws nothing at all. */
+var JBRUSH = null;
+
+function jungleBrush(h1, h2, W, gy, p) {
+  /* The visible top edge at each column, and which layer owns it. */
+  var top = new Int16Array(W), near = new Uint8Array(W), hi = 0, x;
+  for (x = 0; x < W; x++) {
+    var a = h1 ? h1[x] : 0, b = h2 ? h2[x] : 0;
+    top[x] = a > b ? a : b;
+    near[x] = b >= a ? 1 : 0;
+    if (top[x] > hi) hi = top[x];
+  }
+  var q = rng(2207), n = Math.max(3, Math.round(W / 260)), list = [];
+  /* Small animals: the bulge is a fraction of the bush, not a shove. At 0.030
+     it lifted a sixth of the hedge and read as something large. */
+  var amp = Math.max(2, Math.round(gy * 0.017));
+  for (var i = 0; i < n; i++) {
+    var reach = Math.round(W * (0.05 + q() * 0.07));       // how far it travels
+    list.push({
+      x0: Math.round(q() * (W - 1)),
+      dir: q() < 0.5 ? -1 : 1,
+      reach: reach,
+      wide: Math.max(5, Math.round(W * (0.012 + q() * 0.014))),
+      amp: amp * (0.7 + q() * 0.6),
+      rate: 1 / (14000 + q() * 16000),   // a crossing every fourteen to thirty seconds
+      phase: q(),
+      win: 0.06 + q() * 0.05,            // and it takes a second or two
+      jit: q() * 6.283
+    });
+  }
+  JBRUSH = { top: top, near: near, gy: gy, list: list,
+             mid: p.leafMid, nearCol: p.leafNear,
+             y0: Math.max(0, gy - hi - Math.ceil(amp * 1.3) - 2) };
+}
+
+function jungleBush(fb, t) {
+  var B = JBRUSH;
+  if (!B) return;
+  for (var i = 0; i < B.list.length; i++) {
+    var c = B.list[i], f = ((t * c.rate) + c.phase) % 1;
+    if (f >= c.win) continue;                       // nothing in the bush
+    var u = f / c.win;
+    var env = Math.sin(Math.PI * u);                // in and out of cover
+    var cx = c.x0 + c.dir * c.reach * u;
+    var lo = Math.round(cx - c.wide), hi2 = Math.round(cx + c.wide);
+    for (var x = lo; x <= hi2; x++) {
+      if (x < 0 || x >= B.top.length) continue;
+      var d = Math.abs(x - cx) / c.wide;
+      if (d > 1) continue;
+      /* Cosine bump for the body of it, and a quick tremble so the leaves
+         shake instead of the whole bulge sliding along smoothly. */
+      var shake = 0.62 + 0.38 * Math.sin(t * 0.021 + x * 1.6 + c.jit);
+      var add = Math.round(c.amp * env * Math.cos(d * 1.5708) * shake);
+      if (add <= 0) continue;
+      var base = B.gy - B.top[x];
+      fb.rect(x, base - add, 1, add, B.near[x] ? B.nearCol : B.mid);
+    }
+  }
+}
+
 /* Jungle Hike's light, which strengthens and fades.
 
    Same trick as Space Port's gas: a beam is a distance falloff dithered
@@ -352,7 +428,7 @@ function pool(fb, W, gy, lean, cxf, wide, gain, col, bag) {
 /* Foliage hanging from the top of the frame. Two octaves of the same noise
    the gas clouds use — one for the overall sag of the canopy, one for the
    leafiness of its edge — so it reads as a mass rather than a wave. */
-function canopy(fb, W, edge, depth, col, seed, coarse, up) {
+function canopy(fb, W, edge, depth, col, seed, coarse, up, heights) {
   var n1 = vnoise(seed), n2 = vnoise(seed + 61), n3 = vnoise(seed + 149);
   for (var x = 0; x < W; x++) {
     var sag  = n1(x / coarse, 0.5);                     // how the mass hangs
@@ -362,6 +438,7 @@ function canopy(fb, W, edge, depth, col, seed, coarse, up) {
                      + depth * 0.42 * lump
                      + depth * 0.30 * jag);
     if (h <= 0) continue;
+    if (heights) heights[x] = h;                      // for whoever disturbs it later
     if (up) fb.rect(x, edge - h, 1, h, col);          // rising from the trail
     else    fb.rect(x, edge, 1, h, col);              // hanging from the top
   }
@@ -756,12 +833,13 @@ function drawScene(fb, S, W, H, noMotion) {
     }
 
     canopy(fb, W, 0, gy * 0.24, p.leafNear, 951, 17, false);
-    canopy(fb, W, gy, gy * 0.21, p.leafMid,  178, 21, true);
-    canopy(fb, W, gy, gy * 0.13, p.leafNear, 266, 12, true);
+    var bh1 = bag ? new Int16Array(W) : null, bh2 = bag ? new Int16Array(W) : null;
+    canopy(fb, W, gy, gy * 0.21, p.leafMid,  178, 21, true, bh1);
+    canopy(fb, W, gy, gy * 0.13, p.leafNear, 266, 12, true, bh2);
 
     fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
-    if (bag) jungleDone(bag, pre, fb, W);
+    if (bag) { jungleDone(bag, pre, fb, W); jungleBrush(bh1, bh2, W, gy, p); }
 
   } else {
     var wtop = r(0.30), wbot = gy;         // the waterline is the ground plane
@@ -1003,7 +1081,15 @@ function sceneMotion(S, H, W) {
      everything below that is floor. */
   if (S.key === 'jungle') {
     if (!JUNGLE || !JUNGLE.n) return null;
-    return [{ x: 0, y: JUNGLE.y0, w: W, h: JUNGLE.y1 - JUNGLE.y0 + 1 }];
+    var jy0 = JUNGLE.y0, jy1 = JUNGLE.y1;
+    /* The bushes sit below the light and reach the trail, so the band has to
+       cover both or a rustle would be uploaded from a rectangle it is not in. */
+    if (JBRUSH) {
+      if (JBRUSH.y0 < jy0) jy0 = JBRUSH.y0;
+      if (JBRUSH.gy - 1 > jy1) jy1 = JBRUSH.gy - 1;
+    }
+    if (jy1 >= H) jy1 = H - 1;
+    return [{ x: 0, y: jy0, w: W, h: jy1 - jy0 + 1 }];
   }
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
@@ -1014,7 +1100,7 @@ function sceneMotion(S, H, W) {
 function drawSceneMotion(fb, S, W, H, t) {
   if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); duskWindows(fb, t); return; }
   if (S.key === 'space') { spaceSky(fb, t); return; }
-  if (S.key === 'jungle') { jungleBeams(fb, t); return; }
+  if (S.key === 'jungle') { jungleBeams(fb, t); jungleBush(fb, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
