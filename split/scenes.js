@@ -577,20 +577,24 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
      and then re-sorted, so every palm already placed keeps its position — the
      three tuned by hand included. */
   if (out.length > 1) {
-    /* Sized and spaced off the double that already stands at the right-hand
-       end: that pair sits about a third of a palm's height apart with the
-       shorter at roughly four fifths of the taller. This one mirrors it, to the
-       left of its partner rather than the right. */
+    /* The two rise from nearly the same spot and lean apart, the way a pair
+       actually grows — so the bases sit close and the crowns do the spreading.
+       Height comes off the double already standing at the right-hand end,
+       where the shorter is roughly four fifths of the taller. */
     var c2 = out[1], qc = rng(877);
     var ch2 = Math.round(c2.h * (0.80 + qc() * 0.10));
-    var cx2 = c2.x - Math.round(c2.h * (0.32 + qc() * 0.08));
+    var cx2 = c2.x - Math.round(c2.h * (0.09 + qc() * 0.05));
     var cr2 = Math.round(ch2 * 0.62) + 10;
     if (cx2 + cr2 > W - 2) cx2 = W - 2 - cr2;
     if (cx2 - cr2 < 2) cx2 = 2 + cr2;
     out.push({
       x: cx2, h: ch2,
       baseY: wtop + Math.round(H*0.012) + Math.round(qc()*H*0.03),
-      lean: 4 + Math.round(qc()*7),
+      /* Arched against its partner rather than alongside it: with both leaning
+         the same way the pair curved in parallel and read as one palm drawn
+         twice. The sign is taken from the partner because that alternates with
+         the palm's index rather than being fixed. */
+      lean: (c2.lean > 0 ? -1 : 1) * (5 + Math.round(qc()*6)),
       seed: 877
     });
     out.sort(function (u, v) { return u.x - v.x; });
