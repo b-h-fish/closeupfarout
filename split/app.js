@@ -239,9 +239,14 @@
   function menuGeom() {
     var markH = splitMarkH(3);
     var g = { PAD: 16, markH: markH };
+    /* The band is padded equally above and below. Below has to carry the label
+       row as well, and that row is empty on the menu — so 8 + label + 12 put 27
+       under the band against 16 over it, and on the menu the whole 27 was air.
+       The three below now total the 16 above, which keeps the two screens on
+       one skeleton rather than fixing the menu by collapsing a row it shares. */
     g.bandY  = markH + 16;
-    g.labelY = g.bandY + GWID + 8;
-    g.row1Y  = g.labelY + 7 + 12;
+    g.labelY = g.bandY + GWID + 4;
+    g.row1Y  = g.labelY + 7 + 5;
     g.row2Y  = g.row1Y + 20 + 14;
     g.blockH = g.row2Y + 20;
     /* Wide enough for the widest thing in it and no wider: the buttons and
