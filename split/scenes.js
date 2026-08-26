@@ -812,7 +812,8 @@ function drawScene(fb, S, W, H, noMotion) {
        the width it is gone and the other beams are untouched.
 
        The taper stays wide because the arc it throws around the scene is the
-       point; only the depth came back, from 0.38, which hung too far down.
+       point; only the depth came back, from 0.38, which hung too far down,
+       then to 0.28.
 
        The right corner does the same, a little shallower, which closes the arc
        into the vignette the two of them make together. It has no wordmark to
@@ -821,7 +822,7 @@ function drawScene(fb, S, W, H, noMotion) {
     var cornerDrop = function (x) {
       var l = 1 - Math.min(1, x / (W * 0.30));
       var r = 1 - Math.min(1, (W - 1 - x) / (W * 0.30));
-      return l * l * gy * 0.29 + r * r * gy * 0.24;
+      return l * l * gy * 0.28 + r * r * gy * 0.24;
     };
 
     // light down through the gaps, and where each column lands on the trail
