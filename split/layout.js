@@ -57,7 +57,13 @@ var HiLoLayout = (function () {
              /* the calls sit beside the board wherever there is width for
                 it, as they do on every deeper board */
              on: { desktop: { callsBeside:true }, 'tablet-wide': { callsBeside:true } } },
-    '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
+    '1x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9,
+             /* Same as the three-row grids: on a desktop there is room under
+                the deck and under the calls, and both readings sit better
+                there. It also takes them off the horizon band, which on a
+                two-row board is exactly where a centred layout puts them —
+                the problem sideDrop was added to work around. */
+             on: { desktop: { count:'below', pickUnder:true } } },
     '1x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              /* On a desktop the three-row board leaves room under the deck
                 and under the calls, and both readings sit better there than
@@ -84,7 +90,13 @@ var HiLoLayout = (function () {
              on: { desktop:       { callsBeside:true },
                    'tablet-wide': { callsBeside:true },
                    'phone-wide':  { callsBeside:true } } },
-    '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9 },
+    '2x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideDrop:9,
+             /* Same as the three-row grids: on a desktop there is room under
+                the deck and under the calls, and both readings sit better
+                there. It also takes them off the horizon band, which on a
+                two-row board is exactly where a centred layout puts them —
+                the problem sideDrop was added to work around. */
+             on: { desktop: { count:'below', pickUnder:true } } },
     '2x3': { count:'above', edge:20, head:97, sideH:42, fine:true,  hudGap:true,
              /* On a desktop the three-row board leaves room under the deck
                 and under the calls, and both readings sit better there than
@@ -108,7 +120,8 @@ var HiLoLayout = (function () {
              on: { desktop:      { callsBeside:true, fine:true, sideEdge:13 },
                    'tablet-wide': { callsBeside:true },
                    'phone-wide':  { callsBeside:true, fine:true } } },
-    '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9 },
+    '3x2': { count:'above', edge:20, head:64, sideH:48, fine:true,  hudGap:false, sideFit:true, sideEdge:13, sideDrop:9,
+             on: { desktop: { count:'below', pickUnder:true } } },
     '3x3': { count:'above', edge:20, head:64, sideH:8, fine:false, hudGap:false,
              on: { phone: { fine:true, head:128, sideH:50 },
                    'tablet-wide': { fine:true, sideH:42 },
@@ -131,7 +144,8 @@ var HiLoLayout = (function () {
     '4x2': { count:'above', edge:26, head:64, sideH:8, fine:true,  hudGap:false, sideFit:true, sideEdge:15, sideDrop:9,
              /* on a tablet on its side it stacked the calls underneath, which
                 bought a bigger card but left no room for the deck */
-             on: { 'tablet-wide': { callsBeside:true } } },
+             on: { 'tablet-wide': { callsBeside:true },
+                   desktop:       { count:'below', pickUnder:true } } },
     '4x3': { count:'above', edge:26, head:64, sideH:42, fine:true,  hudGap:false,
              /* centred on the board alone it left 96px one side and 10px the
                 other on an iPad Air; centre the whole row instead */
