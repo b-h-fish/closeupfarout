@@ -33,9 +33,10 @@
   })();
   var device = 'desktop';
   /* Every setting lays its ground plane on this fraction of the canvas — one
-     line now, not a band, so text only has to clear the one. Kept in step with
-     GROUND in scenes.js. */
-  var GROUND = 0.42;
+     line now, not a band, so text only has to clear the one. Read from
+     scenes.js rather than copied: this file had its own 0.42 alongside a
+     comment asking that the two be kept in step by hand, which is a drift
+     waiting to happen. scenes.js loads first, so the global is already here. */
   var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
   var GWID = 4*CELL + 3*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than

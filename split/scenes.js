@@ -126,7 +126,7 @@ function palm(fb, x, baseY, h, lean, P2, seed) {
    PICK A PILE of a two-row board fall near this line, and while the settings
    each had their own the text had to clear all of them at once. A new setting
    inherits the whole of that work by calling these two. */
-var GROUND = 0.42;
+var GROUND = 0.58;
 function groundY(H)    { return Math.round(H * GROUND); }
 function groundBand(H) { return Math.min(22, Math.round(H * 0.05)); }
 
@@ -256,7 +256,13 @@ function drawScene(fb, S, W, H) {
   if (S.key === 'dusk') {
     var hz = gy - r(0.02);                 // the skyline meets the ground plane
     fb.skyBand(0, 0, W, hz, p.sky);
-    var sr = Math.max(16, Math.round(H * 0.085)), sx = (W>>1), sy = r(0.30);
+    /* Off the centre line. At W>>1 the sun sat exactly where the board is
+       centred and was covered in every grid and viewport measured — the one
+       identifying thing in the setting, never once visible. Palm Court gets
+       this right by accident, with its sun at 0.72. The rule for a new
+       setting: nothing that names it belongs in the centre third. */
+    var sr = Math.max(16, Math.round(H * 0.085));
+    var sx = Math.round(W * 0.22), sy = r(0.30);
     for (var y=-sr;y<=sr;y++) for (var x=-sr;x<=sr;x++) {
       if (x*x+y*y<=sr*sr) {
         var t=(y+sr)/(2*sr), thr=BAYER[(y+sr)&7][(x+sr)&7]/64;
