@@ -143,6 +143,11 @@
        in a row beneath it when there is no width for a column. */
     var NEED_BESIDE = { w: CARD_W + STOCK_GAP + boardW + CALLS_GAP + SIDE_W + 20,
                         h: boardH + 26 };
+    /* Beside mode hangs a line under the deck and under the calls, so its
+       block is the board plus that line. Same reckoning as UNDER_BELOW below.
+       The 26 above is left alone on purpose: it is what `fit` measures, and
+       raising it would cost the teaser a whole step of scale on the page. */
+    var BESIDE_BELOW = 6 + 7;                  // gap, one line
     /* In under mode the board is not alone in the column: the call row and the
        PICK A PILE line below it are part of the block, and centring the board
        alone is what pushed that line off the bottom edge. */
@@ -160,9 +165,9 @@
         bx = Math.round((W - boardW) / 2);
       }
       /* Centred in the frame, as the game centres it in the viewport — the
-         setting's ground plane falls where it falls behind it. Under mode
-         centres the board plus what hangs below it, not the board alone. */
-      by = beside ? Math.round((H - boardH) / 2)
+         setting's ground plane falls where it falls behind it. Both modes
+         centre the board plus what hangs below it, not the board alone. */
+      by = beside ? Math.round((H - (boardH + BESIDE_BELOW)) / 2)
                   : Math.round((H - (boardH + UNDER_BELOW)) / 2);
 
       geo = { bx: bx, by: by,
@@ -375,13 +380,14 @@
       }
 
       if (beside) {
+        var stackH = 3 * BTN_H + 2 * BTN_GAP;
         for (i = 0; i < 3; i++) {
           button(geo.cx, geo.cy + i * (BTN_H + BTN_GAP), SIDE_W, CALLS[i][1],
                  picked === CALLS[i][0], on, P2, CALLS[i][2]);
         }
         if (!on) {
           hud('PICK A PILE', geo.cx + ((SIDE_W - fb.textW('PICK A PILE', 1)) >> 1),
-              geo.cy - 13, P2.hudDim, P2);
+              geo.cy + stackH + 6, P2.hudDim, P2);
         }
         return;
       }
@@ -412,8 +418,9 @@
       var sc = String(left);
       var tw = fb.textW(sc + ' ', 1) + 1 + fb.textW('LEFT', 1);
       var tx = geo.sx + ((CARD_W - tw) >> 1);
-      hud(sc, tx, geo.sy - 11, P2.hudInk, P2);
-      hud('LEFT', tx + fb.textW(sc + ' ', 1) + 1, geo.sy - 11, P2.hudDim, P2);
+      var ty = geo.sy + CARD_H + 6;             // beneath the deck, as the game has it
+      hud(sc, tx, ty, P2.hudInk, P2);
+      hud('LEFT', tx + fb.textW(sc + ' ', 1) + 1, ty, P2.hudDim, P2);
     }
 
     function drawGame(P2) {
