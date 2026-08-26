@@ -507,13 +507,14 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
       }
       if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
     }
-    /* Every trunk stays on screen. Both steps above push right without a bound
-       — the collision step has none at all, and the sun step allows exactly W —
-       so a palm could land past the edge and leave its fronds reaching into
-       frame with nothing under them. Swept across 2421 world sizes it happened
-       in 1013 of them, so this is the common case rather than one odd viewport.
-       Not a nudge: it moves a palm only when it would otherwise leave. */
-    if (pxp > W - 3) pxp = W - 3;
+    /* A palm is either wholly in frame or it is not there. `half` is how far
+       its fronds carry, so bounding the trunk by the edge — which is what an
+       earlier version of this did — only moved the fault: the trunk stayed but
+       the crown was sliced, and a palm cut down the middle at the edge reads
+       worse than one that is simply absent. Bound the reach instead. */
+    var reach = half + 8;        // `half` ignores the trunk's lean, which
+    if (pxp + reach > W - 2) pxp = W - 2 - reach;   // tilts the crown by up to
+    if (pxp - reach < 2) pxp = 2 + reach;           // five px, and asymmetrically
 
     out.push({ x: pxp, h: ph,
                baseY: wtop + Math.round(H*0.012) + Math.round(q()*H*0.03),
@@ -551,7 +552,9 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     if (mx + hh > sunL && mx - hh < sunR) {
       mx = (mx < sunX) ? sunL - hh : sunR + hh;
     }
-    if (mx > W - 3) mx = W - 3;
+    var reachN = hh + 8;
+    if (mx + reachN > W - 2) mx = W - 2 - reachN;
+    if (mx - reachN < 2) mx = 2 + reachN;
     var np = {
       x: mx, h: hx,
       baseY: wtop + Math.round(H*0.012) + Math.round(q2()*H*0.03),
