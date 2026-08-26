@@ -521,7 +521,10 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
      The first stands where the corner mark does — its fronds reached y=11 into
      a mark whose box is y 10..29 — and it drew a third taller than its
      neighbours besides. The third sat low between two that did not. */
-  if (out.length > 0) out[0].h = Math.round(out[0].h * 0.72);
+  /* 0.76 is as tall as the first one goes: at 0.80 its fronds meet the mark's
+     box dead on at a world width of 480. Measured across four widths. */
+  if (out.length > 0) out[0].h = Math.round(out[0].h * 0.76);
+  if (out.length > 1) out[1].x -= 5;
   if (out.length > 2) out[2].h = Math.round(out[2].h * 1.35);
 
   /* One more between the fifth and the sixth — the gap that falls nearest the
@@ -560,7 +563,7 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
   /* The rightmost palm sits a few pixels further out, so the row runs off the
      edge rather than stopping short of it. Deliberately unbounded: a clamp here
      was tried and removed. */
-  if (out.length) out[out.length - 1].x += 6;
+  if (out.length) out[out.length - 1].x += 12;
 
   return out;
 }
