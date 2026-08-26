@@ -511,12 +511,22 @@ function palmSpots(W, H, wtop, sunX, sunR_) {
     if (mx + hh > sunL && mx - hh < sunR) {
       mx = (mx < sunX) ? sunL - hh : sunR + hh;
     }
-    out.splice(5, 0, {
+    var np = {
       x: mx, h: hx,
       baseY: wtop + Math.round(H*0.012) + Math.round(q2()*H*0.03),
       lean: 4 + Math.round(q2()*7),
       seed: 613
-    });
+    };
+    /* Sort before choosing what to drop. The sun step above can carry the
+       newcomer past the palm that was on its right, so its left-hand neighbour
+       is not whichever index it was inserted at — taking index 4 on faith left
+       a 192px gap and a 12px pair at 640 wide. Ask the sorted list instead.
+       The count comes out unchanged, so it reads as that palm having moved
+       along rather than as one more added. */
+    out.push(np);
+    out.sort(function (u, v) { return u.x - v.x; });
+    var ni = out.indexOf(np);
+    if (ni > 0) out.splice(ni - 1, 1);
   }
   return out;
 }
