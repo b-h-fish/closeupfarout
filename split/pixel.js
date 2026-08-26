@@ -399,145 +399,59 @@ FB.prototype.cardEdge = function (cx, y, w, h, face, P) {
   if (w > 2) this.rect(x+1, y+1, w-2, h-2, face);
 };
 
-/* ── the SPLIT mark ────────────────────────────────────────────────────── */
+/* ── the SPLIT STACK mark ──────────────────────────────────────────────── */
 
-/* The word cut in half: the top runs hot, the bottom runs cold, and a white
-   rule lies along the cut.
+/* Two words, one over the other, with a white rule between them. SPLIT takes
+   the hot ramp downward and STACK the cold one upward, so both run deepest
+   where they meet the rule — the same crossing the one-word mark had, except it
+   now happens between the lines instead of inside a letter. Nothing is cut, so
+   no glyph has to be redrawn to survive the cut.
 
    Seven steps to a ramp, one per row of the font, so the heat belongs to the
    glyph rather than being a gradient laid over it. Both ramps stop short of
-   their dark end on purpose — a red that falls to near-black and a blue that
-   falls to navy each lose a setting, and the mark has to hold on all four, so
-   hue does the hot/cold work and brightness stays put.
+   their dark end on purpose: a red falling to near-black and a blue falling to
+   navy each lose one of the four settings, so hue does the hot/cold work and
+   brightness stays put.
 
-   Each half runs bright at the outside and deep at the seam. That is what makes
-   the cut read as a cut, the two darkest steps meeting along it, and it keeps
-   the word's top and bottom edges — the ones working against the setting — at
-   their brightest.
-
-   Lives here rather than in either caller because the front-page teaser and the
-   game's own menu both draw it, and a mark that drifts between the two is worse
-   than no mark at all. */
+   Lives here rather than in a caller because the menu, the corner of a live
+   game and the front-page teaser all draw it, and a mark that drifts between
+   them is worse than no mark at all. */
 var SPLIT_HOT  = ['#fff3cc','#ffda78','#ffb443','#ff8a33','#f7632c','#e6462e','#d0342f'];
 var SPLIT_COLD = ['#f4fcff','#d8f3ff','#aee3fb','#83cbf2','#5cafe6','#3f93da','#2d79cb'];
-var SPLIT_WORD = 'SPLIT', SPLIT_ROWS = 7;
-
-/* The mark keeps its own P below the cut. The cut falls inside row 3 — the
-   bottom of the bowl — so the sliver landing under the rule is the bowl's full
-   four-wide base, which reads as a stray tick rather than as the loop turning
-   back down toward the stalk. One column narrower and it makes the corner.
-   Only the cold side is overridden; above the rule the bowl is the font's. */
-var SPLIT_COLD_ROWS = { P: { 3: '###..' } };
+var SPLIT_WORDS = ['SPLIT', 'STACK'], SPLIT_ROWS = 7;
 var SPLIT_PACKED = null;
 
-/* How far each half draws back from the cut. The word is only seven art pixels
-   tall, so a rule with a ring of its own would eat it — one pixel of white plus
-   one of ring either side is three of the seven. The halves make room instead,
-   and the letters' own rings darken that gap from both sides, so the white gets
-   its separation without costing the letterforms anything. */
-function splitPart(k) { return Math.max(1, Math.round(k * 0.6)); }
-
-/* How far the ring sits out from the letters. Half an art pixel, not a whole
-   one: at a whole pixel the rings of neighbouring letters meet in the gaps
-   between them and the outline stops being an outline — the word sits in a
-   black slab, which is what it did on the teaser at k=4. Half still separates
-   the mark from cream card stock, which is the ring's only job.
-
-   It scales with k rather than being a fixed number of screen pixels, because
-   at k=1 — the corner of a live game — the letters are one pixel wide and a
-   two-pixel ring would be thicker than the strokes it surrounds. There it
-   floors at one, which is what the corner already had. */
+/* Set on the font's own five-column cell rather than on each letter's real ink.
+   Ink spacing reads better for one word — I is the only letter that does not
+   fill its cell, and closing up around it evens the word out. But both words
+   here are five letters, so the box puts every letter over its opposite: S over
+   S, I over C, T over K. In that grid I's loose column stops reading as a
+   spacing fault and starts reading as alignment, which is worth more than the
+   evenness is. */
 function splitRing(k) { return Math.max(1, Math.round(k * 0.5)); }
+function splitAdvance(k) { return 6 * k + 2 * splitRing(k); }
 
-/* How far apart the letters sit. The font's own advance leaves one art pixel
-   between them, which was fine when the mark had no ring — but the ring reaches
-   out on both sides and eats exactly that. It only showed on S, P and L, whose
-   facing edges carry ink; L, I and T are hollow down their sides, so their gap
-   survived and the word read as SPL·I·T. The advance now carries the two rings
-   on top of the pixel, so every pair keeps the same k-wide gap whatever the
-   letters happen to be. */
-/* Spaced by ink, not by box. Every letter of the font occupies five columns,
-   but I only draws in the middle three — so spacing on the box hands I an empty
-   column either side that no other letter carries, and it floats away from its
-   neighbours while S, P and L crowd together. Measuring the real extents and
-   holding the gap between them constant is what makes the five read evenly. */
-var SPLIT_EXT = null;
-function splitExtents() {
-  if (!SPLIT_EXT) {
-    SPLIT_EXT = [];
-    for (var i = 0; i < SPLIT_WORD.length; i++) {
-      var g = GLYPH[SPLIT_WORD[i]], l = 99, r = -1;
-      for (var j = 0; j < g.length; j++) {
-        for (var m = 0; m < g[j].length; m++) {
-          if (g[j][m] !== '.') { if (m < l) l = m; if (m > r) r = m; }
-        }
-      }
-      SPLIT_EXT.push({ l: l, r: r });
-    }
-  }
-  return SPLIT_EXT;
-}
+/* The gap between the lines carries the rule with a ring's worth of dark either
+   side, so it widens with the mark rather than closing up as the ring grows. */
+function splitLineGap(k) { return k + 2 * splitRing(k); }
 
-/* The gap carries the two rings plus k of clear dark, so it widens with the
-   mark rather than closing up as the ring grows. */
-function splitOffsets(k) {
-  var e = splitExtents(), gap = k + 2 * splitRing(k), xs = [], i;
-  xs.push(-e[0].l * k);                       // the first letter's ink starts at 0
-  for (i = 1; i < e.length; i++) {
-    xs.push(xs[i - 1] + (e[i - 1].r + 1) * k + gap - e[i].l * k);
-  }
-  return xs;
-}
-function splitMarkW(k) {
-  var e = splitExtents(), xs = splitOffsets(k), n = e.length - 1;
-  return xs[n] + (e[n].r + 1) * k;
-}
-function splitMarkH(k) { return SPLIT_ROWS * k + 2 * splitPart(k); }
+function splitMarkW(k) { return 4 * splitAdvance(k) + 5 * k; }
+function splitMarkH(k) { return 2 * SPLIT_ROWS * k + splitLineGap(k); }
 
-/* The cut is measured in screen pixels, not source rows: seven rows cannot be
-   halved evenly, so colouring by row would put the seam off centre and make
-   where it lands depend on k. */
-/* Where the rule sits, and how much room the halves leave it. Seven rows times
-   an odd k is an odd number of screen rows, and `sy < mid` handed the spare one
-   to the hot half — so red ran a row deeper than blue, and the gap sat a row
-   low, leaving dark under the rule but none over it. Both favoured red. The hot
-   half gives the row up: it falls under the rule, where nothing is visible
-   anyway. */
-function splitWarmRows(k) {
-  var total = SPLIT_ROWS * k;
-  /* Not at k=1. There the mark is seven rows full stop, and the row under the
-     rule is the middle of every letter — the S's waist, the P's bowl. Giving it
-     up costs the word its legibility, where at any larger k it costs a sliver
-     of one screen row nobody can see. The corner keeps its lopsided pixel. */
-  return Math.ceil(total / 2) - (k > 1 ? total % 2 : 0);
-}
-function splitGap(k) {
-  var total = SPLIT_ROWS * k, part = splitPart(k);
-  var top = splitWarmRows(k);
-  return { top: top, h: Math.ceil(total / 2) + 2 * part - top };
-}
-
-function splitPixels(k, part, fn) {
-  var total = SPLIT_ROWS * k, mid = total / 2, warmN = splitWarmRows(k);
-  var xs = splitOffsets(k);
-  for (var i = 0; i < SPLIT_WORD.length; i++) {
-    var g = GLYPH[SPLIT_WORD[i]];
+/* A word, a screen row at a time, so each row can take its own colour. `down`
+   runs the ramp bright to deep; the second word runs it the other way. */
+function splitWord(fb, word, x, y, k, ramp, down, flat) {
+  var adv = splitAdvance(k), total = SPLIT_ROWS * k;
+  for (var i = 0; i < word.length; i++) {
+    var g = GLYPH[word[i]];
     if (!g) continue;
     for (var j = 0; j < SPLIT_ROWS; j++) {
       for (var sub = 0; sub < k; sub++) {
-        var sy = j*k + sub, warm = sy < mid;
-        if (warm && sy >= warmN) continue;      // that row lives under the rule
-        var f = warm ? sy / mid : (sy - mid) / (total - mid);
-        var ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
-        var idx = warm ? Math.round(f * (ramp.length - 1))
-                       : Math.round((1 - f) * (ramp.length - 1));
-        var over = !warm && SPLIT_COLD_ROWS[SPLIT_WORD[i]];
-        var row = (over && over[j]) || g[j];
-        for (var m = 0; m < row.length; m++) {
-          if (row[m] !== '.') {
-            fn(xs[i] + m*k, sy + (warm ? -part : part),
-               ramp[Math.min(idx, ramp.length - 1)]);
-          }
+        var sy = j * k + sub, f = sy / (total - 1);
+        var col = flat || ramp[Math.min(Math.round((down ? f : 1 - f) * (ramp.length - 1)),
+                                        ramp.length - 1)];
+        for (var m = 0; m < g[j].length; m++) {
+          if (g[j][m] !== '.') fb.rect(x + i * adv + m * k, y + sy, k, 1, col);
         }
       }
     }
@@ -546,41 +460,36 @@ function splitPixels(k, part, fn) {
 
 var SPLIT_RING = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
 
-/* `y` is the top of the whole mark, the drawn-back half included, so a caller
-   can place it against splitMarkH without knowing how the cut is built. */
 function splitMark(fb, x, y, k, shadow) {
   if (!SPLIT_PACKED) {
     SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),
                      white: hex('#ffffff') };
   }
-  var part = splitPart(k), gy = y + part;
-  var r, i;
+  var gap = splitLineGap(k), ring = splitRing(k);
+  var y2 = y + SPLIT_ROWS * k + gap;
+  var r, d;
 
   /* A ring rather than an offset drop shadow. The mark lands on cream card
      stock as often as on sky, and a shadow on one side only leaves the other
-     three sitting on a tone as light as the letters are. */
-  var ring = splitRing(k);
+     three sitting on a tone as light as the letters are. Half an art pixel, not
+     a whole one — at a whole pixel the rings of neighbouring letters meet in
+     the gaps and the outline stops being an outline. */
   for (r = 0; r < SPLIT_RING.length; r++) {
-    (function (d) {
-      splitPixels(k, part, function (px, py) {
-        fb.rect(x + px + d[0]*ring, gy + py + d[1]*ring, k, 1, shadow);
-      });
-    })(SPLIT_RING[r]);
+    d = SPLIT_RING[r];
+    splitWord(fb, SPLIT_WORDS[0], x + d[0]*ring, y  + d[1]*ring, k, null, true,  shadow);
+    splitWord(fb, SPLIT_WORDS[1], x + d[0]*ring, y2 + d[1]*ring, k, null, false, shadow);
   }
-  splitPixels(k, part, function (px, py, col) {
-    fb.rect(x + px, gy + py, k, 1, col);
-  });
+  splitWord(fb, SPLIT_WORDS[0], x, y,  k, SPLIT_PACKED.hot,  true);
+  splitWord(fb, SPLIT_WORDS[1], x, y2, k, SPLIT_PACKED.cold, false);
 
-  /* The rule overshoots the word at both ends — the old vertical divider
-     overshot the caps for the same reason — so it reads as a cut across the
-     word rather than as a stroke belonging to a letter. */
-  var gap = splitGap(k), over = 2 * k;
-  var bx = x - over, bw = splitMarkW(k) + 2 * over;
-  fb.rect(bx, y + gap.top, bw, gap.h, shadow);
-  // centred in the gap, so the dark either side of it comes out even
-  fb.rect(bx, y + gap.top + ((gap.h - k) >> 1), bw, k, SPLIT_PACKED.white);
+  /* The rule overshoots the block at both ends — the old vertical divider
+     overshot the caps for the same reason — so it reads as a rule laid across
+     the mark rather than a stroke belonging to a letter. */
+  var over = 2 * k, w = splitMarkW(k);
+  var ry = y + SPLIT_ROWS * k + ((gap - k) >> 1);
+  fb.rect(x - over - ring, ry - ring, w + 2*over + 2*ring, k + 2*ring, shadow);
+  fb.rect(x - over, ry, w + 2*over, k, SPLIT_PACKED.white);
 }
-
 /* Small text in the mark's two temperatures, for the call buttons. The font is
    seven rows and each ramp is seven steps, so at k=1 it is exactly one step per
    row — no interpolation, and the same colours the logo is built from.
