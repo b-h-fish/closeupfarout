@@ -2,17 +2,47 @@
   "redirects": [
     {
       "source": "/hi-lo",
-      "destination": "/split/",
+      "destination": "/split-stack/",
       "permanent": true
     },
     {
       "source": "/hi-lo/",
-      "destination": "/split/",
+      "destination": "/split-stack/",
       "permanent": true
     },
     {
       "source": "/hi-lo/:path*",
-      "destination": "/split/:path*",
+      "destination": "/split-stack/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/split",
+      "destination": "/split-stack/",
+      "permanent": true
+    },
+    {
+      "source": "/split/",
+      "destination": "/split-stack/",
+      "permanent": true
+    },
+    {
+      "source": "/split/:path*",
+      "destination": "/split-stack/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/splitstack",
+      "destination": "/split-stack/",
+      "permanent": true
+    },
+    {
+      "source": "/splitstack/",
+      "destination": "/split-stack/",
+      "permanent": true
+    },
+    {
+      "source": "/splitstack/:path*",
+      "destination": "/split-stack/:path*",
       "permanent": true
     },
     {

@@ -45,7 +45,7 @@
 </header>
 <div class="sheet" id="sheet"></div>
 
-<script src="/split/layout.js"></script>
+<script src="/split-stack/layout.js"></script>
 <script>
 (function () {
   // Captured before the sheet can scroll, so "this window" gets the true viewport.
@@ -182,7 +182,7 @@
       f.style.height = VH + 'px';
       f.style.transform = 'scale(' + k + ')';
       f.loading = 'eager';
-      f.src = '/split/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE
+      f.src = '/split-stack/?seed=' + SEED + '&grid=' + c + 'x' + r + '&scene=' + SCENE
             + (COARSE === null ? '' : '&coarse=' + COARSE);
       // Read back what the frame actually measured. If it does not match the
       // size we asked for, the panel is a different layout from the real thing
