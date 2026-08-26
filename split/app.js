@@ -50,6 +50,13 @@
      only needs redrawing when the setting or the window changes, which also
      takes the most expensive thing on screen out of the per-frame path. */
   var bgCanvas, bgCtx, bgFb = null, worldScale = 2, bgW = 0, bgH = 0, bgDirty = true;
+  /* A scene that moves keeps a still of everything that does not, and repaints
+     only the band that does. Redrawing a whole scene per frame runs 2ms on Dusk
+     Terrace and 39ms on Space Port at 960x540, against a 16ms budget the board
+     and cards also come out of; the band costs 0.18ms. */
+  var bgStill = null, bgMotion = null, bgImg = null;
+  var REDUCED = !!(window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   var screen = 'MENU';
   var pickC = 3, pickR = 3, pickScene = 0;   // Dusk Terrace, the load-in default
@@ -103,13 +110,42 @@
 
   /* The setting, and in play the mark with it — both at the world scale. */
   function drawBackground() {
+    var S = SCENES[pickScene];
+    bgMotion = REDUCED ? null : sceneMotion(S, bgH);
     bgFb.clear();
-    drawScene(bgFb, SCENES[pickScene], bgW, bgH);
-    if (screen === 'GAME') splitMark(bgFb, WM_X + 6, WM_Y + 5, 1, pal().hudShadow);
-    var img = bgCtx.createImageData(bgW, bgH);
-    img.data.set(bgFb.d);
-    bgCtx.putImageData(img, 0, 0);
+    drawScene(bgFb, S, bgW, bgH, !!bgMotion);
+    if (bgMotion) {
+      /* Cached before the moving parts go on, so a frame can restore the band
+         and put them back somewhere new. */
+      bgStill = bgFb.d.slice(0);
+      drawSceneMotion(bgFb, S, bgW, bgH, now);
+    }
+    markBg();
+    if (!bgImg || bgImg.width !== bgW || bgImg.height !== bgH) {
+      bgImg = bgCtx.createImageData(bgW, bgH);
+    }
+    bgImg.data.set(bgFb.d);
+    bgCtx.putImageData(bgImg, 0, 0);
     bgDirty = false;
+  }
+
+  /* The mark rides the background because that layer's scale does not change
+     with the grid and the board's does — on the foreground it would shrink by a
+     third between 3x3 and 4x4, or need a fractional scale. It sits inside the
+     band Palm Court repaints, so it goes back on after. 0.04ms. */
+  function markBg() {
+    if (screen === 'GAME') splitMark(bgFb, WM_X + 6, WM_Y + 5, 1, pal().hudShadow);
+  }
+
+  /* Restore the moving band from the still, move it, put the mark back, and
+     upload only those rows. */
+  function drawBackgroundMotion() {
+    var n = bgMotion.y1 * bgW * 4;
+    bgFb.d.set(bgStill.subarray(0, n), 0);
+    drawSceneMotion(bgFb, SCENES[pickScene], bgW, bgH, now);
+    markBg();
+    bgImg.data.set(bgFb.d.subarray(0, n), 0);
+    bgCtx.putImageData(bgImg, 0, 0, 0, 0, bgW, bgMotion.y1);
   }
 
   /* ── layout ── */
@@ -816,6 +852,7 @@
     if (fx) { fx.t += dt; if (fx.t >= fx.dur) endFx(); }
 
     if (bgDirty) drawBackground();
+    else if (bgMotion) drawBackgroundMotion();
 
     hits.length = 0;
     fb.clear();

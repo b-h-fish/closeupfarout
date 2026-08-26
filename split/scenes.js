@@ -96,7 +96,10 @@ function skyline(fb, x0, y0, w, baseY, col, litCol, litDimCol, seed, density) {
 
 /* A palm: a trunk that leans, then fronds that arc out and droop under their
    own weight. Drawn rather than tiled so no two are quite alike. */
-function palm(fb, x, baseY, h, lean, P2, seed) {
+/* `sway` is one sine wave's worth of lean, -1 to 1, applied to the fronds
+   only — the trunk of a palm this size does not visibly move. It scales with
+   u*u so the tip travels and the base stays put, which is how a frond bends. */
+function palm(fb, x, baseY, h, lean, P2, seed, sway) {
   var r = rng(seed);
   for (var i = 0; i < h; i++) {
     var t = i / h;
@@ -112,7 +115,7 @@ function palm(fb, x, baseY, h, lean, P2, seed) {
     var col = (f % 2) ? P2.frondLit : P2.frond;
     for (var s = 0; s < len; s++) {
       var u = s / len;
-      var fx = cx + Math.cos(a) * s;
+      var fx = cx + Math.cos(a) * s + u * u * len * (sway || 0) * 0.16;
       var fy = cy + Math.sin(a) * s * 0.5 + u * u * len * 0.55;   // droop
       fb.px(Math.round(fx), Math.round(fy), col);
       if (u < 0.55) fb.px(Math.round(fx), Math.round(fy) + 1, col);
@@ -248,7 +251,54 @@ function vine(fb, x, top, len, p, seed) {
   fb.px(x + drift, ly + 2, p.leafFar);
 }
 
-function drawScene(fb, S, W, H) {
+/* Palm Court's water, on its own so a frame can redraw it without paying for
+   the whole scene — measured at 4-9ms, far too much to spend every frame.
+
+   Waves crowd at the horizon and open out toward the shore. The banding used to
+   be the row number modulo six: the same six rows tiled down the whole band,
+   which passed while the water was an eighth of the canvas and became wallpaper
+   once the ground plane moved to 0.58 and it took nearly a third. The phase is
+   integrated down the rows instead of taken modulo, so the spacing widens
+   smoothly rather than stepping — three rows between crests at the waterline,
+   ten by the shore. Crest thickness is a fraction of the local period, so it
+   thickens with the spacing for free, and the wobble is divided by that period
+   so it stays a row or two of lateral wander at either end.
+
+   `drift` rolls the crests shoreward. The lateral wobble depends only on x, so
+   it is computed once per width rather than twice per pixel — that alone was
+   most of the cost of the old loop. */
+var W_WOB = null, W_WOB_W = -1;
+function waterWobble(W) {
+  if (W_WOB_W !== W) {
+    W_WOB = new Float32Array(W);
+    for (var x = 0; x < W; x++) {
+      W_WOB[x] = Math.sin(x * 0.14) * 1.7 + Math.sin(x * 0.052) * 2.3;
+    }
+    W_WOB_W = W;
+  }
+  return W_WOB;
+}
+
+function water(fb, p, W, wtop, wbot, drift, fromY) {
+  var rows = Math.max(1, wbot - wtop), wob = waterWobble(W);
+  var ph = new Float32Array(rows), acc = 0, i;
+  for (i = 0; i < rows; i++) {
+    acc += 1 / (3 + 7 * (i / Math.max(1, rows - 1)));
+    ph[i] = acc;
+  }
+  var y0 = fromY == null ? wtop + 2 : fromY;
+  for (var y = y0; y < wbot; y++) {
+    var d = y - wtop, per = 3 + 7 * (d / Math.max(1, rows - 1));
+    var base = ph[d] - drift;
+    for (var x = 0; x < W; x++) {
+      var t = base + wob[x] / per, f = t - Math.floor(t);
+      if (f < 0.20 && ((x + y) & 1) === 0) fb.px(x, y, p.litDim);
+      else if (f > 0.46 && f < 0.60 && (x & 3) === 0) fb.px(x, y, p.lit);
+    }
+  }
+}
+
+function drawScene(fb, S, W, H, noMotion) {
   var p = S.pal;
   var r = function (f) { return Math.round(H * f); };
   var gy = groundY(H);
@@ -366,14 +416,19 @@ function drawScene(fb, S, W, H) {
       }
     }
     fb.skyBand(0, wtop, W, wbot-wtop, p.water);
-    for (var wy3=wtop+2; wy3<wbot; wy3++) {
-      for (var wx3=0; wx3<W; wx3++) {
-        var wob = Math.sin(wx3*0.14)*1.7 + Math.sin(wx3*0.052)*2.3;
-        var band = (wy3 + Math.round(wob)) % 6;
-        if (band === 0 && ((wx3 + wy3) & 1) === 0) fb.px(wx3, wy3, p.litDim);
-        else if (band === 3 && (wx3 & 3) === 0) fb.px(wx3, wy3, p.lit);
-      }
-    }
+    /* Waves crowd at the horizon and open out toward the shore. The banding
+       used to be the row number modulo six — the same six rows tiled down the
+       whole band, which passed while the water was an eighth of the canvas and
+       became wallpaper once the ground plane moved to 0.58 and it took nearly a
+       third.
+
+       The phase is integrated down the rows rather than taken modulo, so the
+       spacing can widen smoothly instead of stepping: three rows between crests
+       at the waterline, ten by the shore. Crest thickness is a fraction of the
+       local period, so it thickens with the spacing for free, and the wobble is
+       divided by that period so it stays a row or two of lateral wander at
+       either end rather than growing with it. */
+    water(fb, p, W, wtop, wbot, 0);
     fb.rect(0, wbot, W, H-wbot, p.floor);
     fb.skyBand(0, wbot, W, groundBand(H), [p.floorLit, p.floor]);
     // palms spread across whatever width we were given, rather than the four
@@ -384,43 +439,123 @@ function drawScene(fb, S, W, H) {
        any two of them running together. And since a palm grows with the
        canvas, the count comes from the room each one wants rather than from
        the width alone, so they stay evenly spread at any size. */
-    var need = H * 0.18 * 1.24 + 8;
-    var n = Math.max(3, Math.min(Math.round(W / 82), Math.floor(W / need)));
-    var cell = W / n;
-    /* How close a crown may come to the sun, tuned per side: the palm that
-       steps right of it tucks in under the disc, where the fronds droop away
-       and nothing actually meets. Checked against the drawn pixels, not the
-       bounding estimate, which is conservative here. */
-    var sunL = px2 - pr + 3, sunR = px2 + pr - 5;
-    /* Hold them apart only where there is room to. A narrow canvas cannot fit
-       three crowns side by side, and letting them crowd reads better than
-       shoving one off the edge to keep a rule. */
-    var roomy = cell >= need;
-    var prevX = -1e9, prevHalf = 0;
-    for (var i = 0; i < n; i++) {
-      var q = rng(41 + i*17);
-      var pxp = Math.round((i + 0.20 + q()*0.60) * cell);
-      var ph  = Math.round(H * (0.13 + q()*0.10));
-      var half = Math.round(ph * 0.62) + 2;        // how far the fronds carry
-      var gap  = 5;
-
-      if (roomy) {
-        if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
-        if (pxp + half > sunL && pxp - half < sunR) {        // and clear of the sun
-          /* Step aside to whichever side it was already nearer. Always
-             stepping right cascades: one palm shoved past the sun pushes
-             every palm after it, and the last falls off the edge. */
-          var toLeft = sunL - half, toRight = sunR + half;
-          if (pxp < px2 && toLeft - half >= prevX + prevHalf + gap) pxp = toLeft;
-          else if (toRight + half <= W + half) pxp = toRight;
-          else pxp = toLeft;
-        }
-        if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
-      }
-
-      palm(fb, pxp, wtop + Math.round(H*0.012) + Math.round(q()*H*0.03), ph,
-           (i % 2 ? 1 : -1) * (4 + Math.round(q()*7)), p, 41 + i*17);
-      prevX = pxp; prevHalf = half;
-    }
+    /* Skipped when the caller means to animate them: it keeps the still it
+       cached free of palms and composites them itself, frame by frame. */
+    if (!noMotion) palms(fb, p, palmSpots(W, H, wtop, px2, pr), 0);
   }
+}
+
+/* Where the palms stand. Split out from the drawing so a frame can redraw them
+   over a cached still without recomputing anything, and so an extra one can be
+   slipped in without disturbing the rest — the positions come from a per-palm
+   seed and a cell width, so bumping the count would move every one of them. */
+function palmSpots(W, H, wtop, sunX, sunR_) {
+  /* Palms are placed rather than merely scattered: each one knows how far its
+     own fronds reach, so it can be held clear of its neighbour and of the sun
+     while keeping its jitter. And since a palm grows with the canvas, the count
+     comes from the room each one wants rather than from the width alone. */
+  var need = H * 0.18 * 1.24 + 8;
+  var n = Math.max(3, Math.min(Math.round(W / 82), Math.floor(W / need)));
+  var cell = W / n;
+  /* How close a crown may come to the sun, tuned per side: the palm that steps
+     right of it tucks in under the disc, where the fronds droop away and
+     nothing actually meets. */
+  var sunL = sunX - sunR_ + 3, sunR = sunX + sunR_ - 5;
+  /* Hold them apart only where there is room to. A narrow canvas cannot fit
+     three crowns side by side, and letting them crowd reads better than
+     shoving one off the edge to keep a rule. */
+  var roomy = cell >= need;
+  var prevX = -1e9, prevHalf = 0, out = [];
+
+  for (var i = 0; i < n; i++) {
+    var q = rng(41 + i*17);
+    var pxp = Math.round((i + 0.20 + q()*0.60) * cell);
+    var ph  = Math.round(H * (0.13 + q()*0.10));
+    var half = Math.round(ph * 0.62) + 2;        // how far the fronds carry
+    var gap  = 5;
+
+    if (roomy) {
+      if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
+      if (pxp + half > sunL && pxp - half < sunR) {        // and clear of the sun
+        /* Step aside to whichever side it was already nearer. Always stepping
+           right cascades: one palm shoved past the sun pushes every palm after
+           it, and the last falls off the edge. */
+        var toLeft = sunL - half, toRight = sunR + half;
+        if (pxp < sunX && toLeft - half >= prevX + prevHalf + gap) pxp = toLeft;
+        else if (toRight + half <= W + half) pxp = toRight;
+        else pxp = toLeft;
+      }
+      if (pxp - half < prevX + prevHalf + gap) pxp = prevX + prevHalf + half + gap;
+    }
+
+    out.push({ x: pxp, h: ph,
+               baseY: wtop + Math.round(H*0.012) + Math.round(q()*H*0.03),
+               lean: (i % 2 ? 1 : -1) * (4 + Math.round(q()*7)),
+               seed: 41 + i*17 });
+    prevX = pxp; prevHalf = half;
+  }
+
+  /* One more between the fifth and the sixth — the gap that falls nearest the
+     sun, which the sun-avoidance above opens up. Inserted after the fact rather
+     than by raising the count, because the count sets the cell width and every
+     palm's position with it. */
+  if (out.length >= 6) {
+    var a = out[4], b = out[5], q2 = rng(613);
+    var hx = Math.round(H * (0.13 + q2()*0.10));
+    var hh = Math.round(hx * 0.62) + 2;
+    var mx = Math.round((a.x + b.x) / 2);
+    /* That gap is wide precisely because the sun sits in it and the loop above
+       steers everyone clear, so the midpoint lands on the disc at some canvas
+       sizes and misses it at others. Give the newcomer the same rule the rest
+       get, stepping to whichever side it was already nearer. */
+    if (mx + hh > sunL && mx - hh < sunR) {
+      mx = (mx < sunX) ? sunL - hh : sunR + hh;
+    }
+    out.splice(5, 0, {
+      x: mx, h: hx,
+      baseY: wtop + Math.round(H*0.012) + Math.round(q2()*H*0.03),
+      lean: 4 + Math.round(q2()*7),
+      seed: 613
+    });
+  }
+  return out;
+}
+
+/* Drawn back to front so a nearer crown overlaps the one behind it. `t` is
+   milliseconds; each palm takes its own phase off its seed so they do not
+   sway in unison, which would read as the whole grove tipping. */
+function palms(fb, P2, spots, t) {
+  for (var i = 0; i < spots.length; i++) {
+    var sp = spots[i];
+    var sway = t ? Math.sin(t * 0.0011 + (sp.seed % 17) * 0.37) : 0;
+    palm(fb, sp.x, sp.baseY, sp.h, sp.lean, P2, sp.seed, sway);
+  }
+}
+
+/* ── motion ────────────────────────────────────────────────────────────────
+
+   Redrawing a whole scene every frame is not affordable: measured at 2ms for
+   Dusk Terrace and 39ms for Space Port at 960x540, against a 16ms budget that
+   the board and the cards also have to come out of. So a scene that moves
+   names the band that moves, and the caller keeps a still of everything else
+   and repaints only that band.
+
+   Palm Court moves its fronds and nothing else — the motion belongs in the sky
+   band beside the board rather than behind it, where the eye would have to
+   compete with it to read a card. The water is left still on the same grounds:
+   at a ground plane of 0.58 it sits squarely behind the board. */
+
+function sceneMotion(S, H) {
+  if (S.key !== 'palms') return null;
+  /* Crowns reach from about 0.02H down to the trunk foot just under the
+     waterline. Rounded out to 0.37 so a frond tip never falls outside the band
+     being repainted and leaves a smear behind. */
+  return { y0: 0, y1: Math.min(H, Math.ceil(H * 0.37)) };
+}
+
+function drawSceneMotion(fb, S, W, H, t) {
+  if (S.key !== 'palms') return;
+  var wtop = Math.round(H * 0.30);
+  var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
+  palms(fb, S.pal, palmSpots(W, H, wtop, px2, pr), t);
 }
