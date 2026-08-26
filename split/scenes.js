@@ -200,11 +200,14 @@ function cloud(fb, W, hz, tilt, cxf, cyf, across, along, gain, dim, mid, bright,
 
 /* Stars in a few temperatures, so the field is not one grey. The near ones
    get rays; the rest are single pixels, which is all a star is at this size. */
-function stars(fb, W, hz, p, n, seed) {
+function stars(fb, W, hz, p, n, seed, collect) {
   var q = rng(seed);
   for (var i = 0; i < n; i++) {
     var x = Math.round(q() * (W - 1)), y = Math.round(q() * (hz - 1)), b = q(), h = q();
     var col = h > 0.82 ? p.litWarm : (h > 0.62 ? p.litCool : p.lit);
+    /* Collected as they are drawn, with the colour each one got, so whatever
+       makes them twinkle later works from the same list the sky was made from. */
+    if (collect && b > 0.58) collect.push({ x: x, y: y, col: col });
     if (b > 0.972) {
       fb.px(x, y, col);
       fb.px(x - 1, y, p.litDim); fb.px(x + 1, y, p.litDim);
@@ -359,6 +362,50 @@ function driftCloud(fb, W, cx, cy, halfW, halfH, dim, mid, lit, seed) {
 
 /* The strip the clouds drift through: above every tower, so repainting it costs
    nothing but the clouds themselves. */
+/* Eighteen stars that will breathe, chosen once from the ones the sky actually
+   put down. Everything else holds still.
+
+   Space Port cannot animate the way Palm Court does: a full redraw of it
+   measures 39ms at 960x540, because `cloud()` walks the whole sky once per
+   cloud and there are five of them. But a star is a pixel with four arms at
+   most, and it is drawn last, over the gas — so restoring a three-by-three
+   square puts the cloud back underneath and the star can be redrawn at a new
+   brightness on top. Eighteen of those is a few hundred pixels a frame.
+
+   Three steps rather than a fade: dim, its own colour, and white. Anything
+   smoother is invisible at this size and costs the same. */
+var SPACE_LIVE = null, SPACE_LIVE_KEY = '';
+function spacePickLive(seen, W, H, p) {
+  var key = W + 'x' + H;
+  if (SPACE_LIVE_KEY === key) return;
+  SPACE_LIVE_KEY = key; SPACE_LIVE = [];
+  if (!seen.length) return;
+  var q = rng(1487), want = Math.min(18, seen.length), taken = {};
+  for (var i = 0; i < want * 6 && SPACE_LIVE.length < want; i++) {
+    var k = (q() * seen.length) | 0;
+    if (taken[k]) continue;
+    taken[k] = 1;
+    var st = seen[k];
+    SPACE_LIVE.push({
+      x: st.x, y: st.y, col: st.col, dim: p.litDim, hot: p.lit,
+      /* Radians per ms: a full breath is 2*PI/rate, so these are 3s to 8s.
+         The first numbers here were a quarter of that and gave a 28-second
+         cycle, which is not a twinkle. */
+      rate: 0.00079 + q() * 0.00130,
+      phase: q() * Math.PI * 2
+    });
+  }
+}
+
+function spaceStars(fb, t) {
+  if (!SPACE_LIVE) return;
+  for (var i = 0; i < SPACE_LIVE.length; i++) {
+    var s = SPACE_LIVE[i];
+    var v = 0.5 + 0.5 * Math.sin(t * s.rate + s.phase);
+    fb.px(s.x, s.y, v > 0.80 ? s.hot : (v > 0.30 ? s.col : s.dim));
+  }
+}
+
 function duskCloudBand(H) { return Math.round(H * 0.22); }
 
 /* A dozen windows that will turn over, chosen once from the ones the skyline
@@ -453,7 +500,9 @@ function drawScene(fb, S, W, H, noMotion) {
     cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508, 0.42);
     // and a warm bank low on the right, under the rose
     cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733);
-    stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301);
+    var seen = [];
+    stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301, seen);
+    spacePickLive(seen, W, H, p);
     // the deck: flat, and a lit lip where it meets the dark, like the others
     fb.rect(0, gy, W, H - gy, p.floor);
     fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
@@ -726,6 +775,14 @@ function palms(fb, P2, spots, t) {
    compete with it to read a card. The water is left still on the same grounds:
    at a ground plane of 0.58 it sits squarely behind the board. */
 
+/* Whether a scene moves at all — answerable before it has been drawn, which
+   sceneMotion is not: Space Port's regions are its stars, and they are not known
+   until the sky has put them down. The caller needs this first, to decide
+   whether to keep a still. */
+function sceneAnimates(S) {
+  return S.key === 'palms' || S.key === 'dusk' || S.key === 'space';
+}
+
 /* Returns the regions a frame repaints, or null for a still scene. A list
    rather than one band: Dusk moves a wide strip of sky and a dozen 2x2 windows
    scattered under it, and repainting one band big enough to hold both would
@@ -740,6 +797,15 @@ function sceneMotion(S, H, W) {
     }
     return out;
   }
+  if (S.key === 'space') {
+    if (!SPACE_LIVE || !SPACE_LIVE.length) return null;
+    var st = [];
+    for (var j = 0; j < SPACE_LIVE.length; j++) {
+      var v = SPACE_LIVE[j];
+      st.push({ x: Math.max(0, v.x - 1), y: Math.max(0, v.y - 1), w: 3, h: 3 });
+    }
+    return st;
+  }
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
      under it, and the crests run the whole way. The floor below never moves. */
@@ -748,6 +814,7 @@ function sceneMotion(S, H, W) {
 
 function drawSceneMotion(fb, S, W, H, t) {
   if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); duskWindows(fb, t); return; }
+  if (S.key === 'space') { spaceStars(fb, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);

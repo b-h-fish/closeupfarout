@@ -111,15 +111,17 @@
   /* The setting, and in play the mark with it — both at the world scale. */
   function drawBackground() {
     var S = SCENES[pickScene];
-    bgMotion = REDUCED ? null : sceneMotion(S, bgH, bgW);
+    var animates = !REDUCED && sceneAnimates(S);
     bgFb.clear();
-    drawScene(bgFb, S, bgW, bgH, !!bgMotion);
-    if (bgMotion) {
-      /* Asked again now the scene has been drawn. Some of what moves is only
-         known once it has: Dusk picks its live windows out of the ones the
-         skyline actually put down, so the first call returns the cloud strip
-         alone and this one returns the windows with it. */
+    drawScene(bgFb, S, bgW, bgH, animates);
+    bgMotion = null;
+    if (animates) {
+      /* Asked only now the scene has been drawn. What moves is not always known
+         before: Dusk picks its live windows out of the ones the skyline put
+         down, and Space Port's regions are the stars themselves. */
       bgMotion = sceneMotion(S, bgH, bgW);
+    }
+    if (bgMotion) {
       /* Cached before the moving parts go on, so a frame can restore the band
          and put them back somewhere new. */
       bgStill = bgFb.d.slice(0);
