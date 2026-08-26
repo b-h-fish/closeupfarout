@@ -30,6 +30,7 @@ var SCENES = [
     pal: P(Object.assign({}, DECK, {
       sky:['#2b1a4e','#4a2263','#77296a','#a83a63','#d25a51','#ef8248','#ffb267'],
       tower:'#1a1030', towerFar:'#2e1a48', lit:'#ffe3a0', litDim:'#d8a05e',
+      cloudDim:'#40265c', cloudMid:'#6d3663', cloudLit:'#a85463',
       wall:'#1d1230', floor:'#241736', floorLit:'#43284a',
       ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
       pick:'#ff7a5c'
@@ -78,10 +79,17 @@ var SCENES = [
 
 /* Towers with lit windows — the late-night lighting. Windows sit on a grid and
    are thinned out, so a tower reads as occupied rather than as a texture. */
+/* Heights are a share of the band between y0 and baseY rather than a fixed
+   count of pixels. They were 14 to 60 whatever the canvas, which was right when
+   the ground plane sat at 0.42 and looked like a low wall once it dropped to
+   0.58 and gave the sky half again as much room. The cap is deliberate: at
+   0.63 of the band the tallest tower still stops short of the strip the clouds
+   drift through, so that strip can be repainted without redrawing a skyline. */
 function skyline(fb, x0, y0, w, baseY, col, litCol, litDimCol, seed, density) {
-  var r = rng(seed), x = x0;
+  var r = rng(seed), x = x0, band = Math.max(8, baseY - y0);
   while (x < x0 + w) {
-    var bw = 8 + Math.floor(r()*16), bh = 14 + Math.floor(r()*46);
+    var bw = 10 + Math.floor(r()*20);
+    var bh = Math.round(band * (0.20 + r() * 0.43));
     var by = baseY - bh;
     if (by < y0) by = y0;
     fb.rect(x, by, Math.min(bw, x0+w-x), baseY-by, col);
@@ -315,6 +323,52 @@ function water(fb, p, W, wtop, wbot, drift, fromY) {
   }
 }
 
+/* A cloud drawn only over its own bounding box. `cloud()` above walks the whole
+   sky for every cloud it draws, which is affordable once at load — it is most of
+   why Space Port measures 39ms — and hopeless sixty times a second. This one
+   touches a few thousand pixels instead of eighty thousand.
+
+   Drawn twice, a width apart, so a cloud leaving one edge is already arriving at
+   the other and the drift never shows a seam. */
+function driftCloud(fb, W, cx, cy, halfW, halfH, dim, mid, lit, seed) {
+  var n = vnoise(seed), s = Math.max(6, halfW * 0.22);
+  for (var pass = 0; pass < 2; pass++) {
+    // the wrapped copy is only worth drawing when the cloud is over an edge
+    if (pass && cx - halfW > 0 && cx + halfW < W) continue;
+    var x = cx + (pass ? (cx > W / 2 ? -W : W) : 0);
+    var x0 = Math.max(0, Math.floor(x - halfW)), x1 = Math.min(W, Math.ceil(x + halfW));
+    var y0 = Math.max(0, Math.floor(cy - halfH)), y1 = Math.ceil(cy + halfH);
+    for (var py = y0; py < y1; py++) {
+      for (var px = x0; px < x1; px++) {
+        var u = (px - x) / halfW, v = (py - cy) / halfH;
+        var f = 1 - (u * u + v * v);
+        if (f <= 0) continue;
+        var t = f * (0.45 + 0.85 * n(px / s, py / s));
+        if (t <= BAYER[py & 7][px & 7] / 64) continue;
+        fb.px(px, py, t > 0.72 ? lit : (t > 0.45 ? mid : dim));
+      }
+    }
+  }
+}
+
+/* The strip the clouds drift through: above every tower, so repainting it costs
+   nothing but the clouds themselves. */
+function duskCloudBand(H) { return Math.round(H * 0.22); }
+
+function duskClouds(fb, W, H, p, t) {
+  var drift = (t || 0) * 0.0000085;          // a lap of the sky in a couple of minutes
+  var band = duskCloudBand(H);
+  var set = [[0.14, 0.34, 0.26, 0.42, 311],
+             [0.52, 0.55, 0.20, 0.34, 617],
+             [0.83, 0.30, 0.23, 0.38, 823]];
+  for (var i = 0; i < set.length; i++) {
+    var c = set[i];
+    var fx = (c[0] + drift * (0.7 + i * 0.25)) % 1;
+    driftCloud(fb, W, fx * W, band * c[1], W * c[2], band * c[3],
+               p.cloudDim, p.cloudMid, p.cloudLit, c[4]);
+  }
+}
+
 function drawScene(fb, S, W, H, noMotion) {
   var p = S.pal;
   var r = function (f) { return Math.round(H * f); };
@@ -323,19 +377,11 @@ function drawScene(fb, S, W, H, noMotion) {
   if (S.key === 'dusk') {
     var hz = gy - r(0.02);                 // the skyline meets the ground plane
     fb.skyBand(0, 0, W, hz, p.sky);
-    /* Off the centre line. At W>>1 the sun sat exactly where the board is
-       centred and was covered in every grid and viewport measured — the one
-       identifying thing in the setting, never once visible. Palm Court gets
-       this right by accident, with its sun at 0.72. The rule for a new
-       setting: nothing that names it belongs in the centre third. */
-    var sr = Math.max(16, Math.round(H * 0.085));
-    var sx = Math.round(W * 0.22), sy = r(0.30);
-    for (var y=-sr;y<=sr;y++) for (var x=-sr;x<=sr;x++) {
-      if (x*x+y*y<=sr*sr) {
-        var t=(y+sr)/(2*sr), thr=BAYER[(y+sr)&7][(x+sr)&7]/64;
-        fb.px(sx+x, sy+y, t>thr ? p.lit : p.litDim);
-      }
-    }
+    /* Clouds rather than a sun. The sun sat at a fixed point doing nothing;
+       the clouds occupy the same upper sky and move. Skipped when the caller
+       means to animate them — it keeps the still free of clouds and composites
+       them itself. */
+    if (!noMotion) duskClouds(fb, W, H, p, 0);
     skyline(fb, 0, r(0.10), W, hz - r(0.03), p.towerFar, p.lit, p.litDim, 3, 0.16);
     skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26);
     fb.rect(0, gy, W, H, p.floor);
@@ -630,6 +676,9 @@ function palms(fb, P2, spots, t) {
    at a ground plane of 0.58 it sits squarely behind the board. */
 
 function sceneMotion(S, H) {
+  /* Dusk moves only the strip above its towers, so the still keeps the sky, the
+     skylines and the floor and nothing has to be redrawn under the clouds. */
+  if (S.key === 'dusk') return { y0: 0, y1: duskCloudBand(H) };
   if (S.key !== 'palms') return null;
   /* Down to the waterline's foot: the crowns reach from about 0.02H to just
      under it, and the crests run the whole way. The floor below never moves. */
@@ -637,6 +686,7 @@ function sceneMotion(S, H) {
 }
 
 function drawSceneMotion(fb, S, W, H, t) {
+  if (S.key === 'dusk') { duskClouds(fb, W, H, S.pal, t); return; }
   if (S.key !== 'palms') return;
   var wtop = Math.round(H * 0.30), wbot = groundY(H);
   var pr = Math.max(12, Math.round(H * 0.05)), px2 = Math.round(W * 0.72);
