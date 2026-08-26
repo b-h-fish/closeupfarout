@@ -596,6 +596,10 @@ function drawScene(fb, S, W, H, noMotion) {
     cloud(fb, W, gy,  0.46, 0.40, 0.30, Math.max(9,  gy*0.17), W*0.20, 0.84, p.gold, p.goldMid, p.goldLit, 508, 0.42, gas);
     // and a warm bank low on the right, under the rose
     cloud(fb, W, gy, -0.18, 0.82, 0.84, Math.max(11, gy*0.23), W*0.15, 0.90, p.coral, p.coralMid, p.coralLit, 733, 1, gas);
+    /* and a small gold bank low on the left, where the sky was bare blue.
+       Tapered on its inner end so it thins out toward the middle rather than
+       stopping, which would read as an edge. */
+    cloud(fb, W, gy, -0.26, 0.13, 0.82, Math.max(7,  gy*0.14), W*0.15, 0.86, p.gold, p.goldMid, p.goldLit, 941, 0.55, gas);
     if (gas) spaceGasDone(gas, W);
     var seen = [];
     stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301, seen, noMotion);
