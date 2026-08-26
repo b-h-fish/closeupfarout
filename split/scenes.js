@@ -396,8 +396,10 @@ function driftCloud(fb, W, cx, cy, halfW, halfH, dim, mid, lit, seed) {
    as billowing. It is the dither doing the work, which is the one kind of
    motion this renderer gets for free.
 
-   About seven per cent of the sky changes at any moment, over a fourteen
-   second breath, five clouds out of phase. Nothing shifts position and nothing
+   About seven per cent of the sky changes at any moment, over a twenty-eight
+   second breath, five clouds out of phase. That was fourteen to begin with,
+   which read as weather rather than as gas: at this scale the eye wants the
+   edge to be barely caught moving. Nothing shifts position and nothing
    changes colour — held at rest it is pixel-for-pixel the sky `drawScene`
    draws. */
 var GAS_SWING = 0.13, GAS_KEEP = 1 / (1 + GAS_SWING);
@@ -460,7 +462,7 @@ function spaceSetLive(seen, p) {
    is where each cloud's dither cuts off. Every pixel already knows its own
    density and its own threshold; a slow gain on the density walks the cut
    back and forth, so the ragged edge of each cloud advances and retreats and
-   the gas reads as breathing. Five clouds, out of phase, about fourteen
+   the gas reads as breathing. Five clouds, out of phase, about twenty-eight
    seconds each.
 
    The stars go down after, because they always did — they are drawn over the
@@ -469,7 +471,7 @@ function spaceSky(fb, t) {
   var G = SPACE_GAS;
   if (G) {
     var g = G.g, c;
-    for (c = 0; c < g.length; c++) g[c] = 1 + GAS_SWING * Math.sin(t * 0.00045 + c * 1.7);
+    for (c = 0; c < g.length; c++) g[c] = 1 + GAS_SWING * Math.sin(t * 0.00022 + c * 1.7);
     var u32 = new Uint32Array(fb.d.buffer, fb.d.byteOffset);
     var n = G.n, idx = G.idx, tt = G.t, thr = G.thr, ci = G.ci, pk = G.pk;
     for (var i = 0; i < n; i++) {
