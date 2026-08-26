@@ -283,24 +283,34 @@ function water(fb, p, W, wtop, wbot, drift, fromY) {
   var rows = Math.max(1, wbot - wtop), wob = waterWobble(W);
   var ph = new Float32Array(rows), acc = 0, i;
   for (i = 0; i < rows; i++) {
-    acc += 1 / (3 + 7 * (i / Math.max(1, rows - 1)));
+    /* Five rows between crests at the waterline opening to twelve by the shore.
+       Three was too fine: a crest a pixel thick with two pixels between it and
+       the next reads as static however slowly it moves, which is what made the
+       far water look busy. Fewer, larger crests up there is the fix — not a
+       slower clock. */
+    acc += 1 / (5 + 7 * (i / Math.max(1, rows - 1)));
     ph[i] = acc;
   }
   var y0 = fromY == null ? wtop + 2 : fromY;
   for (var y = y0; y < wbot; y++) {
     var d = y - wtop, near = d / Math.max(1, rows - 1);
-    var per = 3 + 7 * near;
-    /* Distant water moves slower, the same way it looks finer. Drifting every
-       row at one rate cycled the horizon as often as the shore — measured at
-       12.4% of pixels changing per half second against the shore's 12.7% — and
-       where the crests are three rows apart and a pixel thick that reads as
-       shimmer rather than swell. At three tenths speed the far water settles to
-       5.1% and the set rolls in rather than fizzing. */
-    var base = ph[d] - drift * (0.3 + 0.7 * near);
+    /* Uniform drift, every row advancing at the same phase rate, so a crest
+       stays one line. Scaling the rate by depth did calm the horizon, but it
+       let neighbouring rows drift apart without bound — seven periods after a
+       minute, thirty-six after five — and the crests folded into loops and
+       crossings. The screen speed still varies with depth for free, because
+       one unit of phase is five rows at the waterline and twelve at the shore. */
+    var base = ph[d] - drift;
     for (var x = 0; x < W; x++) {
-      var t = base + wob[x] / per, f = t - Math.floor(t);
+      /* A fixed fraction of a period, not the wobble divided by it. Dividing
+         gave the horizon a swing of ±1.33 periods, so the crest wrapped past
+         itself and closed — those were the rings. At 0.055 it is ±0.22 of a
+         period everywhere, which wanders without ever folding. */
+      var t = base + wob[x] * 0.055, f = t - Math.floor(t);
       if (f < 0.20 && ((x + y) & 1) === 0) fb.px(x, y, p.litDim);
-      else if (f > 0.46 && f < 0.60 && (x & 3) === 0) fb.px(x, y, p.lit);
+      /* Sparkles are the busiest thing in the band, so they keep off the far
+         third where there is no room for them to read as anything but noise. */
+      else if (near > 0.30 && f > 0.46 && f < 0.60 && (x & 3) === 0) fb.px(x, y, p.lit);
     }
   }
 }
@@ -581,6 +591,6 @@ function drawSceneMotion(fb, S, W, H, t) {
   /* Crests roll shoreward. One crest's spacing every six seconds or so, which
      at three rows near the horizon and ten by the shore reads as a slow set
      rather than a current. */
-  water(fb, S.pal, W, wtop, wbot, t * 0.00017);
+  water(fb, S.pal, W, wtop, wbot, t * 0.00013);
   palms(fb, S.pal, palmSpots(W, H, wtop, px2, pr), t);
 }
