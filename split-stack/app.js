@@ -227,42 +227,14 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
-  /* SPLIT as a column: a thin button beside the other three with its word
-     set downward, running the full height of the stack. It is the call that
-     cuts, so it reads as a cut down the side of the block rather than as a
-     fourth item in a list. Own function rather than a flag on button(),
-     because nothing else in the game sets type vertically. */
-  function splitColumn(x, y, w, h, on) {
-    var p = pal(), word = 'SPLIT';
-    var r = { x: x, y: y, w: w, h: h };
-    var hot = on && inside(r);
-    fb.rect(x, y, w, h, hot ? p.hudInk : p.hudShadow);
-    fb.frame(x, y, w, h, on ? p.hudInk : p.hudDim);
-
-    var step = Math.max(9, Math.min(14, Math.floor((h - 8) / word.length)));
-    var tx = x + ((w - 5) >> 1);
-    var ty = y + ((h - step * word.length) >> 1) + 1;
-    if (on && !hot) callTextDown(fb, word, tx, ty, 1, step);
-    else {
-      var col = hot ? p.hudShadow : (on ? p.hudInk : p.hudDim);
-      for (var i = 0; i < word.length; i++) fb.text(word[i], tx, ty + i * step, col);
-    }
-    if (on) hit(x, y, w, h, { t: 'call', call: 'SPLIT' });
-    return r;
-  }
-
-  /* `h` is optional and defaults to the 18 every other button in the game
-     uses; a taller one is still a button, so it keeps the same hover, hit
-     target and call ramp rather than being drawn as a special shape. */
-  function button(x, y, w, label, act, on, mode, h) {
+  function button(x, y, w, label, act, on, mode) {
     var p = pal();
-    h = h || 18;
-    var r = { x:x, y:y, w:w, h:h };
+    var r = { x:x, y:y, w:w, h:18 };
     var hot = on && inside(r);
-    fb.rect(x, y, w, h, hot ? p.hudInk : p.hudShadow);
-    fb.frame(x, y, w, h, on ? p.hudInk : p.hudDim);
+    fb.rect(x, y, w, 18, hot ? p.hudInk : p.hudShadow);
+    fb.frame(x, y, w, 18, on ? p.hudInk : p.hudDim);
     var lx = x + ((w - fb.textW(label,1)) >> 1);
-    var ly = y + Math.round((h - 7) / 2);
+    var ly = y + 6;
     /* The temperature shows on the resting state only. Hovering fills the
        button with cream, and the ramps' bright steps have nothing left to
        carry them there — the inversion is the hover signal anyway.
@@ -272,7 +244,7 @@
        about matching rather than about a direction the ramps could show. */
     if (mode && on && !hot) callText(fb, label, lx, ly, 1, mode);
     else fb.text(label, lx, ly, hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
-    if (on) hit(x, y, w, h, act);
+    if (on) hit(x, y, w, 18, act);
     return r;
   }
 
@@ -866,7 +838,12 @@
         var tw = lead + fb.textW('LEFT', 1);
         var tx = s.x + ((CARD_W - tw) >> 1);
         var ty = s.y - 11;
-        if (L.rowFor(g.cols, g.rows, device, W > H).count === 'below') {
+        /* Under the deck in a room. Above it, the figure competes with the
+           scoreboard and the clock for the same band of sky; solo keeps the
+           per-grid answer the layout table tuned for it. */
+        if (mp()) {
+          ty = s.y + CARD_H + 6;
+        } else if (L.rowFor(g.cols, g.rows, device, W > H).count === 'below') {
           ty = s.y + CARD_H + 6;
         } else if (device !== 'desktop') {
           /* Off the desktop the board lands where it lands, so check rather
@@ -949,35 +926,18 @@
         hud('REVIVE A PILE', mid('REVIVE A PILE'), cy + 38, p.hudInk);
         return;
       }
-      /* Multiplayer 4x4 on desktop sets the four calls in a square rather
-         than a column. At four tall the stack ran most of the board's height;
-         paired in two columns it reads as a choice between two kinds of call
-         rather than a list of four. */
-      if (mpDesk4()) {
-        /* The three ordinary calls stack on the left; Split takes the whole
-           right side at their combined height. It is the rarest call and the
-           only one that buys a pile back, so it is worth being the thing the
-           hand goes to without aiming. */
-        var bw2 = 74, gp2 = 8, colH = 3 * ch + 2 * gp2, splitW = 20;
-        var cy2 = b.y + b.h - colH;
-        var rx2 = cx + bw2 + gp2, blockW = bw2 + gp2 + splitW;
-        button(cx,  cy2,                  bw2, 'HIGH', { t:'call', call:'HI' },   on, 'hot');
-        button(cx,  cy2 + ch + gp2,       bw2, 'LOW',  { t:'call', call:'LO' },   on, 'cold');
-        button(cx,  cy2 + 2 * (ch + gp2), bw2, 'SUIT', { t:'call', call:'SUIT' }, on);
-        splitColumn(rx2, cy2, splitW, colH, on);
-        if (!on) {
-          var m4 = 'PICK A PILE';
-          hud(m4, cx + ((blockW - fb.textW(m4, 1)) >> 1), cy2 - 13, p.hudDim);
-        }
-        return;
-      }
-
       /* The label is not the action. game.js still hears HI, LO and SPLIT,
          so a log replays the same whatever these come to read. */
       button(cx, cy, cw, 'HIGH', { t:'call', call:'HI' }, on, 'hot');
       button(cx, cy + ch + gp, cw, 'LOW', { t:'call', call:'LO' }, on, 'cold');
-      button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
-      if (suit) button(cx, cy + 3*(ch + gp), cw, 'SUIT', { t:'call', call:'SUIT' }, on);
+      /* Suit slots in above Split in a room, so Split stays the foot of the
+         column whether there are three calls or four. */
+      if (suit) {
+        button(cx, cy + 2*(ch + gp), cw, 'SUIT',  { t:'call', call:'SUIT' },  on);
+        button(cx, cy + 3*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+      } else {
+        button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+      }
       if (!on) {
         /* Always under the calls in a room — above them it sat against the
            board's top edge, which is now where the eye starts. */
