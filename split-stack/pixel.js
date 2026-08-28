@@ -496,6 +496,38 @@ function splitMark(fb, x, y, k, shadow) {
    bright at the top and deepens downward, cold does the reverse, so HIGH and
    LOW read as the two ends of the same scale. 'cut' is the whole thing, hot
    over cold, which is what SPLIT wears. */
+/* The same word set downward, one letter under the last. The ramp is measured
+   across the whole column rather than per letter, so the run carries a single
+   cut — hot at the head, cold at the foot — instead of five little ones. That
+   is the mark's own gesture stood on end, which is the point: SPLIT is the
+   call that cuts. */
+function callTextDown(fb, s, x, y, k, step) {
+  if (!SPLIT_PACKED) {
+    SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),
+                     white: hex('#ffffff') };
+  }
+  var total = s.length * step, mid = total / 2;
+  for (var i = 0; i < s.length; i++) {
+    var g = GLYPH[s[i]];
+    if (!g) continue;
+    for (var j = 0; j < g.length; j++) {
+      for (var sub = 0; sub < k; sub++) {
+        var sy = i * step + j * k + sub;
+        var warm = sy < mid;
+        var ramp = warm ? SPLIT_PACKED.hot : SPLIT_PACKED.cold;
+        var f = warm ? sy / mid : (sy - mid) / (total - mid);
+        var idx = warm ? Math.round(f * (ramp.length - 1))
+                       : Math.round((1 - f) * (ramp.length - 1));
+        for (var m = 0; m < g[j].length; m++) {
+          if (g[j][m] !== '.') {
+            fb.rect(x + m * k, y + sy, k, 1, ramp[Math.min(idx, ramp.length - 1)]);
+          }
+        }
+      }
+    }
+  }
+}
+
 function callText(fb, s, x, y, k, mode) {
   if (!SPLIT_PACKED) {
     SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),

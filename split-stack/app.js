@@ -227,6 +227,30 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
+  /* SPLIT as a column: a thin button beside the other three with its word
+     set downward, running the full height of the stack. It is the call that
+     cuts, so it reads as a cut down the side of the block rather than as a
+     fourth item in a list. Own function rather than a flag on button(),
+     because nothing else in the game sets type vertically. */
+  function splitColumn(x, y, w, h, on) {
+    var p = pal(), word = 'SPLIT';
+    var r = { x: x, y: y, w: w, h: h };
+    var hot = on && inside(r);
+    fb.rect(x, y, w, h, hot ? p.hudInk : p.hudShadow);
+    fb.frame(x, y, w, h, on ? p.hudInk : p.hudDim);
+
+    var step = Math.max(9, Math.min(14, Math.floor((h - 8) / word.length)));
+    var tx = x + ((w - 5) >> 1);
+    var ty = y + ((h - step * word.length) >> 1) + 1;
+    if (on && !hot) callTextDown(fb, word, tx, ty, 1, step);
+    else {
+      var col = hot ? p.hudShadow : (on ? p.hudInk : p.hudDim);
+      for (var i = 0; i < word.length; i++) fb.text(word[i], tx, ty + i * step, col);
+    }
+    if (on) hit(x, y, w, h, { t: 'call', call: 'SPLIT' });
+    return r;
+  }
+
   /* `h` is optional and defaults to the 18 every other button in the game
      uses; a taller one is still a button, so it keeps the same hover, hit
      target and call ramp rather than being drawn as a special shape. */
@@ -934,13 +958,13 @@
            right side at their combined height. It is the rarest call and the
            only one that buys a pile back, so it is worth being the thing the
            hand goes to without aiming. */
-        var bw2 = 74, gp2 = 8, colH = 3 * ch + 2 * gp2;
+        var bw2 = 74, gp2 = 8, colH = 3 * ch + 2 * gp2, splitW = 20;
         var cy2 = b.y + b.h - colH;
-        var rx2 = cx + bw2 + gp2, blockW = bw2 * 2 + gp2;
+        var rx2 = cx + bw2 + gp2, blockW = bw2 + gp2 + splitW;
         button(cx,  cy2,                  bw2, 'HIGH', { t:'call', call:'HI' },   on, 'hot');
         button(cx,  cy2 + ch + gp2,       bw2, 'LOW',  { t:'call', call:'LO' },   on, 'cold');
         button(cx,  cy2 + 2 * (ch + gp2), bw2, 'SUIT', { t:'call', call:'SUIT' }, on);
-        button(rx2, cy2, bw2, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut', colH);
+        splitColumn(rx2, cy2, splitW, colH, on);
         if (!on) {
           var m4 = 'PICK A PILE';
           hud(m4, cx + ((blockW - fb.textW(m4, 1)) >> 1), cy2 - 13, p.hudDim);
