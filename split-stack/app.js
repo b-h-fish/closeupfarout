@@ -172,8 +172,17 @@
   }
 
   /* ── layout ── */
+  /* In a room the field shifts left. The clock takes the top-right corner and
+     the scoreboard runs under the board, and a centred field crowded both.
+     Done here rather than in layout.js on purpose: that table is per-grid and
+     shared with solo, and nudging a shared term there has broken other grids
+     before. This offset only ever applies while a room is live. */
+  var MP_SHIFT = 34;
+
   function boardBox() {
-    return L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
+    var b = L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
+    if (mp()) b.x = Math.max(6, b.x - MP_SHIFT);
+    return b;
   }
 
   function pileBox(i) {
@@ -543,6 +552,37 @@
     }
   }
 
+  /* ── the clock, in the corner ──
+     A figure, not a bar. The strip still carries a bar on the seat whose turn
+     it is — that says *who* is on the clock — while this says *how long*, at a
+     size you can read without hunting for it. Under ten seconds it takes the
+     hot end of the ramp and pulses, which is the one moment it should pull
+     the eye away from the board. */
+  function drawClock() {
+    if (!mp() || !turnEndsAt) return;
+    if (g.phase === 'WON' || g.phase === 'LOST') return;
+    var p = pal();
+    var left = Math.max(0, turnEndsAt - Date.now());
+    var secs = Math.ceil(left / 1000);
+    var txt = String(secs);
+    var urgent = secs <= 10;
+
+    var k = 2, tw = fb.textW(txt, k);
+    var x = W - 10 - tw, y = 8;
+
+    /* The stock count claims this corner when the deck is too narrow to sit
+       beside the board; drop under it rather than over it. */
+    var s = stockBox();
+    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) y = 24;
+
+    var col = urgent ? p.pick : p.hudInk;
+    if (urgent && ((now / 260) | 0) % 2 === 0) col = p.hudInk;
+    hudBig(txt, x, y, col, k);
+
+    var lab = 'SEC';
+    hud(lab, W - 10 - fb.textW(lab, 1), y + 7 * k + 3, p.hudDim);
+  }
+
   /* The end of a multiplayer game: the standings, with each seat's own
      breakdown — the one place the subdivisions are shown. */
   function drawStandings() {
@@ -764,7 +804,18 @@
       cardFace(fb, ax, ay, CARD_W, CARD_H, HiLo.rankChar(fx.card), HiLo.suitChar(fx.card), p);
     }
 
-    if (mp()) strip(b.x + (b.w >> 1), 9);
+    /* Under the field rather than in the sky band. Which "under" depends on
+       where the calls went: beside the board leaves the space below it free,
+       beneath the board does not — and the first version of this put the
+       scoreboard straight through the call buttons. The strip takes a centre
+       and a baseline and nothing else, so this stays two numbers. */
+    if (mp()) {
+      var stripY = uiSide ? b.y + b.h + 16
+                          : b.y + b.h + 14 + 20 + 20;
+      // 16 tall plus a margin, so it never sits flush against the canvas edge
+      strip(b.x + (b.w >> 1), Math.min(stripY, H - 16 - 8));
+    }
+    if (mp()) drawClock();
     if (g.phase === 'WON' || g.phase === 'LOST') {
       if (mp()) drawStandings(); else drawResult();
     } else if (!fx) drawCalls(b);
@@ -798,7 +849,9 @@
       button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
       if (suit) button(cx, cy + 3*(ch + gp), cw, 'SUIT', { t:'call', call:'SUIT' }, on);
       if (!on) {
-        var under = L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
+        /* Always under the calls in a room — above them it sat against the
+           board's top edge, which is now where the eye starts. */
+        var under = suit || L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
         hud('PICK A PILE', mid('PICK A PILE'),
             under ? cy + stackH + 6 : cy - 13, p.hudDim);
       }
