@@ -67,6 +67,11 @@ var SIZES = [
 var SCENES = ['0', '1', '2'];
 var SCENE_NAMES = ['Dusk Terrace', 'Palm Court', 'Space Walk'];
 
+/* A harness that shows a cached build is worse than no harness — you edit,
+   reload, see the old thing and conclude the edit did nothing. Every frame
+   gets a fresh query, so nothing here can come out of the disk cache. */
+var STAMP = Date.now();
+
 var size = SIZES[0], scene = '0', zoom = 'fit';
 
 var ZOOMS = [
@@ -124,7 +129,7 @@ function render() {
   sheet.style.gridTemplateColumns = 'repeat(auto-fill, ' + fw + 'px)';
 
   STATES.forEach(function (st) {
-    var url = 'index.html?mock=' + st.k + '&scene=' + scene;
+    var url = 'index.html?mock=' + st.k + '&scene=' + scene + '&v=' + STAMP;
 
     var cell = document.createElement('div');
     cell.style.width = fw + 'px';
