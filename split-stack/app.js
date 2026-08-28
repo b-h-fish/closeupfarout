@@ -195,9 +195,7 @@
          which hands the whole band underneath to the scoreboard. Deliberately
          narrow — solo, every other grid and every other device keep whatever
          the layout table decided, so none of them need re-auditing. */
-      if (device === 'desktop' && g.cols === 4 && g.rows === 4) {
-        b.y = Math.max(4, markTopHere());
-      }
+      if (mpDesk4()) b.y = Math.max(4, markTopHere());
     }
     return b;
   }
@@ -420,6 +418,12 @@
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
 
   function mp() { return !!net && !!g && g.players > 1; }
+  /* The one arrangement that gets its own treatment: a room, on the big
+     grid, with a mouse and room to spare. Everything else keeps the layout
+     the table decided, which is what keeps solo out of these changes. */
+  function mpDesk4() {
+    return mp() && device === 'desktop' && g.cols === 4 && g.rows === 4;
+  }
   function mySeat() { return room ? room.you : -1; }
   function myTurn() { return mp() && g.turn === mySeat(); }
 
@@ -859,6 +863,25 @@
         hud('REVIVE A PILE', mid('REVIVE A PILE'), cy + 38, p.hudInk);
         return;
       }
+      /* Multiplayer 4x4 on desktop sets the four calls in a square rather
+         than a column. At four tall the stack ran most of the board's height;
+         paired in two columns it reads as a choice between two kinds of call
+         rather than a list of four. */
+      if (mpDesk4()) {
+        var bw2 = 74, gp2 = 8, colH = 2 * ch + gp2;
+        var cy2 = b.y + b.h - colH;
+        var rx2 = cx + bw2 + gp2, blockW = bw2 * 2 + gp2;
+        button(cx,  cy2,            bw2, 'HIGH',  { t:'call', call:'HI' },    on, 'hot');
+        button(cx,  cy2 + ch + gp2, bw2, 'LOW',   { t:'call', call:'LO' },    on, 'cold');
+        button(rx2, cy2,            bw2, 'SUIT',  { t:'call', call:'SUIT' },  on);
+        button(rx2, cy2 + ch + gp2, bw2, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+        if (!on) {
+          var m4 = 'PICK A PILE';
+          hud(m4, cx + ((blockW - fb.textW(m4, 1)) >> 1), cy2 - 13, p.hudDim);
+        }
+        return;
+      }
+
       /* The label is not the action. game.js still hears HI, LO and SPLIT,
          so a log replays the same whatever these come to read. */
       button(cx, cy, cw, 'HIGH', { t:'call', call:'HI' }, on, 'hot');
@@ -1271,6 +1294,16 @@
         if (dead < g.size) HiLo.apply(g, { t:'REVIVE', pile:dead, by:g.turn });
       }
       if (g.phase === 'RESURRECT' && kind === 'split') break;
+    }
+
+    /* Whether the played stretch happens to land on a Split is luck, and a
+       state you can only reach by luck is not a harness. Put the board there
+       directly: a pile down, and the game holding for a choice. */
+    if (kind === 'split' && g.phase !== 'RESURRECT') {
+      var k = 0; while (k < g.size && !g.piles[k].alive) k++;
+      if (k < g.size) g.piles[k].alive = false;
+      g.phase = 'RESURRECT';
+      g.selected = -1;
     }
 
     if (kind === 'over') {
