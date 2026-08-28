@@ -202,11 +202,10 @@
          balance against, so that case keeps the plain shift. */
       if (uiSide) b.x = Math.max(6, Math.round((W - SIDE_W + CARD_W - b.w) / 2));
       else b.x = Math.max(6, b.x - MP_SHIFT);
-      /* Multiplayer 4x4 on desktop only: start the cards level with the mark,
-         which hands the whole band underneath to the scoreboard. Deliberately
-         narrow — solo, every other grid and every other device keep whatever
-         the layout table decided, so none of them need re-auditing. */
-      if (mpDesk4()) b.y = Math.max(4, markTopHere());
+      /* The board keeps the layout table's vertical answer. Starting it level
+         with the mark freed a band for the scoreboard, but the deck and the
+         calls are bottom-aligned to the board — so lifting it lifted them
+         into the horizon, which they should never touch. */
     }
     return b;
   }
