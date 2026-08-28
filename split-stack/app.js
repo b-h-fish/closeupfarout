@@ -192,7 +192,11 @@
 
   function boardBox() {
     var b = L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
-    if (mp()) {
+    /* Every one of these is a desktop decision — they assume the calls sit
+       beside the board and that there is room to spare either side. On a
+       phone the layout table's own answer is the right one, and leaving it
+       alone is what keeps multiplayer looking like solo there. */
+    if (mp() && device === 'desktop') {
       /* Centre the field in the span between the deck and the calls. The
          three are coupled — the deck is placed off the board, and the calls
          mirror the deck's margin — so this is solved rather than nudged:
@@ -567,7 +571,26 @@
       cells.push({ nm: nm, sc: sc, w: w });
       total += w + (i ? GAPC : 0);
     }
-    var x = Math.round(cx - total / 2);
+
+    /* Where four seats cannot have the width they want — a phone — every
+       cell gives up the same amount and the names are cut to suit. The score
+       is never cut: it is the figure being read, and a name is still
+       recognisable at three letters where a number is not. */
+    var maxW = W - 8;
+    if (total > maxW) {
+      var even = Math.floor((maxW - GAPC * (g.players - 1)) / g.players);
+      total = 0;
+      for (i = 0; i < cells.length; i++) {
+        cells[i].w = even;
+        var room2 = even - 12 - fb.textW(cells[i].sc, 1);
+        while (cells[i].nm.length > 1 && fb.textW(cells[i].nm, 1) > room2) {
+          cells[i].nm = cells[i].nm.slice(0, -1);
+        }
+        total += even + (i ? GAPC : 0);
+      }
+    }
+
+    var x = Math.round(Math.min(Math.max(cx - total / 2, 4), W - total - 4));
     for (i = 0; i < cells.length; i++) {
       var c = cells[i], on = (g.turn === i) && g.phase !== 'WON' && g.phase !== 'LOST';
       fb.dim(x, y, c.w, 16, 0.42);
@@ -598,6 +621,10 @@
   function drawClock() {
     if (!mp() || !turnEndsAt) return;
     if (g.phase === 'WON' || g.phase === 'LOST') return;
+    /* Only where there is a corner to spare. On a narrow board the stock
+       count already claims the top right, and two figures fighting over it
+       is worse than one — the strip's own bar still says how long. */
+    if (device !== 'desktop') return;
     var p = pal();
     var left = Math.max(0, turnEndsAt - Date.now());
     var secs = Math.ceil(left / 1000);
@@ -855,7 +882,7 @@
         /* Under the deck in a room. Above it, the figure competes with the
            scoreboard and the clock for the same band of sky; solo keeps the
            per-grid answer the layout table tuned for it. */
-        if (mp()) {
+        if (mp() && device === 'desktop') {
           ty = s.y + CARD_H + 6;
         } else if (L.rowFor(g.cols, g.rows, device, W > H).count === 'below') {
           ty = s.y + CARD_H + 6;
