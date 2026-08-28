@@ -627,7 +627,9 @@
     /* The score column has to be as wide as its own heading, not as wide as
        the figures under it — reserving room for '-99' and then writing
        'SCORE' over it ran the two headings together as one word. */
-    var CGAP2 = 7, PADX = 10, NAMEW = 66;
+    /* The gap the tally rule lives in: wide enough that the line has clear
+       air either side rather than crowding the digits it separates. */
+    var CGAP2 = 7, PADX = 10, NAMEW = 66, TALLYGAP = 13;
     var SCOREW = Math.max(fb.textW('SCORE', 1), fb.textW('-99', 1));
     var colsW = 0, ci;
     for (ci = 0; ci < COLS.length; ci++) {
@@ -638,7 +640,7 @@
     /* Measured rather than guessed: head, the column heads, one row per seat,
        then the button under them. An early version fixed the height at
        52 + rows, which put the button back on top of the last seat. */
-    var want = PADX * 2 + NAMEW + 8 + colsW + 12 + SCOREW;
+    var want = PADX * 2 + NAMEW + 8 + colsW + TALLYGAP + SCOREW;
     var pw = Math.min(W - 16, want);
     var ROWY = 34, HEADY = ROWY, FIRSTY = ROWY + 14;
     var ph = FIRSTY + g.players * 13 + 10 + 18 + 12;
@@ -649,7 +651,7 @@
 
     // right edges, laid out from the score inwards so the table stays flush
     var scoreR = px + pw - PADX;
-    var colR = [], edge = scoreR - SCOREW - 5;
+    var colR = [], edge = scoreR - SCOREW - TALLYGAP;
     for (ci = COLS.length - 1; ci >= 0; ci--) {
       colR[ci] = edge;
       edge -= COLS[ci].w + CGAP2;
@@ -660,6 +662,15 @@
     }
     hud('SCORE', scoreR - fb.textW('SCORE', 1), py + HEADY, p.hudDim);
     fb.rect(px + PADX, py + HEADY + 9, pw - PADX * 2, 1, p.hudDim);
+
+    /* A rule down the gap before SCORE: everything left of it is what the
+       seat did, everything right of it is what that came to. Runs from above
+       the headings to the foot of the last row, so it reads as the edge of a
+       tally column rather than as a divider between two headings. */
+    var tallyX = scoreR - SCOREW - ((TALLYGAP >> 1) | 0);
+    var tallyTop = py + HEADY - 3;
+    var tallyBot = py + FIRSTY + (g.players - 1) * 13 + 9;
+    fb.rect(tallyX, tallyTop, 1, tallyBot - tallyTop, p.hudDim);
 
     for (var i = 0; i < st.length; i++) {
       var r = st[i];
