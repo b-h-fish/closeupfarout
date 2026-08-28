@@ -186,6 +186,9 @@
   function markTopHere() {
     return Math.round((WM_Y + 5) * worldScale / scale);
   }
+  function markLeftHere() {
+    return Math.round((WM_X + 6) * worldScale / scale);
+  }
 
   function boardBox() {
     var b = L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
@@ -601,20 +604,23 @@
     var txt = String(secs);
     var urgent = secs <= 10;
 
+    /* Set against the corner the way the mark is set against its own: the
+       same inset from the right border that the mark keeps from the left, on
+       the same line. Both are read off the mark's real position and converted
+       out of the background layer's scale, so the pair stays mirrored at any
+       size rather than at one that happened to be checked. */
     var k = 2, tw = fb.textW(txt, k);
-    var x = W - 10 - tw, y = 8;
+    var x = W - markLeftHere() - tw;
+    var y = markTopHere();
 
     /* The stock count claims this corner when the deck is too narrow to sit
        beside the board; drop under it rather than over it. */
     var s = stockBox();
-    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) y = 24;
+    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) y += 14;
 
     var col = urgent ? p.pick : p.hudInk;
     if (urgent && ((now / 260) | 0) % 2 === 0) col = p.hudInk;
     hudBig(txt, x, y, col, k);
-
-    var lab = 'SEC';
-    hud(lab, W - 10 - fb.textW(lab, 1), y + 7 * k + 3, p.hudDim);
   }
 
   /* The end of a multiplayer game: the standings, with each seat's own
