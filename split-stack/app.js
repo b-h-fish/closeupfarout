@@ -43,6 +43,11 @@
      all showing at once — so there is a single shape to fit. Asking for more
      height than the panel needs is what leaves the setting visible around it. */
   var SETUP_W = 175, SETUP_H = 330;
+  /* The logical width a room's board is laid out against. 640 is what a
+     1280-wide screen at one device pixel per CSS pixel already produced, so
+     holding every larger screen to it keeps the cards the same size rather
+     than letting them shrink between the table's scale steps. */
+  var W_ROOM_CAP = 640;
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
   /* The setting sits on its own layer at a scale that never changes with the
@@ -89,6 +94,17 @@
       var fitted = L.game(g ? g.cols : pickC, g ? g.rows : pickR, vw, vh, dpr, COARSE);
       scale = fitted.scale;
       uiSide = fitted.uiSide;
+      /* A room holds the cards at a constant share of the screen. The table's
+         scale steps at low pixel density, so between one step and the next
+         the canvas grows while the cards do not: at 1440x900 they came out a
+         tenth smaller than at 1280x800, for no reason a player could see.
+         Lifting the scale just enough to hold the canvas at the width the
+         smaller screen already used makes the two identical in logical units.
+
+         Done here rather than in layout.js on purpose — that table is
+         per-grid and shared with solo, and a row changed there would need all
+         sixteen grids re-audited. This only ever applies inside a room. */
+      if (mp() && uiSide && W_ROOM_CAP * scale < vw) scale = vw / W_ROOM_CAP;
     }
     W = Math.max(120, Math.round(vw / scale));
     H = Math.max(120, Math.round(vh / scale));
