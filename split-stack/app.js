@@ -190,7 +190,15 @@
   function boardBox() {
     var b = L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
     if (mp()) {
-      b.x = Math.max(6, b.x - MP_SHIFT);
+      /* Centre the field in the span between the deck and the calls. The
+         three are coupled — the deck is placed off the board, and the calls
+         mirror the deck's margin — so this is solved rather than nudged:
+         put the board where the gap either side of it comes out equal, and
+         the outer margins fall out equal too. Only where the calls actually
+         sit beside the board; beneath it there is no right-hand flank to
+         balance against, so that case keeps the plain shift. */
+      if (uiSide) b.x = Math.max(6, Math.round((W - SIDE_W + CARD_W - b.w) / 2));
+      else b.x = Math.max(6, b.x - MP_SHIFT);
       /* Multiplayer 4x4 on desktop only: start the cards level with the mark,
          which hands the whole band underneath to the scoreboard. Deliberately
          narrow — solo, every other grid and every other device keep whatever
