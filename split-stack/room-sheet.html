@@ -42,6 +42,7 @@
   </p>
   <div class="row" id="rowSize"><i>viewport</i></div>
   <div class="row" id="rowScene"><i>setting</i></div>
+  <div class="row" id="rowZoom"><i>zoom</i></div>
 </header>
 <div class="sheet" id="sheet"></div>
 
@@ -66,7 +67,13 @@ var SIZES = [
 var SCENES = ['0', '1', '2'];
 var SCENE_NAMES = ['Dusk Terrace', 'Palm Court', 'Space Walk'];
 
-var size = SIZES[0], scene = '0';
+var size = SIZES[0], scene = '0', zoom = 'fit';
+
+var ZOOMS = [
+  { k: 'fit', t: 'fit'  },
+  { k: '1',   t: '1:1'  },
+  { k: '2',   t: '2:1'  }
+];
 
 function pick(rowId, items, label, current, onPick) {
   var row = document.getElementById(rowId);
@@ -81,33 +88,46 @@ function pick(rowId, items, label, current, onPick) {
 }
 
 function render() {
-  pick('rowSize', SIZES, function (s) { return s.t + ' ' + s.w + '×' + s.h; },
+  pick('rowSize', SIZES, function (s) { return s.t + ' ' + s.w + '\u00d7' + s.h; },
        function (s) { return s === size; }, function (s) { size = s; });
   pick('rowScene', SCENES, function (s, i) { return SCENE_NAMES[i]; },
        function (s) { return s === scene; }, function (s) { scene = s; });
+  pick('rowZoom', ZOOMS, function (z) { return z.t; },
+       function (z) { return z.k === zoom; }, function (z) { zoom = z.k; });
 
   var sheet = document.getElementById('sheet');
   sheet.innerHTML = '';
-  /* Two frames abreast, each scaled so a real 1280-wide viewport fits the
-     column. Scaling the wrapper rather than the game keeps the pixels honest
-     — the game still believes it is at full size. */
-  var colW = (sheet.clientWidth - 14) / 2;
+
+  /* Scale is chosen from the frame, not from the column. Filling the column
+     magnified a 390-wide phone half again while shrinking a desktop to under
+     half — two different magnifications side by side, which is exactly what
+     makes them impossible to compare. 'fit' now never enlarges; the fixed
+     zooms are whole numbers, because this is pixel art and a fractional
+     enlargement smears every edge it has. */
+  var avail = sheet.clientWidth || 1200;
+  var perRow = size.w <= 520 ? 3 : 2;
+  var colW = Math.floor((avail - 14 * (perRow - 1)) / perRow);
+  var scale = zoom === 'fit' ? Math.min(colW / size.w, 1) : Number(zoom);
+  var fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
+
+  sheet.style.gridTemplateColumns = 'repeat(auto-fill, ' + fw + 'px)';
 
   STATES.forEach(function (st) {
     var url = 'index.html?mock=' + st.k + '&scene=' + scene;
-    var scale = colW / size.w;
 
     var cell = document.createElement('div');
+    cell.style.width = fw + 'px';
+
     var cap = document.createElement('div');
     cap.className = 'cap';
-    cap.innerHTML = '<span><b>' + st.t + '</b> — ' + st.d + '</span>' +
+    cap.innerHTML = '<span><b>' + st.t + '</b></span>' +
                     '<a href="' + url + '" target="_blank">open</a>';
     cell.appendChild(cap);
 
     var win = document.createElement('div');
     win.className = 'win';
-    win.style.width = colW + 'px';
-    win.style.height = (size.h * scale) + 'px';
+    win.style.width = fw + 'px';
+    win.style.height = fh + 'px';
 
     var f = document.createElement('iframe');
     f.src = url;
@@ -115,6 +135,13 @@ function render() {
     f.style.transform = 'scale(' + scale + ')';
     win.appendChild(f);
     cell.appendChild(win);
+
+    var note = document.createElement('div');
+    note.className = 'cap';
+    note.innerHTML = '<span>' + st.d + '</span><span class="got">' +
+                     (Math.round(scale * 100) / 100) + '\u00d7</span>';
+    cell.appendChild(note);
+
     sheet.appendChild(cell);
   });
 }
