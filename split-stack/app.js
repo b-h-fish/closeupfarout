@@ -551,7 +551,10 @@
     var st = mpOver ? mpOver.standings : HiLo.standings(g);
     var head = (st[0] && st[0].tied) ? 'A DRAW' :
                (st[0] && st[0].player === mySeat()) ? 'YOU WIN' : 'GAME OVER';
-    var pw = Math.min(W - 16, 210), ph = 52 + g.players * 13;
+    /* Measured rather than guessed: head, one row per seat, then the button
+       under them. The first version fixed the height at 52 + rows, which put
+       the button back on top of the last seat. */
+    var pw = Math.min(W - 16, 210), ph = 34 + g.players * 13 + 10 + 18 + 12;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
@@ -568,9 +571,12 @@
       hud(lhs, px + 10, y, col);
       hud(rhs, px + pw - 10 - fb.textW(rhs, 1), y, col);
       var sub = sc.placements + 'P ' + sc.suits + 'S ' + sc.splits + 'X ' + sc.kills + 'K';
-      hud(sub, px + pw - 10 - fb.textW(rhs, 1) - 8 - fb.textW(sub, 1), y, p.hudShadow);
+      /* hudShadow is the drop-shadow colour — text drawn in it is invisible
+         against the panel, which is where this breakdown went. */
+      hud(sub, px + pw - 10 - fb.textW(rhs, 1) - 8 - fb.textW(sub, 1), y, p.hudDim);
     }
-    button(px + ((pw - 84) >> 1), py + ph - 26, 84, 'MENU', { t: 'mp-leave' }, true);
+    button(px + ((pw - 84) >> 1), py + 34 + g.players * 13 + 10, 84, 'MENU',
+           { t: 'mp-leave' }, true);
   }
 
   /* ═══ SETUP ═══════════════════════════════════════════════════════════ */
@@ -1139,6 +1145,92 @@
     say('Dealt ' + g.cols + ' by ' + g.rows + '. ' + HiLo.stockLeft(g) + ' cards in stock.');
   }
 
+  /* ── a room with nobody in it ──
+     `?mock=` builds a multiplayer board locally, with no server and no second
+     player, so the scoreboard, the fourth call and the standings can be
+     designed by editing and reloading rather than by getting four people into
+     a lobby. It is the same idea as `?seed=`, which has always let a solo deal
+     be named in the URL.
+
+     It drives the *real* drawing code — the mock only stands in for the wire,
+     which is why what you see here is what ships. Actions apply locally so the
+     board stays explorable; nothing it does can touch a real room. */
+  function startMock(kind) {
+    var seed = 20260828;
+    g = HiLo.create(seed, 4, 4, 4);
+
+    room = {
+      code: 'MOCK', you: 0, started: true,
+      seats: [
+        { seat:0, name:'ALPHA',   host:true,  connected:true },
+        { seat:1, name:'BEA',     host:false, connected:true },
+        { seat:2, name:'CASIMIR', host:false, connected:true },
+        { seat:3, name:'DOT',     host:false, connected:false }
+      ]
+    };
+    /* Enough of a socket for mp() to be true. Acts apply straight to the
+       board — a design harness you cannot click through is half a harness. */
+    net = {
+      act: function (a) {
+        a.by = g.turn;
+        var was = g.turn;
+        applyRemote(a);
+        if (g.turn !== was) turnEndsAt = Date.now() + 30000;
+      },
+      start: function () {}, close: function () {}, live: function () { return true; }
+    };
+
+    /* Play a deterministic stretch so the board is not a fresh deal: some
+       piles down, scores spread, somebody clearly ahead. */
+    var rnd = (function (s) {
+      return function () { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    })(seed);
+    var steps = kind === 'fresh' ? 0 : 14;
+    for (var n = 0; n < steps && g.phase === 'PLAY'; n++) {
+      var alive = [];
+      for (var i = 0; i < g.size; i++) if (g.piles[i].alive) alive.push(i);
+      if (!alive.length) break;
+      var pick = alive[(rnd() * alive.length) | 0];
+      HiLo.apply(g, { t:'SELECT', pile:pick, by:g.turn });
+      var r = rnd();
+      var call = r < 0.55 ? (HiLo.value(g.deck[g.next]) > HiLo.value(HiLo.top(g, pick)) ? 'HI' : 'LO')
+               : r < 0.8  ? 'HI' : (r < 0.93 ? 'LO' : 'SUIT');
+      HiLo.apply(g, { t:'CALL', call:call, by:g.turn });
+      if (g.phase === 'RESURRECT' && kind !== 'split') {
+        var dead = 0; while (dead < g.size && g.piles[dead].alive) dead++;
+        if (dead < g.size) HiLo.apply(g, { t:'REVIVE', pile:dead, by:g.turn });
+      }
+      if (g.phase === 'RESURRECT' && kind === 'split') break;
+    }
+
+    if (kind === 'over') {
+      /* Stop the game where the standings are worth looking at: a close top
+         two, somebody well behind, and a bonus actually paid. */
+      g.phase = 'WON';
+      g.scores[0].placements = 6; g.scores[0].suits = 1; g.scores[0].splits = 1;
+      g.scores[0].kills = 2; g.scores[0].score = 11;
+      g.scores[1].placements = 7; g.scores[1].suits = 0; g.scores[1].splits = 1;
+      g.scores[1].kills = 3; g.scores[1].score = 10;
+      g.scores[2].placements = 4; g.scores[2].suits = 2; g.scores[2].splits = 0;
+      g.scores[2].kills = 4; g.scores[2].score = 0;
+      g.scores[3].placements = 2; g.scores[3].suits = 0; g.scores[3].splits = 0;
+      g.scores[3].kills = 5; g.scores[3].score = -8;
+      g.bonusPaid = true;
+      for (var b = 0; b < 4; b++) g.scores[b].bonus = g.scores[b].placements + g.scores[b].suits * 2;
+      mpOver = { phase:'WON', scores:g.scores, standings:HiLo.standings(g) };
+    }
+
+    /* `wait` shows the screen you see on somebody else's turn: calls dead,
+       the accent and the clock on their cell rather than yours. */
+    if (kind === 'wait' && g.turn === 0) g.turn = 1;
+    if (kind === 'turn') g.turn = 0;
+
+    turnEndsAt = (kind === 'over') ? 0 : Date.now() + 21000;
+    screen = 'GAME'; fx = null; focus = 0;
+    fit();
+    say('Mock room. Nothing here is live.');
+  }
+
   /* ═══ INPUT ═══════════════════════════════════════════════════════════ */
 
   function toLogical(e) {
@@ -1292,13 +1384,24 @@
       if (sd !== null && /^\d+$/.test(sd)) begin(parseInt(sd, 10) % 0x7fffffff);
       /* A shared room link lands on the name field with the code already
          held, so the invitee types one thing and is in. */
-      var rc = Net.codeFromUrl();
+      /* ?mock=turn|wait|split|over|fresh — a multiplayer board with no
+         server behind it, for designing the room screens. */
+      var mk = q.get('mock');
+      if (mk) startMock(mk);
+
+      var rc = mk ? '' : Net.codeFromUrl();
       if (rc) {
         pendingRoom = rc;
         screen = 'ROOM'; roomMode = 'pick';
         if (!Net.name()) typing = { field: 'name', value: '' };
       }
-    } catch (e) { /* a malformed link just opens the setup screen */ }
+    } catch (e) {
+      /* A malformed link should just open the menu rather than a broken page.
+         But swallowing the reason silently makes a debug link that throws look
+         exactly like one the app chose to ignore, which cost real time to
+         diagnose — so it is ignored out loud. */
+      if (window.console) console.warn('boot: ignoring URL state —', e && e.message);
+    }
 
     window.addEventListener('resize', fit);
     canvas.addEventListener('pointermove', onMove);

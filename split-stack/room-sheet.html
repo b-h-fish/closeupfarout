@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Split Stack — the room, with nobody in it</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 14px; }
+  header { margin-bottom: 12px; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+  .note { color: #8a7f96; margin-top: 6px; max-width: 92ch; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .row > i { font-style: normal; color: #6d6379; width: 5.5em; letter-spacing: .08em; }
+  .row button {
+    font: inherit; color: #b9ae94; background: #17111f; border: 1px solid #2e2438;
+    padding: 4px 10px; cursor: pointer; letter-spacing: .04em;
+  }
+  .row button:hover { color: #f4edda; border-color: #4a3a58; }
+  .row button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
+  .sheet { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 14px; }
+  .cap { display: flex; justify-content: space-between; gap: 8px; color: #b9ae94; padding: 0 2px 3px; }
+  .cap b { color: #f4edda; font-weight: 600; }
+  .cap a { color: #6d6379; text-decoration: none; }
+  .cap a:hover { color: #f4edda; }
+  /* Each frame gets a real viewport, so the game inside lays out exactly as
+     it would at that size; the wrapper scales the result down to fit. */
+  .win { position: relative; overflow: hidden; border: 1px solid #2e2438; background: #000; }
+  .win iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SPLIT STACK — the room, with nobody in it</h1>
+  <p class="note">
+    Every frame is the real game with a mock wire behind it: no server, no
+    second player, and nothing here can touch a live room. It runs the same
+    drawing code that ships, so edit <code>app.js</code>, <code>pixel.js</code>
+    or <code>scenes.js</code> and reload — what you see is what plays. The
+    boards are clickable; acts apply locally.
+  </p>
+  <div class="row" id="rowSize"><i>viewport</i></div>
+  <div class="row" id="rowScene"><i>setting</i></div>
+</header>
+<div class="sheet" id="sheet"></div>
+
+<script>
+/* The states worth designing against. Each is one URL into the real page. */
+var STATES = [
+  { k: 'turn',  t: 'YOUR TURN',   d: 'calls live, your cell accented, clock running' },
+  { k: 'wait',  t: 'THEIR TURN',  d: 'calls dead, accent and clock on another seat' },
+  { k: 'split', t: 'A SPLIT',     d: 'held on RESURRECT — pick a pile to revive' },
+  { k: 'over',  t: 'STANDINGS',   d: 'final table with each seat’s breakdown' },
+  { k: 'fresh', t: 'FIRST TURN',  d: 'a clean deal, every score on nothing' }
+];
+
+var SIZES = [
+  { t: 'desktop',  w: 1280, h: 800 },
+  { t: 'laptop',   w: 1440, h: 900 },
+  { t: 'phone',    w: 390,  h: 844 },
+  { t: 'phone wide', w: 844, h: 390 },
+  { t: 'tablet',   w: 1024, h: 768 }
+];
+
+var SCENES = ['0', '1', '2'];
+var SCENE_NAMES = ['Dusk Terrace', 'Palm Court', 'Space Walk'];
+
+var size = SIZES[0], scene = '0';
+
+function pick(rowId, items, label, current, onPick) {
+  var row = document.getElementById(rowId);
+  row.querySelectorAll('button').forEach(function (b) { b.remove(); });
+  items.forEach(function (it, i) {
+    var b = document.createElement('button');
+    b.textContent = label(it, i);
+    b.setAttribute('aria-pressed', String(current(it, i)));
+    b.onclick = function () { onPick(it, i); render(); };
+    row.appendChild(b);
+  });
+}
+
+function render() {
+  pick('rowSize', SIZES, function (s) { return s.t + ' ' + s.w + '×' + s.h; },
+       function (s) { return s === size; }, function (s) { size = s; });
+  pick('rowScene', SCENES, function (s, i) { return SCENE_NAMES[i]; },
+       function (s) { return s === scene; }, function (s) { scene = s; });
+
+  var sheet = document.getElementById('sheet');
+  sheet.innerHTML = '';
+  /* Two frames abreast, each scaled so a real 1280-wide viewport fits the
+     column. Scaling the wrapper rather than the game keeps the pixels honest
+     — the game still believes it is at full size. */
+  var colW = (sheet.clientWidth - 14) / 2;
+
+  STATES.forEach(function (st) {
+    var url = 'index.html?mock=' + st.k + '&scene=' + scene;
+    var scale = colW / size.w;
+
+    var cell = document.createElement('div');
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.innerHTML = '<span><b>' + st.t + '</b> — ' + st.d + '</span>' +
+                    '<a href="' + url + '" target="_blank">open</a>';
+    cell.appendChild(cap);
+
+    var win = document.createElement('div');
+    win.className = 'win';
+    win.style.width = colW + 'px';
+    win.style.height = (size.h * scale) + 'px';
+
+    var f = document.createElement('iframe');
+    f.src = url;
+    f.width = size.w; f.height = size.h;
+    f.style.transform = 'scale(' + scale + ')';
+    win.appendChild(f);
+    cell.appendChild(win);
+    sheet.appendChild(cell);
+  });
+}
+
+render();
+addEventListener('resize', render);
+</script>
+</body>
+</html>
