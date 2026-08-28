@@ -227,41 +227,26 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
-  /* SUIT is written in the only two inks a deck has: spades and clubs black,
-     hearts and diamonds red. Four letters, four suits, in that order — which
-     is why this call needs no ramp of its own. */
-  function suitInk(x, y) {
-    var p = pal(), s = 'SUIT';
-    for (var i = 0; i < s.length; i++) {
-      fb.text(s[i], x + i * 6, y, (i % 2) ? p.red : p.black);
-    }
-  }
-
   /* `h` is optional and defaults to the 18 every other button in the game
      uses; a taller one is still a button, so it keeps the same hover, hit
-     target and call ramp rather than being drawn as a special shape.
-
-     A call button — one carrying a `mode` — rests on card stock rather than
-     on the dark HUD, so the four calls read as cards laid beside the board
-     and the inks that colour them are the inks the cards use. Buttons with no
-     mode (MENU, DEAL, LEAVE) keep the HUD's own dark treatment. */
+     target and call ramp rather than being drawn as a special shape. */
   function button(x, y, w, label, act, on, mode, h) {
     var p = pal();
     h = h || 18;
     var r = { x:x, y:y, w:w, h:h };
     var hot = on && inside(r);
-    var light = on && !!mode && !hot;
-
-    fb.rect(x, y, w, h, light ? p.linen : (hot ? p.hudInk : p.hudShadow));
-    fb.frame(x, y, w, h, light ? p.ink : (on ? p.hudInk : p.hudDim));
-
+    fb.rect(x, y, w, h, hot ? p.hudInk : p.hudShadow);
+    fb.frame(x, y, w, h, on ? p.hudInk : p.hudDim);
     var lx = x + ((w - fb.textW(label,1)) >> 1);
     var ly = y + Math.round((h - 7) / 2);
-    /* The temperature shows on the resting state only. Hovering inverts the
-       button, and the ramps have nothing left to carry them there — the
-       inversion is the hover signal anyway. */
-    if (light && mode === 'suit') suitInk(lx, ly);
-    else if (light) callText(fb, label, lx, ly, 1, mode, true);
+    /* The temperature shows on the resting state only. Hovering fills the
+       button with cream, and the ramps' bright steps have nothing left to
+       carry them there — the inversion is the hover signal anyway.
+
+       SUIT carries no ramp and no mode: plain cream against three ramped
+       neighbours is itself the distinction, and it is the one call that is
+       about matching rather than about a direction the ramps could show. */
+    if (mode && on && !hot) callText(fb, label, lx, ly, 1, mode);
     else fb.text(label, lx, ly, hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
     if (on) hit(x, y, w, h, act);
     return r;
@@ -954,7 +939,7 @@
         var rx2 = cx + bw2 + gp2, blockW = bw2 * 2 + gp2;
         button(cx,  cy2,                  bw2, 'HIGH', { t:'call', call:'HI' },   on, 'hot');
         button(cx,  cy2 + ch + gp2,       bw2, 'LOW',  { t:'call', call:'LO' },   on, 'cold');
-        button(cx,  cy2 + 2 * (ch + gp2), bw2, 'SUIT', { t:'call', call:'SUIT' }, on, 'suit');
+        button(cx,  cy2 + 2 * (ch + gp2), bw2, 'SUIT', { t:'call', call:'SUIT' }, on);
         button(rx2, cy2, bw2, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut', colH);
         if (!on) {
           var m4 = 'PICK A PILE';
@@ -968,7 +953,7 @@
       button(cx, cy, cw, 'HIGH', { t:'call', call:'HI' }, on, 'hot');
       button(cx, cy + ch + gp, cw, 'LOW', { t:'call', call:'LO' }, on, 'cold');
       button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
-      if (suit) button(cx, cy + 3*(ch + gp), cw, 'SUIT', { t:'call', call:'SUIT' }, on, 'suit');
+      if (suit) button(cx, cy + 3*(ch + gp), cw, 'SUIT', { t:'call', call:'SUIT' }, on);
       if (!on) {
         /* Always under the calls in a room — above them it sat against the
            board's top edge, which is now where the eye starts. */
@@ -992,7 +977,7 @@
     button(cxr, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');   cxr += wid[0] + gapb;
     button(cxr, by, wid[1], 'LOW',  { t:'call', call:'LO' }, on, 'cold');  cxr += wid[1] + gapb;
     button(cxr, by, wid[2], 'SPLIT',{ t:'call', call:'SPLIT' }, on, 'cut');cxr += wid[2] + gapb;
-    if (suit) button(cxr, by, wid[3], 'SUIT', { t:'call', call:'SUIT' }, on, 'suit');
+    if (suit) button(cxr, by, wid[3], 'SUIT', { t:'call', call:'SUIT' }, on);
     if (!on) {
       var m = 'PICK A PILE';
       hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
