@@ -51,12 +51,23 @@ var HiLo = (function () {
     return d;
   }
 
+  /* One per seat. Kept even in a solo game so the shape of a state never
+     depends on how many are playing — nothing accrues here below two. */
+  function makeScores(n) {
+    var s = [], i;
+    for (i = 0; i < n; i++) {
+      s.push({ score: 0, placements: 0, suits: 0, splits: 0, kills: 0, bonus: 0 });
+    }
+    return s;
+  }
+
   function create(seed, cols, rows, players) {
     cols = Math.max(1, Math.min(4, cols | 0));
     rows = Math.max(1, Math.min(4, rows | 0));
     var size = cols * rows;
     var deck = shuffled(seed);
     var piles = [], i;
+    var n = Math.max(1, players | 0 || 1);
     for (i = 0; i < size; i++) piles.push({ cards: [deck[i]], alive: true });
     return autoPick({
       seed: seed, cols: cols, rows: rows, size: size,
@@ -65,8 +76,10 @@ var HiLo = (function () {
       piles: piles,
       phase: 'PLAY',              // PLAY · RESURRECT · WON · LOST
       selected: -1,
-      players: Math.max(1, players | 0 || 1),
+      players: n,
       turn: 0,
+      scores: makeScores(n),
+      bonusPaid: false,
       last: null,                 // what just happened, for the renderer to show
       log: []
     });
@@ -107,15 +120,33 @@ var HiLo = (function () {
     return newV === oldV;              // SPLIT
   }
 
+  /* Who may act. A shared board is only honest if every action names its
+     author and the engine — not the client, and not the server's good manners —
+     refuses one that arrives out of turn. A solo game carries no author and
+     skips the check, so single player is exactly what it was.
+
+     This is the whole of turn enforcement: because it lives in `legal`, a
+     replay of a log rejects an out-of-turn action the same way a live game
+     does, and a client that tries to act early simply has nothing happen. */
+  function mayAct(state, action) {
+    if (state.players < 2) return true;
+    return action.by === state.turn;
+  }
+
   function legal(state, action) {
+    if (!mayAct(state, action)) return false;
     if (action.t === 'SELECT') {
       return state.phase === 'PLAY' &&
              action.pile >= 0 && action.pile < state.size &&
              state.piles[action.pile].alive;
     }
     if (action.t === 'CALL') {
-      return state.phase === 'PLAY' && state.selected >= 0 &&
-             (action.call === 'HI' || action.call === 'LO' || action.call === 'SPLIT');
+      /* Suit is a multiplayer call only. In solo it is a pure gamble with
+         nothing to differentiate it from — there is no opponent to out-read. */
+      var known = action.call === 'HI' || action.call === 'LO' ||
+                  action.call === 'SPLIT' ||
+                  (action.call === 'SUIT' && state.players > 1);
+      return state.phase === 'PLAY' && state.selected >= 0 && known;
     }
     if (action.t === 'REVIVE') {
       return state.phase === 'RESURRECT' &&
@@ -149,18 +180,24 @@ var HiLo = (function () {
     // CALL
     var i = state.selected;
     var pile = state.piles[i];
-    var oldV = value(top(state, i));
+    var showing = top(state, i);
+    var oldV = value(showing);
     var card = state.deck[state.next];
     var newV = value(card);
-    var won = succeeds(action.call, oldV, newV);
+    var suited = action.call === 'SUIT';
+    var won = suited ? suitOf(card) === suitOf(showing)
+                     : succeeds(action.call, oldV, newV);
 
     state.next++;
     pile.cards.push(card);           // the card is placed either way — a losing
     if (!won) pile.alive = false;    // card is still a card off the stock
 
+    scoreCall(state, action.by, action.call, won);
+
     state.last = {
       pile: i, call: action.call, card: card,
-      survived: won, wasSplit: action.call === 'SPLIT' && won
+      survived: won, wasSplit: action.call === 'SPLIT' && won,
+      by: state.players > 1 ? action.by : undefined
     };
     state.selected = -1;
 
@@ -178,12 +215,58 @@ var HiLo = (function () {
     if (state.players > 1) state.turn = (state.turn + 1) % state.players;
   }
 
+  /* Points ride on the call, not on the board: a player's score is theirs
+     whatever happens to the pile afterwards. Nothing accrues in a solo game —
+     scoring is a multiplayer idea and solo has no seat to attribute it to. */
+  function scoreCall(state, by, call, won) {
+    if (state.players < 2) return;
+    var s = state.scores[by];
+    if (!won) { s.kills++; s.score -= 2; return; }
+    if (call === 'SPLIT')     { s.splits++;     s.score += 4; }
+    else if (call === 'SUIT') { s.suits++;      s.score += 2; }
+    else                      { s.placements++; s.score += 1; }
+  }
+
+  /* Clearing the board doubles what each player earned by calling — so the
+     reward lands on whoever called well rather than on whoever happens to be
+     behind. Splits are left out of the doubling; at four points they are
+     already paid. Paid once, guarded because settle can be reached twice. */
+  function awardClearBonus(state) {
+    if (state.players < 2 || state.bonusPaid) return;
+    state.bonusPaid = true;
+    for (var i = 0; i < state.players; i++) {
+      var s = state.scores[i];
+      s.bonus = s.placements + s.suits * 2;
+      s.score += s.bonus;
+    }
+  }
+
+  /* Seats ordered as the end screen wants them: most points first, fewest
+     kills breaking a tie. Genuine ties keep their shared rank rather than
+     being separated by seat order, which would invent a winner. */
+  function standings(state) {
+    var rows = [], i;
+    for (i = 0; i < state.players; i++) {
+      rows.push({ player: i, score: state.scores[i].score,
+                  kills: state.scores[i].kills, tied: false });
+    }
+    rows.sort(function (a, b) {
+      return b.score - a.score || a.kills - b.kills;
+    });
+    for (i = 1; i < rows.length; i++) {
+      if (rows[i].score === rows[0].score && rows[i].kills === rows[0].kills) {
+        rows[0].tied = true; rows[i].tied = true;
+      }
+    }
+    return rows;
+  }
+
   /* Win by placing every card; lose when nothing is left to play on. Checked
      in that order, because emptying the stock with your last living pile is a
      win, not a loss. */
   function settle(state) {
     if (state.phase === 'RESURRECT') return state;
-    if (stockLeft(state) === 0) state.phase = 'WON';
+    if (stockLeft(state) === 0) { state.phase = 'WON'; awardClearBonus(state); }
     else if (aliveCount(state) === 0) state.phase = 'LOST';
     else state.phase = 'PLAY';
     return autoPick(state);
@@ -201,7 +284,7 @@ var HiLo = (function () {
     create: create, apply: apply, legal: legal, replay: replay,
     top: top, value: value, rankChar: rankChar, suitChar: suitChar,
     aliveCount: aliveCount, deadCount: deadCount, stockLeft: stockLeft,
-    succeeds: succeeds, ACE_LOW: ACE_LOW
+    succeeds: succeeds, standings: standings, ACE_LOW: ACE_LOW
   };
 })();
 
