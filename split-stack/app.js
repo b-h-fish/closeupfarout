@@ -572,35 +572,60 @@
      One strip of cells, centred on whatever it is given and drawn from a
      baseline, so it can move from the sky band to the foot without a layout
      change. Everything about its placement is these two numbers. */
-  function strip(cx, y) {
+  function strip(cx, y, blockW, twoUp) {
     if (!mp()) return;
-    var p = pal(), i, cells = [], total = 0, GAPC = 6;
+    var p = pal(), i, GAPC = 6, CELLH = 16, ROWGAP = 5;
+    var cols = twoUp ? 2 : g.players;
+    var rows = Math.ceil(g.players / cols);
+
+    /* Two up, the cells share the board's width so the pair in each row match
+       and the block lines up with the cards. In one row they take what their
+       own contents need instead — tying that row to the board's width squeezed
+       four cells into 231 units and cut the names, which is the very thing the
+       two-up layout exists to avoid. */
+    var cellW;
+    if (twoUp) {
+      cellW = Math.floor(((blockW || (W - 8)) - GAPC * (cols - 1)) / cols);
+    } else {
+      cellW = 52;
+      for (i = 0; i < g.players; i++) {
+        var nmi = (room && room.seats[i] ? room.seats[i].name : 'P' + (i + 1));
+        var sci = String(g.scores[i].score);
+        cellW = Math.max(cellW, fb.textW(nmi, 1) + 6 + fb.textW(sci, 1) + 16);
+      }
+      var fits = Math.floor(((W - 8) - GAPC * (cols - 1)) / cols);
+      if (cellW > fits) cellW = fits;
+    }
+    var totalW = cellW * cols + GAPC * (cols - 1);
+    var x0 = Math.round(Math.min(Math.max(cx - totalW / 2, 4), W - totalW - 4));
+
     for (i = 0; i < g.players; i++) {
       var nm = (room && room.seats[i] ? room.seats[i].name : 'P' + (i + 1));
       var sc = String(g.scores[i].score);
-      var w = Math.max(52, fb.textW(nm, 1) + 6 + fb.textW(sc, 1) + 16);
-      cells.push({ nm: nm, sc: sc, w: w });
-      total += w + (i ? GAPC : 0);
-    }
-    var x = Math.round(cx - total / 2);
-    for (i = 0; i < cells.length; i++) {
-      var c = cells[i], on = (g.turn === i) && g.phase !== 'WON' && g.phase !== 'LOST';
-      fb.dim(x, y, c.w, 16, 0.42);
-      hud(c.nm, x + 6, y + 4, on ? p.pick : p.hudDim);
-      hud(c.sc, x + c.w - 6 - fb.textW(c.sc, 1), y + 4, p.hudInk);
+      /* The score is never cut — it is the figure being read, and a name is
+         still recognisable at a few letters where a number is not. */
+      var roomForName = cellW - 12 - fb.textW(sc, 1);
+      while (nm.length > 1 && fb.textW(nm, 1) > roomForName) nm = nm.slice(0, -1);
+
+      var cxx = x0 + (i % cols) * (cellW + GAPC);
+      var cyy = y + ((i / cols) | 0) * (CELLH + ROWGAP);
+      var on = (g.turn === i) && g.phase !== 'WON' && g.phase !== 'LOST';
+
+      fb.dim(cxx, cyy, cellW, CELLH, 0.42);
+      hud(nm, cxx + 6, cyy + 4, on ? p.pick : p.hudDim);
+      hud(sc, cxx + cellW - 6 - fb.textW(sc, 1), cyy + 4, p.hudInk);
       if (on) {
-        fb.frame(x, y, c.w, 16, p.ink);
-        fb.frame(x, y, c.w, 16, p.pick);
-        fb.rect(x, y, 2, 16, p.pick);
+        fb.frame(cxx, cyy, cellW, CELLH, p.ink);
+        fb.frame(cxx, cyy, cellW, CELLH, p.pick);
+        fb.rect(cxx, cyy, 2, CELLH, p.pick);
         /* The clock as a bar rather than a figure: a fifth number on a screen
            already showing four scores has to be read before it can be used. */
         if (turnEndsAt) {
           var left = Math.max(0, turnEndsAt - Date.now()) / 30000;
-          fb.rect(x + 2, y + 14, c.w - 4, 1, p.hudShadow);
-          fb.rect(x + 2, y + 14, Math.round((c.w - 4) * Math.min(1, left)), 1, p.pick);
+          fb.rect(cxx + 2, cyy + 14, cellW - 4, 1, p.hudShadow);
+          fb.rect(cxx + 2, cyy + 14, Math.round((cellW - 4) * Math.min(1, left)), 1, p.pick);
         }
       }
-      x += c.w + GAPC;
     }
   }
 
@@ -625,13 +650,12 @@
        out of the background layer's scale, so the pair stays mirrored at any
        size rather than at one that happened to be checked. */
     var k = 2, tw = fb.textW(txt, k);
-    var x = W - markLeftHere() - tw;
     var y = markTopHere();
-
-    /* The stock count claims this corner when the deck is too narrow to sit
-       beside the board; drop under it rather than over it. */
-    var s = stockBox();
-    if (!s.big && (g.phase === 'PLAY' || g.phase === 'RESURRECT')) y += 14;
+    /* Mirrored to the mark where the corner is free. Where the stock count
+       has already claimed it — a board too narrow for the deck to sit beside
+       it — the clock takes the space between the two instead of stacking
+       under one of them. */
+    var x = stockBox().big ? W - markLeftHere() - tw : ((W - tw) >> 1);
 
     var col = urgent ? p.pick : p.hudInk;
     if (urgent && ((now / 260) | 0) % 2 === 0) col = p.hudInk;
@@ -923,10 +947,15 @@
        scoreboard straight through the call buttons. The strip takes a centre
        and a baseline and nothing else, so this stays two numbers. */
     if (mp()) {
+      /* Beside the board there is width for one row; beneath it there is not,
+         and four cells strung across a phone ran off both edges and cut the
+         names. Two up, two down, on the board's own width. The extra drop is
+         so the block does not crowd PICK A PILE. */
+      var twoUp = !uiSide;
       var stripY = uiSide ? b.y + b.h + 16
-                          : b.y + b.h + 14 + 20 + 20;
-      // 16 tall plus a margin, so it never sits flush against the canvas edge
-      strip(b.x + (b.w >> 1), Math.min(stripY, H - 16 - 8));
+                          : b.y + b.h + 14 + 20 + 32;
+      var blockH2 = twoUp ? 37 : 16;
+      strip(b.x + (b.w >> 1), Math.min(stripY, H - blockH2 - 8), b.w, twoUp);
     }
     if (mp()) drawClock();
     if (g.phase === 'WON' || g.phase === 'LOST') {
@@ -997,17 +1026,25 @@
       hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
       return;
     }
-    var wid = suit ? [36,36,46,40] : [40,40,54];
-    var gapb = 7, tot = 0, k;
-    for (k = 0; k < wid.length; k++) tot += wid[k] + (k ? gapb : 0);
-    var bx = (W - tot) >> 1, cxr = bx;
-    button(cxr, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');   cxr += wid[0] + gapb;
-    button(cxr, by, wid[1], 'LOW',  { t:'call', call:'LO' }, on, 'cold');  cxr += wid[1] + gapb;
-    button(cxr, by, wid[2], 'SPLIT',{ t:'call', call:'SPLIT' }, on, 'cut');cxr += wid[2] + gapb;
-    if (suit) button(cxr, by, wid[3], 'SUIT', { t:'call', call:'SUIT' }, on);
+    /* The row is as wide as the cards above it and shares their edges — the
+       calls and the board read as one block rather than a wide thing over a
+       narrow one. Widths are divided from that span rather than fixed, so the
+       four never add up to something the board's width has to accommodate. */
+    var n = suit ? 4 : 3, gapb = 7;
+    var each = Math.floor((b.w - gapb * (n - 1)) / n);
+    var tot = each * n + gapb * (n - 1);
+    var cxr = b.x + ((b.w - tot) >> 1);
+    var LABELS = suit ? [['HIGH','HI','hot'], ['LOW','LO','cold'],
+                         ['SPLIT','SPLIT','cut'], ['SUIT','SUIT', null]]
+                      : [['HIGH','HI','hot'], ['LOW','LO','cold'],
+                         ['SPLIT','SPLIT','cut']];
+    for (var q = 0; q < LABELS.length; q++) {
+      button(cxr, by, each, LABELS[q][0], { t:'call', call:LABELS[q][1] }, on, LABELS[q][2]);
+      cxr += each + gapb;
+    }
     if (!on) {
       var m = 'PICK A PILE';
-      hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
+      hud(m, b.x + ((b.w - fb.textW(m,1)) >> 1), by + 24, p.hudDim);
     }
   }
 
