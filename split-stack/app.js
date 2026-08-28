@@ -179,9 +179,26 @@
      before. This offset only ever applies while a room is live. */
   var MP_SHIFT = 34;
 
+  /* Where the mark's top falls in *this* layer's units. The mark is drawn on
+     the background at a scale that never changes with the grid, so its
+     position has to be converted rather than assumed — the same conversion
+     the HUD already does to keep the mark clickable. */
+  function markTopHere() {
+    return Math.round((WM_Y + 5) * worldScale / scale);
+  }
+
   function boardBox() {
     var b = L.board(g ? g.cols : pickC, g ? g.rows : pickR, W, H, uiSide, device);
-    if (mp()) b.x = Math.max(6, b.x - MP_SHIFT);
+    if (mp()) {
+      b.x = Math.max(6, b.x - MP_SHIFT);
+      /* Multiplayer 4x4 on desktop only: start the cards level with the mark,
+         which hands the whole band underneath to the scoreboard. Deliberately
+         narrow — solo, every other grid and every other device keep whatever
+         the layout table decided, so none of them need re-auditing. */
+      if (device === 'desktop' && g.cols === 4 && g.rows === 4) {
+        b.y = Math.max(4, markTopHere());
+      }
+    }
     return b;
   }
 
