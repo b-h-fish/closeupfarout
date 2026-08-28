@@ -1,0 +1,16 @@
+{
+  "name": "split-stack-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Game rooms for Split Stack. Deployed to Cloudflare Workers, not to Vercel — the repo root stays a static site.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.86.0",
+    "ws": "^8.21.3"
+  }
+}

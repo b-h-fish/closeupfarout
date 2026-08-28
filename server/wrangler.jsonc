@@ -1,0 +1,25 @@
+{
+  // Split Stack game rooms. One Durable Object per room: the object IS the
+  // room, so there is no shared table to contend on and rooms scale by
+  // construction. D1 lands here later for leaderboards, in this same file.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "split-stack-server",
+  "main": "src/index.js",
+  // Pinned to what the installed runtime supports; bumping it ahead of the
+  // wrangler binary fails the dev server outright.
+  "compatibility_date": "2026-05-03",
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOMS", "class_name": "Room" }
+    ]
+  },
+
+  // A new class needs a migration tag before it can be bound. PartyKit infers
+  // these; declaring them by hand is the cost of staying on plain Workers.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] }
+  ],
+
+  "observability": { "enabled": true }
+}

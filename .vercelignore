@@ -1,0 +1,5 @@
+# The game server deploys to Cloudflare Workers via wrangler, never to Vercel.
+# Keeping it out of the upload also keeps its package.json from reaching
+# Vercel's framework detection — the root is a static site plus api/, and a
+# package.json appearing at the root of the upload can change how that builds.
+server/
