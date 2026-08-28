@@ -612,31 +612,70 @@
     var st = mpOver ? mpOver.standings : HiLo.standings(g);
     var head = (st[0] && st[0].tied) ? 'A DRAW' :
                (st[0] && st[0].player === mySeat()) ? 'YOU WIN' : 'GAME OVER';
-    /* Measured rather than guessed: head, one row per seat, then the button
-       under them. The first version fixed the height at 52 + rows, which put
-       the button back on top of the last seat. */
-    var pw = Math.min(W - 16, 210), ph = 34 + g.players * 13 + 10 + 18 + 12;
+    /* A real table: one column per kind of call, headed and right-aligned, so
+       the figures line up down the panel. Written as a run-together string it
+       was impossible to compare two seats — each row started at a different
+       place, because the whole block was right-aligned rather than the
+       columns. Widths come from the headers, which are the widest thing any
+       column has to hold until somebody scores a hundred. */
+    var COLS = [
+      { h: 'H/L',   v: function (s) { return s.placements; } },
+      { h: 'SUIT',  v: function (s) { return s.suits; } },
+      { h: 'SPLIT', v: function (s) { return s.splits; } },
+      { h: 'KILL',  v: function (s) { return s.kills; } }
+    ];
+    /* The score column has to be as wide as its own heading, not as wide as
+       the figures under it — reserving room for '-99' and then writing
+       'SCORE' over it ran the two headings together as one word. */
+    var CGAP2 = 7, PADX = 10, NAMEW = 66;
+    var SCOREW = Math.max(fb.textW('SCORE', 1), fb.textW('-99', 1));
+    var colsW = 0, ci;
+    for (ci = 0; ci < COLS.length; ci++) {
+      COLS[ci].w = Math.max(fb.textW(COLS[ci].h, 1), fb.textW('99', 1));
+      colsW += COLS[ci].w + (ci ? CGAP2 : 0);
+    }
+
+    /* Measured rather than guessed: head, the column heads, one row per seat,
+       then the button under them. An early version fixed the height at
+       52 + rows, which put the button back on top of the last seat. */
+    var want = PADX * 2 + NAMEW + 8 + colsW + 12 + SCOREW;
+    var pw = Math.min(W - 16, want);
+    var ROWY = 34, HEADY = ROWY, FIRSTY = ROWY + 14;
+    var ph = FIRSTY + g.players * 13 + 10 + 18 + 12;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
     hudBig(head, px + ((pw - fb.textW(head, 2)) >> 1), py + 10, p.hudInk, 2);
 
+    // right edges, laid out from the score inwards so the table stays flush
+    var scoreR = px + pw - PADX;
+    var colR = [], edge = scoreR - SCOREW - 5;
+    for (ci = COLS.length - 1; ci >= 0; ci--) {
+      colR[ci] = edge;
+      edge -= COLS[ci].w + CGAP2;
+    }
+
+    for (ci = 0; ci < COLS.length; ci++) {
+      hud(COLS[ci].h, colR[ci] - fb.textW(COLS[ci].h, 1), py + HEADY, p.hudDim);
+    }
+    hud('SCORE', scoreR - fb.textW('SCORE', 1), py + HEADY, p.hudDim);
+    fb.rect(px + PADX, py + HEADY + 9, pw - PADX * 2, 1, p.hudDim);
+
     for (var i = 0; i < st.length; i++) {
       var r = st[i];
       var nm = (room && room.seats[r.player] ? room.seats[r.player].name : 'P' + (r.player + 1));
       var sc = g.scores[r.player];
-      var lhs = (i + 1) + '. ' + nm;
-      var rhs = String(r.score);
-      var y = py + 34 + i * 13;
+      var y = py + FIRSTY + i * 13;
       var col = r.player === mySeat() ? p.pick : p.hudInk;
-      hud(lhs, px + 10, y, col);
-      hud(rhs, px + pw - 10 - fb.textW(rhs, 1), y, col);
-      var sub = sc.placements + 'P ' + sc.suits + 'S ' + sc.splits + 'X ' + sc.kills + 'K';
-      /* hudShadow is the drop-shadow colour — text drawn in it is invisible
-         against the panel, which is where this breakdown went. */
-      hud(sub, px + pw - 10 - fb.textW(rhs, 1) - 8 - fb.textW(sub, 1), y, p.hudDim);
+      hud((i + 1) + '. ' + nm, px + PADX, y, col);
+      for (ci = 0; ci < COLS.length; ci++) {
+        var vs = String(COLS[ci].v(sc));
+        hud(vs, colR[ci] - fb.textW(vs, 1), y, p.hudDim);
+      }
+      var rhs = String(r.score);
+      hud(rhs, scoreR - fb.textW(rhs, 1), y, col);
     }
-    button(px + ((pw - 84) >> 1), py + 34 + g.players * 13 + 10, 84, 'MENU',
+    button(px + ((pw - 84) >> 1), py + FIRSTY + g.players * 13 + 10, 84, 'MENU',
            { t: 'mp-leave' }, true);
   }
 
