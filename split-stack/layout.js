@@ -184,6 +184,53 @@ var HiLoLayout = (function () {
     'desktop-wide': { callsBeside: true, sideFit: true }
   };
 
+  /* What a room adds, in the same shape the grid table uses: a base saying
+     what happens everywhere, and `on` naming only the exceptions. Solo never
+     reads this, so nothing added here can move a single-player board.
+
+     The base is the narrow case — a phone held upright, where the calls sit
+     under the board and there is no room either side of it. Screens with a
+     flank to spare override into the wide treatment. */
+  var ROOM = {
+    capW:        0,        // no ceiling on the logical width
+    centreField: false,    // leave the board where the grid table put it
+    callSpan:    'board',  // the call row takes the width of the cards above
+    stripCols:   2,        // scoreboard two up, two down
+    stripDrop:   32,       // extra air under the calls before the scoreboard
+    clock:       'centre', // between the mark and the stock count
+    countBelow:  false,    // the stock count keeps the grid table's answer
+    on: {
+      /* A flank either side of the board: the calls stand beside it, the
+         scoreboard fits in one row, and the corner is free for the clock.
+         capW holds the cards to a constant share of the screen — without it
+         they shrink between the grid table's scale steps. */
+      'desktop-wide': { capW: 640, centreField: true, callSpan: 'fixed',
+                        stripCols: 4, stripDrop: 0, clock: 'mirror',
+                        countBelow: true },
+      'tablet-wide':  { capW: 640, centreField: true, callSpan: 'fixed',
+                        stripCols: 4, stripDrop: 0, clock: 'mirror',
+                        countBelow: true },
+      /* A phone on its side is the same shape as a small desktop — wide and
+         short — so it takes the same treatment. Without the cap its canvas
+         runs to 790 units and the cards fall to under 7% of the width. */
+      'phone-wide':   { capW: 640, centreField: true, callSpan: 'fixed',
+                        stripCols: 4, stripDrop: 0, clock: 'mirror',
+                        countBelow: true }
+    }
+  };
+
+  function room(dev, wide) {
+    var keys = wide ? [dev, dev + '-wide'] : [dev];
+    var merged = null, i, k;
+    for (i = 0; i < keys.length; i++) {
+      var over = ROOM.on[keys[i]];
+      if (!over) continue;
+      if (!merged) { merged = {}; for (k in ROOM) if (k !== 'on') merged[k] = ROOM[k]; }
+      for (k in over) merged[k] = over[k];
+    }
+    return merged || ROOM;
+  }
+
   /* A row, with any overrides for this kind of screen folded in. A row says
      what it does everywhere; `on` names the exceptions, so a screen that is
      not mentioned keeps the shared behaviour and cannot drift from it. */
@@ -313,7 +360,7 @@ var HiLoLayout = (function () {
   return {
     CARD_W: CARD_W, CARD_H: CARD_H, GAP: GAP,
     SIDE_W: SIDE_W, CALLS_W: CALLS_W, WORLD_MAX: WORLD_MAX, STEPS: STEPS,
-    GRIDS: GRIDS, rowFor: rowFor, device: device,
+    GRIDS: GRIDS, rowFor: rowFor, device: device, room: room,
     step: step, game: game, board: board, world: world,
     boardW: boardW, boardH: boardH
   };

@@ -43,11 +43,6 @@
      all showing at once — so there is a single shape to fit. Asking for more
      height than the panel needs is what leaves the setting visible around it. */
   var SETUP_W = 175, SETUP_H = 330;
-  /* The logical width a room's board is laid out against. 640 is what a
-     1280-wide screen at one device pixel per CSS pixel already produced, so
-     holding every larger screen to it keeps the cards the same size rather
-     than letting them shrink between the table's scale steps. */
-  var W_ROOM_CAP = 640;
   var canvas, ctx, live, fb = null;
   var scale = 2, W = 0, H = 0;
   /* The setting sits on its own layer at a scale that never changes with the
@@ -104,7 +99,16 @@
          Done here rather than in layout.js on purpose — that table is
          per-grid and shared with solo, and a row changed there would need all
          sixteen grids re-audited. This only ever applies inside a room. */
-      if (mp() && uiSide && W_ROOM_CAP * scale < vw) scale = vw / W_ROOM_CAP;
+      /* Holding the canvas to a fixed width raises the scale, which lowers
+         the canvas height with it — fine on a desktop, fatal on a phone laid
+         on its side, where 640 wide leaves 296 of height for a board needing
+         311 and the bottom row falls off. So the cap only applies where the
+         taller scale still leaves the board and its furniture room to stand. */
+      var cap = L.room(device, vw > vh).capW;
+      if (mp() && cap && cap * scale < vw) {
+        var want = vw / cap;
+        if (vh / want >= L.boardH(g ? g.rows : pickR) + 44) scale = want;
+      }
     }
     W = Math.max(120, Math.round(vw / scale));
     H = Math.max(120, Math.round(vh / scale));
@@ -449,6 +453,10 @@
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
 
   function mp() { return !!net && !!g && g.players > 1; }
+  /* Every layout choice a room makes comes from here rather than from a
+     conditional at the point of use. Same table idiom the grids use, so a
+     screen that behaves oddly is one row to read and one row to change. */
+  function rm() { return L.room(device, W > H); }
   /* The one arrangement that gets its own treatment: a room, on the big
      grid, with a mouse and room to spare. Everything else keeps the layout
      the table decided, which is what keeps solo out of these changes. */
@@ -575,7 +583,7 @@
   function strip(cx, y, blockW, twoUp) {
     if (!mp()) return;
     var p = pal(), i, GAPC = 6, CELLH = 16, ROWGAP = 5;
-    var cols = twoUp ? 2 : g.players;
+    var cols = twoUp ? Math.max(1, rm().stripCols) : g.players;
     var rows = Math.ceil(g.players / cols);
 
     /* Two up, the cells share the board's width so the pair in each row match
@@ -655,7 +663,7 @@
        has already claimed it — a board too narrow for the deck to sit beside
        it — the clock takes the space between the two instead of stacking
        under one of them. */
-    var x = stockBox().big ? W - markLeftHere() - tw : ((W - tw) >> 1);
+    var x = rm().clock === 'mirror' ? W - markLeftHere() - tw : ((W - tw) >> 1);
 
     var col = urgent ? p.pick : p.hudInk;
     if (urgent && ((now / 260) | 0) % 2 === 0) col = p.hudInk;
@@ -894,7 +902,7 @@
         /* Under the deck in a room. Above it, the figure competes with the
            scoreboard and the clock for the same band of sky; solo keeps the
            per-grid answer the layout table tuned for it. */
-        if (mp()) {
+        if (mp() && rm().countBelow) {
           ty = s.y + CARD_H + 6;
         } else if (L.rowFor(g.cols, g.rows, device, W > H).count === 'below') {
           ty = s.y + CARD_H + 6;
@@ -951,9 +959,9 @@
          and four cells strung across a phone ran off both edges and cut the
          names. Two up, two down, on the board's own width. The extra drop is
          so the block does not crowd PICK A PILE. */
-      var twoUp = !uiSide;
+      var R = rm(), twoUp = R.stripCols < g.players;
       var stripY = uiSide ? b.y + b.h + 16
-                          : b.y + b.h + 14 + 20 + 32;
+                          : b.y + b.h + 14 + 20 + R.stripDrop;
       var blockH2 = twoUp ? 37 : 16;
       strip(b.x + (b.w >> 1), Math.min(stripY, H - blockH2 - 8), b.w, twoUp);
     }
@@ -1031,7 +1039,8 @@
        narrow one. Widths are divided from that span rather than fixed, so the
        four never add up to something the board's width has to accommodate. */
     var n = suit ? 4 : 3, gapb = 7;
-    var each = Math.floor((b.w - gapb * (n - 1)) / n);
+    var span = rm().callSpan === 'board' ? b.w : Math.min(b.w, CALLS_W + 24);
+    var each = Math.floor((span - gapb * (n - 1)) / n);
     var tot = each * n + gapb * (n - 1);
     var cxr = b.x + ((b.w - tot) >> 1);
     var LABELS = suit ? [['HIGH','HI','hot'], ['LOW','LO','cold'],
