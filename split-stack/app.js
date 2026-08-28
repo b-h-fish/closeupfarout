@@ -1009,14 +1009,16 @@
       hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
       return;
     }
-    var wid = suit ? [36,36,46,40] : [40,40,54];
+    /* Same order as the column: Split last. A player who moves between a
+       phone and a desktop should not have to relearn where the calls are. */
+    var wid = suit ? [36,36,40,46] : [40,40,54];
     var gapb = 7, tot = 0, k;
     for (k = 0; k < wid.length; k++) tot += wid[k] + (k ? gapb : 0);
     var bx = (W - tot) >> 1, cxr = bx;
     button(cxr, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');   cxr += wid[0] + gapb;
     button(cxr, by, wid[1], 'LOW',  { t:'call', call:'LO' }, on, 'cold');  cxr += wid[1] + gapb;
-    button(cxr, by, wid[2], 'SPLIT',{ t:'call', call:'SPLIT' }, on, 'cut');cxr += wid[2] + gapb;
-    if (suit) button(cxr, by, wid[3], 'SUIT', { t:'call', call:'SUIT' }, on);
+    if (suit) { button(cxr, by, wid[2], 'SUIT', { t:'call', call:'SUIT' }, on); cxr += wid[2] + gapb; }
+    button(cxr, by, suit ? wid[3] : wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
     if (!on) {
       var m = 'PICK A PILE';
       hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
