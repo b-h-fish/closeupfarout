@@ -55,14 +55,19 @@
   </div>
   <div id="say" class="vh" role="status" aria-live="polite"></div>
 
-  <!-- Absolute, not relative. Relative paths resolve against the URL rather
+  <!-- The ?v= stamp is a cache key, not decoration. Vercel serves these with
+       must-revalidate, but a browser will still hand back a script from its
+       own memory cache within a session — which looks exactly like a deploy
+       that did not happen. Bump the stamp when a change has to be seen.
+
+       Absolute, not relative. Relative paths resolve against the URL rather
        than the directory, so at /split (no trailing slash) they would look for
        /pixel.js and the game would come up blank. -->
-  <script src="/split-stack/pixel.js"></script>
-  <script src="/split-stack/layout.js"></script>
-  <script src="/split-stack/scenes.js"></script>
-  <script src="/split-stack/game.js"></script>
-  <script src="/split-stack/net.js"></script>
-  <script src="/split-stack/app.js"></script>
+  <script src="/split-stack/pixel.js?v=20260828a"></script>
+  <script src="/split-stack/layout.js?v=20260828a"></script>
+  <script src="/split-stack/scenes.js?v=20260828a"></script>
+  <script src="/split-stack/game.js?v=20260828a"></script>
+  <script src="/split-stack/net.js?v=20260828a"></script>
+  <script src="/split-stack/app.js?v=20260828a"></script>
 </body>
 </html>
