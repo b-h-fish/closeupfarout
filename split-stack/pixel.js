@@ -495,8 +495,20 @@ function splitMark(fb, x, y, k, shadow) {
    'hot' and 'cold' are the mark's own halves taken on their own: hot runs
    bright at the top and deepens downward, cold does the reverse, so HIGH and
    LOW read as the two ends of the same scale. 'cut' is the whole thing, hot
-   over cold, which is what SPLIT wears. */
-function callText(fb, s, x, y, k, mode) {
+   over cold, which is what SPLIT wears.
+
+   `onLight` biases every ramp toward its dark end. The buttons are cream
+   now, and a ramp that opens on cream spends half the word invisible. */
+/* On a dark button the whole ramp is usable. On a cream one only its lower
+   half carries, so the seven steps are squeezed into the darkest four — the
+   word keeps its direction, it just stops running off the top into paper. */
+function splitStep(idx, len, onLight) {
+  if (!onLight) return Math.min(idx, len - 1);
+  var lo = (len - 1) >> 1;
+  return Math.min(len - 1, lo + Math.round((idx / (len - 1)) * (len - 1 - lo)));
+}
+
+function callText(fb, s, x, y, k, mode, onLight) {
   if (!SPLIT_PACKED) {
     SPLIT_PACKED = { hot: SPLIT_HOT.map(hex), cold: SPLIT_COLD.map(hex),
                      white: hex('#ffffff') };
@@ -514,7 +526,7 @@ function callText(fb, s, x, y, k, mode) {
           f = warm ? sy / mid : (sy - mid) / (total - mid);
           idx = warm ? Math.round(f * (ramp.length - 1))
                      : Math.round((1 - f) * (ramp.length - 1));
-        } else {
+                } else {
           ramp = mode === 'cold' ? SPLIT_PACKED.cold : SPLIT_PACKED.hot;
           f = sy / (total - 1);
           idx = Math.round((mode === 'cold' ? 1 - f : f) * (ramp.length - 1));
@@ -522,7 +534,7 @@ function callText(fb, s, x, y, k, mode) {
         for (var m = 0; m < g[j].length; m++) {
           if (g[j][m] !== '.') {
             fb.rect(x + i*6*k + m*k, y + sy, k, 1,
-                    ramp[Math.min(idx, ramp.length - 1)]);
+                    ramp[splitStep(idx, ramp.length, onLight)]);
           }
         }
       }
