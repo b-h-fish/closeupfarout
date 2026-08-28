@@ -81,7 +81,8 @@
     var vw = window.innerWidth, vh = window.innerHeight;
     var dpr = window.devicePixelRatio || 1;
     device = L.device(vw, vh, COARSE);
-    if (screen === 'MENU' || screen === 'SETUP') {
+    if (screen === 'MENU' || screen === 'SETUP' ||
+        screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY') {
       scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
       uiSide = false;
     } else {
@@ -375,6 +376,203 @@
     menuButton(m.top + m.row2Y, btnW, 'MULTIPLAYER', { t: 'multiplayer' });
   }
 
+  /* ═══ MULTIPLAYER ═════════════════════════════════════════════════════
+     Four screens on the same skeleton the menu and setup share, so crossing
+     between any of them moves contents rather than the frame:
+       MODE   pick competitive or co-op
+       ROOM   your name, then host or join
+       LOBBY  the code, who is in, and the start
+     and then GAME, which is the solo board plus a scoreboard strip.        */
+
+  var net = null;                 // the live room, or null
+  var room = null;                // last SYNC/ROSTER from the server
+  var roomMode = 'pick';          // 'pick' · 'join'
+  var typing = null;              // { field:'name'|'code', value:'' }
+  var netMsg = '';                // one line of status, shown under the band
+  var turnEndsAt = 0;             // wall clock for the turn bar
+  var mpOver = null;              // the OVER payload, once a game finishes
+  var pendingRoom = '';           // a code arrived on a link, waiting for a name
+
+  function mp() { return !!net && !!g && g.players > 1; }
+  function mySeat() { return room ? room.you : -1; }
+  function myTurn() { return mp() && g.turn === mySeat(); }
+
+  function panelLine(y, str, col) {
+    var p = pal();
+    hud(str, (W - fb.textW(str, 1)) >> 1, y, col || p.hudDim);
+  }
+
+  /* A field you type into. There is no DOM here, so it is drawn and fed by
+     onKey — a caret that blinks is the only thing telling you it is live. */
+  function field(y, w, label, value, active, act) {
+    var p = pal(), cx = W >> 1, x = cx - (w >> 1);
+    var hot = mouse.x >= x && mouse.x < x + w && mouse.y >= y && mouse.y < y + 20;
+    fb.rect(x, y, w, 20, p.hudShadow);
+    fb.frame(x, y, w, 20, active ? p.pick : (hot ? p.hudInk : p.hudDim));
+    var shown = value || '';
+    if (active && ((now / 500) | 0) % 2 === 0) shown += '_';
+    if (!shown) { fb.text(label, x + 6, y + 7, p.hudDim); }
+    else fb.text(shown, x + ((w - fb.textW(shown, 1)) >> 1), y + 7, p.hudInk);
+    hit(x, y, w, 20, act);
+  }
+
+  function drawMode() {
+    var m = menuGeom(), cx = W >> 1;
+    panelFrame(m);
+    backArrow(m);
+    var btnW = Math.min(160, m.pw - 32);
+
+    var by = m.top + m.bandY;
+    panelLine(by + 26, 'PLAY WITH FRIENDS', pal().hudInk);
+    panelLine(by + 44, 'ON ONE SHARED BOARD');
+    panelLine(by + 70, 'TWO TO FOUR PLAYERS');
+
+    menuButton(m.top + m.row1Y, btnW, 'COMPETITIVE', { t: 'mp-competitive' });
+
+    /* Co-op is drawn but not live: its scoring was never settled, and a
+       button that quietly does nothing is worse than one that says so. */
+    var p = pal(), y2 = m.top + m.row2Y, bx = cx - (btnW >> 1);
+    fb.rect(bx, y2, btnW, 20, p.hudShadow);
+    fb.frame(bx, y2, btnW, 20, p.hudDim);
+    var cl = 'CO-OP  SOON';
+    fb.text(cl, bx + ((btnW - fb.textW(cl, 1)) >> 1), y2 + 7, p.hudDim);
+  }
+
+  function drawRoom() {
+    var m = menuGeom();
+    panelFrame(m);
+    backArrow(m);
+    var btnW = Math.min(160, m.pw - 32);
+    var by = m.top + m.bandY;
+
+    if (roomMode === 'pick') {
+      panelLine(by + 18, 'YOUR NAME');
+      field(by + 32, btnW, 'TAP TO TYPE', Net.name(),
+            typing && typing.field === 'name', { t: 'mp-type-name' });
+      panelLine(by + 62, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+      if (pendingRoom) {
+        menuButton(m.top + m.row1Y, btnW, 'JOIN ' + pendingRoom, { t: 'mp-join-link' });
+        menuButton(m.top + m.row2Y, btnW, 'HOST INSTEAD', { t: 'mp-host' });
+      } else {
+        menuButton(m.top + m.row1Y, btnW, 'HOST A GAME', { t: 'mp-host' });
+        menuButton(m.top + m.row2Y, btnW, 'JOIN A GAME', { t: 'mp-join-pick' });
+      }
+    } else {
+      panelLine(by + 18, 'ROOM CODE');
+      field(by + 32, btnW, 'FOUR LETTERS',
+            typing ? typing.value : '', typing && typing.field === 'code',
+            { t: 'mp-type-code' });
+      panelLine(by + 62, netMsg || 'ASK THE HOST FOR IT');
+      menuButton(m.top + m.row1Y, btnW, 'JOIN', { t: 'mp-join-go' });
+    }
+  }
+
+  function drawLobby() {
+    var m = menuGeom(), p = pal(), cx = W >> 1;
+    panelFrame(m);
+    backArrow(m);
+    var btnW = Math.min(160, m.pw - 32);
+    var by = m.top + m.bandY;
+
+    var code = room ? room.code : '';
+    hudBig(code, cx - (fb.textW(code, 2) >> 1), by + 4, p.hudInk, 2);
+    panelLine(by + 26, 'SHARE THE CODE OR THE LINK');
+
+    var seats = (room && room.seats) || [];
+    for (var i = 0; i < 4; i++) {
+      var ry = by + 42 + i * 13;
+      var s = seats[i];
+      /* An open seat has to be legible or the room looks like it holds one
+         player and nothing else. The font is caps and digits only — an em
+         dash draws as a blank, which is how this read as empty space. */
+      if (!s) { panelLine(ry, '. . . . .', p.hudDim); continue; }
+      var line = s.name + (s.host ? '  HOST' : '');
+      var col = s.connected ? (i === mySeat() ? p.pick : p.hudInk) : p.hudDim;
+      hud(line, cx - (fb.textW(line, 1) >> 1), ry, col);
+    }
+
+    var amHost = seats[mySeat()] && seats[mySeat()].host;
+    if (amHost) {
+      if (seats.length >= 2) menuButton(m.top + m.row1Y, btnW, 'START', { t: 'mp-start' });
+      else {
+        var bx = cx - (btnW >> 1), y1 = m.top + m.row1Y;
+        fb.rect(bx, y1, btnW, 20, p.hudShadow);
+        fb.frame(bx, y1, btnW, 20, p.hudDim);
+        var w1 = 'NEED ONE MORE';
+        fb.text(w1, bx + ((btnW - fb.textW(w1, 1)) >> 1), y1 + 7, p.hudDim);
+      }
+    } else {
+      panelLine(m.top + m.row1Y + 7, netMsg || 'WAITING FOR THE HOST');
+    }
+    menuButton(m.top + m.row2Y, btnW, 'COPY LINK', { t: 'mp-copy' });
+  }
+
+  /* ── the scoreboard ──
+     One strip of cells, centred on whatever it is given and drawn from a
+     baseline, so it can move from the sky band to the foot without a layout
+     change. Everything about its placement is these two numbers. */
+  function strip(cx, y) {
+    if (!mp()) return;
+    var p = pal(), i, cells = [], total = 0, GAPC = 6;
+    for (i = 0; i < g.players; i++) {
+      var nm = (room && room.seats[i] ? room.seats[i].name : 'P' + (i + 1));
+      var sc = String(g.scores[i].score);
+      var w = Math.max(52, fb.textW(nm, 1) + 6 + fb.textW(sc, 1) + 16);
+      cells.push({ nm: nm, sc: sc, w: w });
+      total += w + (i ? GAPC : 0);
+    }
+    var x = Math.round(cx - total / 2);
+    for (i = 0; i < cells.length; i++) {
+      var c = cells[i], on = (g.turn === i) && g.phase !== 'WON' && g.phase !== 'LOST';
+      fb.dim(x, y, c.w, 16, 0.42);
+      hud(c.nm, x + 6, y + 4, on ? p.pick : p.hudDim);
+      hud(c.sc, x + c.w - 6 - fb.textW(c.sc, 1), y + 4, p.hudInk);
+      if (on) {
+        fb.frame(x, y, c.w, 16, p.ink);
+        fb.frame(x, y, c.w, 16, p.pick);
+        fb.rect(x, y, 2, 16, p.pick);
+        /* The clock as a bar rather than a figure: a fifth number on a screen
+           already showing four scores has to be read before it can be used. */
+        if (turnEndsAt) {
+          var left = Math.max(0, turnEndsAt - Date.now()) / 30000;
+          fb.rect(x + 2, y + 14, c.w - 4, 1, p.hudShadow);
+          fb.rect(x + 2, y + 14, Math.round((c.w - 4) * Math.min(1, left)), 1, p.pick);
+        }
+      }
+      x += c.w + GAPC;
+    }
+  }
+
+  /* The end of a multiplayer game: the standings, with each seat's own
+     breakdown — the one place the subdivisions are shown. */
+  function drawStandings() {
+    var p = pal(), cx = W >> 1;
+    fb.dim(0, 0, W, H, 0.45);
+    var st = mpOver ? mpOver.standings : HiLo.standings(g);
+    var head = (st[0] && st[0].tied) ? 'A DRAW' :
+               (st[0] && st[0].player === mySeat()) ? 'YOU WIN' : 'GAME OVER';
+    var pw = Math.min(W - 16, 210), ph = 52 + g.players * 13;
+    var px = (W - pw) >> 1, py = (H - ph) >> 1;
+    fb.rect(px, py, pw, ph, p.hudShadow);
+    fb.frame(px, py, pw, ph, p.hudInk);
+    hudBig(head, px + ((pw - fb.textW(head, 2)) >> 1), py + 10, p.hudInk, 2);
+
+    for (var i = 0; i < st.length; i++) {
+      var r = st[i];
+      var nm = (room && room.seats[r.player] ? room.seats[r.player].name : 'P' + (r.player + 1));
+      var sc = g.scores[r.player];
+      var lhs = (i + 1) + '. ' + nm;
+      var rhs = String(r.score);
+      var y = py + 34 + i * 13;
+      var col = r.player === mySeat() ? p.pick : p.hudInk;
+      hud(lhs, px + 10, y, col);
+      hud(rhs, px + pw - 10 - fb.textW(rhs, 1), y, col);
+      var sub = sc.placements + 'P ' + sc.suits + 'S ' + sc.splits + 'X ' + sc.kills + 'K';
+      hud(sub, px + pw - 10 - fb.textW(rhs, 1) - 8 - fb.textW(sub, 1), y, p.hudShadow);
+    }
+    button(px + ((pw - 84) >> 1), py + ph - 26, 84, 'MENU', { t: 'mp-leave' }, true);
+  }
+
   /* ═══ SETUP ═══════════════════════════════════════════════════════════ */
 
   function drawSetup() {
@@ -560,17 +758,24 @@
       cardFace(fb, ax, ay, CARD_W, CARD_H, HiLo.rankChar(fx.card), HiLo.suitChar(fx.card), p);
     }
 
-    if (g.phase === 'WON' || g.phase === 'LOST') drawResult();
-    else if (!fx) drawCalls(b);
+    if (mp()) strip(b.x + (b.w >> 1), 9);
+    if (g.phase === 'WON' || g.phase === 'LOST') {
+      if (mp()) drawStandings(); else drawResult();
+    } else if (!fx) drawCalls(b);
   }
 
   /* The calls, in whichever place the layout put them. */
   function drawCalls(b) {
-    var p = pal(), on = g.selected >= 0;
+    var p = pal(), on = g.selected >= 0 && (!mp() || myTurn());
     var resurrecting = (g.phase === 'RESURRECT');
+    /* Suit is the fourth call and multiplayer only, so the column is three
+       tall in solo and four in a room. Only 4x4 is dealt in a room, which is
+       why this can grow the stack without re-verifying sixteen grids. */
+    var suit = mp();
 
     if (uiSide) {
-      var cw = SIDE_W, ch = 18, gp = 8, stackH = 3*ch + 2*gp;
+      var cw = SIDE_W, ch = 18, gp = 8, rows = suit ? 4 : 3;
+      var stackH = rows*ch + (rows-1)*gp;
       var cx = b.x + b.w + 26;
       // Bottom-aligned with the board, mirroring the deck on the other side.
       var cy = b.y + b.h - stackH;
@@ -585,6 +790,7 @@
       button(cx, cy, cw, 'HIGH', { t:'call', call:'HI' }, on, 'hot');
       button(cx, cy + ch + gp, cw, 'LOW', { t:'call', call:'LO' }, on, 'cold');
       button(cx, cy + 2*(ch + gp), cw, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+      if (suit) button(cx, cy + 3*(ch + gp), cw, 'SUIT', { t:'call', call:'SUIT' }, on);
       if (!on) {
         var under = L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
         hud('PICK A PILE', mid('PICK A PILE'),
@@ -599,10 +805,14 @@
       hud(m2, (W - fb.textW(m2,1)) >> 1, by + 5, p.hudInk);
       return;
     }
-    var wid = [40,40,54], tot = wid[0]+wid[1]+wid[2] + 14, bx = (W - tot) >> 1;
-    button(bx, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');
-    button(bx+wid[0]+7, by, wid[1], 'LOW', { t:'call', call:'LO' }, on, 'cold');
-    button(bx+wid[0]+wid[1]+14, by, wid[2], 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+    var wid = suit ? [36,36,46,40] : [40,40,54];
+    var gapb = 7, tot = 0, k;
+    for (k = 0; k < wid.length; k++) tot += wid[k] + (k ? gapb : 0);
+    var bx = (W - tot) >> 1, cxr = bx;
+    button(cxr, by, wid[0], 'HIGH', { t:'call', call:'HI' }, on, 'hot');   cxr += wid[0] + gapb;
+    button(cxr, by, wid[1], 'LOW',  { t:'call', call:'LO' }, on, 'cold');  cxr += wid[1] + gapb;
+    button(cxr, by, wid[2], 'SPLIT',{ t:'call', call:'SPLIT' }, on, 'cut');cxr += wid[2] + gapb;
+    if (suit) button(cxr, by, wid[3], 'SUIT', { t:'call', call:'SUIT' }, on);
     if (!on) {
       var m = 'PICK A PILE';
       hud(m, (W - fb.textW(m,1)) >> 1, by + 24, p.hudDim);
@@ -681,6 +891,7 @@
   function say(msg) { if (live) live.textContent = msg; }
 
   function toMenu() {
+    leaveRoom();
     screen = 'MENU'; g = null; fx = null; confirmMenu = false;
     fit();
     if (history.replaceState) history.replaceState(null, '', location.pathname);
@@ -737,11 +948,137 @@
     describe();
   }
 
+  /* ── the room, from this side ──
+     One handler per server message. The client never decides anything about
+     the game: it applies what arrives, in the order it arrives. */
+  function enterRoom(code) {
+    netMsg = 'CONNECTING…';
+    if (net) net.close();
+    mpOver = null;
+    net = Net.join(code, Net.name() || 'PLAYER', {
+      SYNC: function (m) {
+        room = m;
+        netMsg = '';
+        if (m.started) {
+          g = HiLo.replay(m.seed, m.cols, m.rows, m.players, m.log);
+          screen = 'GAME'; fx = null; focus = 0;
+          turnEndsAt = m.msLeft ? Date.now() + m.msLeft : 0;
+          fit();
+        } else if (screen !== 'LOBBY') { screen = 'LOBBY'; fit(); }
+        if (history.replaceState) {
+          history.replaceState(null, '', location.pathname + '?room=' + m.code);
+        }
+        say('In room ' + m.code.split('').join(' ') + '.');
+      },
+      ROSTER: function (m) { if (room) room.seats = m.seats; },
+      BEGIN: function (m) {
+        if (room) room.seats = m.seats;
+        g = HiLo.create(m.seed, m.cols, m.rows, m.players);
+        screen = 'GAME'; fx = null; focus = 0; mpOver = null;
+        turnEndsAt = 0;
+        fit();
+        say('Game started. ' + m.players + ' players.');
+      },
+      ACT:  function (m) { applyRemote(m.action); },
+      TURN: function (m) {
+        turnEndsAt = m.msLeft ? Date.now() + m.msLeft : 0;
+        if (m.turn === mySeat()) say('Your turn.');
+      },
+      TIMEOUT: function (m) {
+        netMsg = '';
+        if (m.seat === mySeat()) say('You ran out of time.');
+      },
+      OVER: function (m) { mpOver = m; turnEndsAt = 0; describe(); },
+      ERR:  function (m) { netMsg = String(m.msg || '').toUpperCase(); },
+      drop: function () { netMsg = 'RECONNECTING…'; },
+      open: function () { if (netMsg === 'RECONNECTING…') netMsg = ''; }
+    });
+  }
+
+  /* An action the server accepted. A call is animated the same way a solo
+     call is, so a remote player's move reads exactly like your own. */
+  function applyRemote(action) {
+    if (!g) return;
+    flushFx();
+    if (action.t === 'CALL' && g.selected >= 0) {
+      var i = g.selected, card = g.deck[g.next];
+      var from = stockBox(), to = pileBox(i);
+      HiLo.apply(g, action);
+      fx = { kind:'deal', pile:i, card:card, t:0, dur:DEAL_MS,
+             fx: from.big ? from.x : W-40, fy: from.big ? from.y : 10,
+             tx: to.x, ty: to.y };
+      return;
+    }
+    HiLo.apply(g, action);
+  }
+
+  function leaveRoom() {
+    if (net) net.close();
+    net = null; room = null; mpOver = null; turnEndsAt = 0; netMsg = '';
+    typing = null; roomMode = 'pick';
+  }
+
   function dispatch(act) {
     if (!act) return;
     if (act.t === 'solo')  { screen = 'SETUP'; fit(); say('Choose a grid size and a setting, then deal.'); return; }
-    if (act.t === 'multiplayer') { return; }
-    if (act.t === 'back')  { toMenu(); return; }
+    if (act.t === 'multiplayer') { screen = 'MODE'; fit(); say('Competitive or co-op.'); return; }
+
+    if (act.t === 'mp-competitive') {
+      screen = 'ROOM'; roomMode = 'pick'; netMsg = '';
+      typing = Net.name() ? null : { field: 'name', value: '' };
+      fit(); say('Enter a name, then host or join.'); return;
+    }
+    if (act.t === 'mp-type-name') { typing = { field:'name', value: Net.name() }; return; }
+    if (act.t === 'mp-type-code') { typing = { field:'code', value: typing ? typing.value : '' }; return; }
+    if (act.t === 'mp-join-pick') {
+      roomMode = 'join'; netMsg = ''; typing = { field:'code', value:'' }; return;
+    }
+    if (act.t === 'mp-host') {
+      pendingRoom = '';
+      if (!Net.name()) { netMsg = 'NAME FIRST'; typing = { field:'name', value:'' }; return; }
+      netMsg = 'MAKING A ROOM…';
+      Net.createRoom().then(function (r) { enterRoom(r.code); })
+                      .catch(function () { netMsg = 'COULD NOT REACH THE SERVER'; });
+      return;
+    }
+    if (act.t === 'mp-join-go') {
+      var code = (typing && typing.value || '').toUpperCase();
+      if (code.length !== 4) { netMsg = 'FOUR LETTERS'; return; }
+      if (!Net.name()) { netMsg = 'NAME FIRST'; roomMode = 'pick';
+                         typing = { field:'name', value:'' }; return; }
+      netMsg = 'LOOKING…';
+      Net.probeRoom(code).then(function (r) {
+        if (!r.exists) { netMsg = 'NO ROOM ' + code; return; }
+        if (r.started) { netMsg = 'THAT GAME HAS STARTED'; return; }
+        typing = null; enterRoom(code);
+      }).catch(function () { netMsg = 'COULD NOT REACH THE SERVER'; });
+      return;
+    }
+    if (act.t === 'mp-join-link') {
+      if (!Net.name()) { netMsg = 'NAME FIRST'; typing = { field:'name', value:'' }; return; }
+      var pc = pendingRoom; pendingRoom = ''; typing = null;
+      enterRoom(pc); return;
+    }
+    if (act.t === 'mp-start') { if (net) net.start(); return; }
+    if (act.t === 'mp-copy') {
+      var link = Net.linkFor(room ? room.code : '');
+      try {
+        navigator.clipboard.writeText(link);
+        netMsg = 'LINK COPIED';
+      } catch (e) { netMsg = link.replace(/^https?:\/\//, '').toUpperCase(); }
+      return;
+    }
+    if (act.t === 'mp-leave') { leaveRoom(); toMenu(); return; }
+
+    if (act.t === 'back')  {
+      if (screen === 'MODE') { toMenu(); return; }
+      if (screen === 'ROOM') {
+        if (roomMode === 'join') { roomMode = 'pick'; typing = null; netMsg = ''; return; }
+        screen = 'MODE'; typing = null; netMsg = ''; fit(); return;
+      }
+      if (screen === 'LOBBY') { leaveRoom(); screen = 'MODE'; fit(); return; }
+      toMenu(); return;
+    }
     if (act.t === 'grid')  { pickC = act.c; pickR = act.r; return; }
     if (act.t === 'scene') { pickScene = act.i; bgDirty = true; return; }
     if (act.t === 'deal')  {
@@ -767,6 +1104,18 @@
       return;
     }
     flushFx();
+    /* In a room the move is a request, not a change: send it and wait for the
+       server to echo it back. Nothing is applied locally first, so there is
+       never a board to roll back. Being turn-based is what makes that cost
+       one round trip rather than a whole prediction layer. */
+    if (mp()) {
+      if (!myTurn()) return;
+      if (act.t === 'select') { focus = act.pile; net.act({ t:'SELECT', pile:act.pile }); return; }
+      if (act.t === 'call')   { net.act({ t:'CALL', call:act.call }); return; }
+      if (act.t === 'revive') { net.act({ t:'REVIVE', pile:act.pile }); return; }
+      return;
+    }
+
     if (act.t === 'select') { HiLo.apply(g, { t:'SELECT', pile:act.pile }); focus = act.pile; return; }
     if (act.t === 'call')   { doCall(act.call); return; }
     if (act.t === 'revive') {
@@ -814,8 +1163,41 @@
 
   function onKey(e) {
     var k = e.key;
+
+    /* A field has the keyboard while it is open, so Enter commits rather
+       than doing whatever the screen behind would have done with it. */
+    if (typing) {
+      if (k === 'Enter') {
+        if (typing.field === 'name') { Net.name(typing.value.trim() || 'PLAYER'); typing = null; }
+        else dispatch({ t: 'mp-join-go' });
+        e.preventDefault(); return;
+      }
+      if (k === 'Escape') { typing = null; e.preventDefault(); return; }
+      if (k === 'Backspace') {
+        typing.value = typing.value.slice(0, -1);
+        if (typing.field === 'name') Net.name(typing.value);
+        e.preventDefault(); return;
+      }
+      if (k.length === 1) {
+        var cap = typing.field === 'code' ? 4 : 12;
+        var ch = k.toUpperCase();
+        var okc = typing.field === 'code' ? /[2-9A-HJ-NP-Z]/.test(ch) : /[A-Z0-9 ]/.test(ch);
+        if (okc && typing.value.length < cap) {
+          typing.value += ch;
+          if (typing.field === 'name') Net.name(typing.value);
+        }
+        e.preventDefault(); return;
+      }
+      return;
+    }
+
+    if (screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY') {
+      if (k === 'Escape') { dispatch({ t:'back' }); e.preventDefault(); }
+      return;
+    }
     if (screen === 'MENU') {
       if (k === 'Enter' || k === ' ') { dispatch({ t:'solo' }); e.preventDefault(); }
+      else if (k === 'm' || k === 'M') { dispatch({ t:'multiplayer' }); e.preventDefault(); }
       else return;
       e.preventDefault(); return;
     }
@@ -844,7 +1226,7 @@
       return;
     }
     var c = focus % g.cols, r = (focus / g.cols) | 0;
-    if (/^(Arrow(Right|Left|Down|Up)|Enter| |[hHlLsS])$/.test(k)) kbNav = true;
+    if (/^(Arrow(Right|Left|Down|Up)|Enter| |[hHlLsSuU])$/.test(k)) kbNav = true;
     if (k === 'ArrowRight') c = Math.min(g.cols-1, c+1);
     else if (k === 'ArrowLeft') c = Math.max(0, c-1);
     else if (k === 'ArrowDown') r = Math.min(g.rows-1, r+1);
@@ -857,6 +1239,7 @@
     else if (k === 'h' || k === 'H') { dispatch({ t:'call', call:'HI' }); return; }
     else if (k === 'l' || k === 'L') { dispatch({ t:'call', call:'LO' }); return; }
     else if (k === 's' || k === 'S') { dispatch({ t:'call', call:'SPLIT' }); return; }
+    else if (k === 'u' || k === 'U') { dispatch({ t:'call', call:'SUIT' }); return; }
     else return;
     focus = r * g.cols + c;
     e.preventDefault();
@@ -880,6 +1263,9 @@
     fb.clear();
     if (screen === 'MENU') drawMenu();
     else if (screen === 'SETUP') drawSetup();
+    else if (screen === 'MODE') drawMode();
+    else if (screen === 'ROOM') drawRoom();
+    else if (screen === 'LOBBY') drawLobby();
     else { drawGame(); if (confirmMenu) drawConfirm(); }
 
     var img = ctx.createImageData(W, H);
@@ -904,6 +1290,14 @@
       if (sc >= 0 && sc < SCENES.length) pickScene = sc;
       var sd = q.get('seed');
       if (sd !== null && /^\d+$/.test(sd)) begin(parseInt(sd, 10) % 0x7fffffff);
+      /* A shared room link lands on the name field with the code already
+         held, so the invitee types one thing and is in. */
+      var rc = Net.codeFromUrl();
+      if (rc) {
+        pendingRoom = rc;
+        screen = 'ROOM'; roomMode = 'pick';
+        if (!Net.name()) typing = { field: 'name', value: '' };
+      }
     } catch (e) { /* a malformed link just opens the setup screen */ }
 
     window.addEventListener('resize', fit);

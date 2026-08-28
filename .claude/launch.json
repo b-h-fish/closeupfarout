@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "closeupfarout",
+      "name": "split-stack",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-c", "import http.server,os; os.chdir('/Users/bryanfisher/Desktop/closeupfarout'); http.server.test(HandlerClass=http.server.SimpleHTTPRequestHandler, port=8080, bind='')"],
-      "port": 8080
+      "runtimeArgs": ["-m", "http.server", "8099"],
+      "port": 8099
     }
   ]
 }
