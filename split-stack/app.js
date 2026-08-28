@@ -738,11 +738,14 @@
     }
 
     if (g.phase === 'RESURRECT' && !pile.alive && !fx) {
-      // glow rather than dim: these are the piles asking to be chosen
-      var puls = 0.30 + 0.26 * (Math.sin(now / 180) * 0.5 + 0.5);
+      /* Glow rather than dim: these are the piles asking to be chosen.
+         The glow used to carry two keylines two pixels clear of the card,
+         which is wider than the gap between piles — so two dead piles side by
+         side had their halos meet and read as one tall block rather than two
+         choices. The pulse alone says the same thing and stops at the card's
+         own edge. The target still takes the old margin; it just isn't drawn. */
+      var puls = 0.30 + 0.30 * (Math.sin(now / 180) * 0.5 + 0.5);
       fb.tint(b.x, ly, CARD_W, CARD_H, p.lit, puls);
-      fb.frame(b.x-1, ly-1, CARD_W+2, CARD_H+2, p.lit);
-      fb.frame(b.x-2, ly-2, CARD_W+4, CARD_H+4, p.lit);
       hit(b.x-2, ly-2, CARD_W+4, CARD_H+4, { t:'revive', pile:i });
     } else if (g.phase === 'PLAY' && pile.alive && !fx) {
       if (sel) {
