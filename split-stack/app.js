@@ -918,6 +918,20 @@
       var cw = SIDE_W, ch = 18, gp = 8, rows = suit ? 4 : 3;
       var stackH = rows*ch + (rows-1)*gp;
       var cx = b.x + b.w + 26;
+      /* In a room the column is set in from the right border by the same
+         margin the deck keeps from the left, so the two flanks balance around
+         the board rather than the calls hugging it. Only when the deck is
+         actually beside the board — the narrow arrangement puts it in the
+         corner, where there is no margin to mirror — and never so far left
+         that it lands on the board. Solo keeps the fixed step it was tuned
+         with. */
+      if (mp()) {
+        var deck = stockBox();
+        if (deck.big) {
+          var mirrored = W - cw - deck.x;
+          if (mirrored > b.x + b.w + 12) cx = mirrored;
+        }
+      }
       // Bottom-aligned with the board, mirroring the deck on the other side.
       var cy = b.y + b.h - stackH;
       var mid = function (str) { return cx + ((cw - fb.textW(str,1)) >> 1); };
