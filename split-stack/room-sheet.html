@@ -105,9 +105,20 @@ function render() {
      zooms are whole numbers, because this is pixel art and a fractional
      enlargement smears every edge it has. */
   var avail = sheet.clientWidth || 1200;
-  var perRow = size.w <= 520 ? 3 : 2;
-  var colW = Math.floor((avail - 14 * (perRow - 1)) / perRow);
-  var scale = zoom === 'fit' ? Math.min(colW / size.w, 1) : Number(zoom);
+  var perRow, scale;
+  if (size.w > 520) {
+    /* A desktop frame cannot be shown life size beside another, so these
+       scale down to two abreast — the whole point of the sheet is comparing
+       the states, not inspecting one. */
+    perRow = 2;
+    scale = zoom === 'fit' ? Math.min(1, ((avail - 14) / 2) / size.w) : Number(zoom);
+  } else {
+    /* A phone frame fits life size in any window worth using, so it is never
+       scaled at all under 'fit' — it just packs as many abreast as there is
+       room for. Shrinking these was what made them unreadable. */
+    perRow = Math.max(1, Math.min(3, Math.floor((avail + 14) / (size.w + 14))));
+    scale = zoom === 'fit' ? 1 : Number(zoom);
+  }
   var fw = Math.round(size.w * scale), fh = Math.round(size.h * scale);
 
   sheet.style.gridTemplateColumns = 'repeat(auto-fill, ' + fw + 'px)';
