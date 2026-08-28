@@ -227,19 +227,24 @@
     fb.textBig(str, x, y, col || p.hudInk, k);
   }
 
-  function button(x, y, w, label, act, on, mode) {
+  /* `h` is optional and defaults to the 18 every other button in the game
+     uses; a taller one is still a button, so it keeps the same hover, hit
+     target and call ramp rather than being drawn as a special shape. */
+  function button(x, y, w, label, act, on, mode, h) {
     var p = pal();
-    var r = { x:x, y:y, w:w, h:18 };
+    h = h || 18;
+    var r = { x:x, y:y, w:w, h:h };
     var hot = on && inside(r);
-    fb.rect(x, y, w, 18, hot ? p.hudInk : p.hudShadow);
-    fb.frame(x, y, w, 18, on ? p.hudInk : p.hudDim);
+    fb.rect(x, y, w, h, hot ? p.hudInk : p.hudShadow);
+    fb.frame(x, y, w, h, on ? p.hudInk : p.hudDim);
     var lx = x + ((w - fb.textW(label,1)) >> 1);
+    var ly = y + Math.round((h - 7) / 2);
     /* The temperature shows on the resting state only. Hovering fills the
        button with cream, and the ramps' bright steps have nothing left to
        carry them there — the inversion is the hover signal anyway. */
-    if (mode && on && !hot) callText(fb, label, lx, y + 6, 1, mode);
-    else fb.text(label, lx, y + 6, hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
-    if (on) hit(x, y, w, 18, act);
+    if (mode && on && !hot) callText(fb, label, lx, ly, 1, mode);
+    else fb.text(label, lx, ly, hot ? p.hudShadow : (on ? p.hudInk : p.hudDim));
+    if (on) hit(x, y, w, h, act);
     return r;
   }
 
@@ -921,13 +926,17 @@
          paired in two columns it reads as a choice between two kinds of call
          rather than a list of four. */
       if (mpDesk4()) {
-        var bw2 = 74, gp2 = 8, colH = 2 * ch + gp2;
+        /* The three ordinary calls stack on the left; Split takes the whole
+           right side at their combined height. It is the rarest call and the
+           only one that buys a pile back, so it is worth being the thing the
+           hand goes to without aiming. */
+        var bw2 = 74, gp2 = 8, colH = 3 * ch + 2 * gp2;
         var cy2 = b.y + b.h - colH;
         var rx2 = cx + bw2 + gp2, blockW = bw2 * 2 + gp2;
-        button(cx,  cy2,            bw2, 'HIGH',  { t:'call', call:'HI' },    on, 'hot');
-        button(cx,  cy2 + ch + gp2, bw2, 'LOW',   { t:'call', call:'LO' },    on, 'cold');
-        button(rx2, cy2,            bw2, 'SUIT',  { t:'call', call:'SUIT' },  on);
-        button(rx2, cy2 + ch + gp2, bw2, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut');
+        button(cx,  cy2,                  bw2, 'HIGH', { t:'call', call:'HI' },   on, 'hot');
+        button(cx,  cy2 + ch + gp2,       bw2, 'LOW',  { t:'call', call:'LO' },   on, 'cold');
+        button(cx,  cy2 + 2 * (ch + gp2), bw2, 'SUIT', { t:'call', call:'SUIT' }, on);
+        button(rx2, cy2, bw2, 'SPLIT', { t:'call', call:'SPLIT' }, on, 'cut', colH);
         if (!on) {
           var m4 = 'PICK A PILE';
           hud(m4, cx + ((blockW - fb.textW(m4, 1)) >> 1), cy2 - 13, p.hudDim);
