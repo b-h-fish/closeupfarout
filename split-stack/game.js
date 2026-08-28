@@ -215,16 +215,22 @@ var HiLo = (function () {
     if (state.players > 1) state.turn = (state.turn + 1) % state.players;
   }
 
+  /* What each call pays. One table, read by both the per-call scoring and the
+     board-clear bonus — the bonus doubles what a seat earned by calling, so a
+     value changed in one place and not the other would leave the two
+     disagreeing about what a Suit was worth. */
+  var PAYS = { PLACE: 1, SUIT: 3, SPLIT: 4, KILL: -2 };
+
   /* Points ride on the call, not on the board: a player's score is theirs
      whatever happens to the pile afterwards. Nothing accrues in a solo game —
      scoring is a multiplayer idea and solo has no seat to attribute it to. */
   function scoreCall(state, by, call, won) {
     if (state.players < 2) return;
     var s = state.scores[by];
-    if (!won) { s.kills++; s.score -= 2; return; }
-    if (call === 'SPLIT')     { s.splits++;     s.score += 4; }
-    else if (call === 'SUIT') { s.suits++;      s.score += 2; }
-    else                      { s.placements++; s.score += 1; }
+    if (!won) { s.kills++; s.score += PAYS.KILL; return; }
+    if (call === 'SPLIT')     { s.splits++;     s.score += PAYS.SPLIT; }
+    else if (call === 'SUIT') { s.suits++;      s.score += PAYS.SUIT; }
+    else                      { s.placements++; s.score += PAYS.PLACE; }
   }
 
   /* Clearing the board doubles what each player earned by calling — so the
@@ -236,7 +242,7 @@ var HiLo = (function () {
     state.bonusPaid = true;
     for (var i = 0; i < state.players; i++) {
       var s = state.scores[i];
-      s.bonus = s.placements + s.suits * 2;
+      s.bonus = s.placements * PAYS.PLACE + s.suits * PAYS.SUIT;
       s.score += s.bonus;
     }
   }
@@ -284,7 +290,8 @@ var HiLo = (function () {
     create: create, apply: apply, legal: legal, replay: replay,
     top: top, value: value, rankChar: rankChar, suitChar: suitChar,
     aliveCount: aliveCount, deadCount: deadCount, stockLeft: stockLeft,
-    succeeds: succeeds, standings: standings, ACE_LOW: ACE_LOW
+    succeeds: succeeds, standings: standings,
+    PAYS: PAYS, ACE_LOW: ACE_LOW
   };
 })();
 

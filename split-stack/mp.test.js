@@ -87,7 +87,8 @@ ok('a placement is counted', d.g.scores[0].placements === 1);
 d = dealFor('SUIT');
 H.apply(d.g, { t: 'SELECT', pile: d.i, by: 0 });
 H.apply(d.g, { t: 'CALL', call: 'SUIT', by: 0 });
-ok('a suit call is worth +2', d.g.scores[0].score === 2, 'got ' + d.g.scores[0].score);
+ok('a suit call is worth +3', d.g.scores[0].score === H.PAYS.SUIT, 'got ' + d.g.scores[0].score);
+ok('the suit payout is three', H.PAYS.SUIT === 3);
 ok('the pile survives a made suit', d.g.piles[d.i].alive);
 
 d = dealFor('SPLIT');
@@ -180,7 +181,10 @@ ok('scores go negative rather than flooring', d.g.scores[0].score < 0);
     let anyBonus = false;
     for (let i = 0; i < 4; i++) {
       const s = t.scores[i];
-      ok('seat ' + i + ' bonus is its own calls doubled', s.bonus === s.placements + s.suits * 2);
+      /* The bonus pays a seat's call earnings a second time, so it has to be
+         read off the same table the calls are — not a literal that drifts. */
+      ok('seat ' + i + ' bonus is its own calls doubled',
+         s.bonus === s.placements * H.PAYS.PLACE + s.suits * H.PAYS.SUIT);
       if (s.bonus > 0) anyBonus = true;
     }
     ok('someone earned a bonus', anyBonus);
