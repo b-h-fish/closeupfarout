@@ -496,12 +496,13 @@
        deal being shuffled, not a decoration that begins again per screen. */
     drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
-    /* Matchmaking is not built. The button says so rather than taking a tap
-       and doing nothing, which is the worse of the two. */
+    /* Matchmaking is not built. The button carries its own name and wears
+       the dim treatment every disabled control in the game wears — the state
+       is the frame and the ink, not a word appended to the label. */
     var p = pal(), y1 = m.top + m.row1Y, bx = cx - (btnW >> 1);
     fb.rect(bx, y1, btnW, 20, p.hudShadow);
     fb.frame(bx, y1, btnW, 20, p.hudDim);
-    var ol = 'PLAY ONLINE  SOON';
+    var ol = 'PLAY ONLINE';
     fb.text(ol, bx + ((btnW - fb.textW(ol, 1)) >> 1), y1 + 7, p.hudDim);
 
     menuButton(m.top + m.row2Y, btnW, 'PLAY WITH FRIENDS', { t: 'mp-friends' });
