@@ -491,20 +491,20 @@
     backArrow(m);
     var btnW = Math.min(160, m.pw - 32);
 
-    var by = m.top + m.bandY;
-    panelLine(by + 26, 'PLAY WITH FRIENDS', pal().hudInk);
-    panelLine(by + 44, 'ON ONE SHARED BOARD');
-    panelLine(by + 70, 'TWO TO FOUR PLAYERS');
+    /* The fan carries straight through from the front page. It runs off the
+       same clock, so crossing to this screen does not restart it — it is one
+       deal being shuffled, not a decoration that begins again per screen. */
+    drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
-    menuButton(m.top + m.row1Y, btnW, 'COMPETITIVE', { t: 'mp-competitive' });
+    /* Matchmaking is not built. The button says so rather than taking a tap
+       and doing nothing, which is the worse of the two. */
+    var p = pal(), y1 = m.top + m.row1Y, bx = cx - (btnW >> 1);
+    fb.rect(bx, y1, btnW, 20, p.hudShadow);
+    fb.frame(bx, y1, btnW, 20, p.hudDim);
+    var ol = 'PLAY ONLINE  SOON';
+    fb.text(ol, bx + ((btnW - fb.textW(ol, 1)) >> 1), y1 + 7, p.hudDim);
 
-    /* Co-op is drawn but not live: its scoring was never settled, and a
-       button that quietly does nothing is worse than one that says so. */
-    var p = pal(), y2 = m.top + m.row2Y, bx = cx - (btnW >> 1);
-    fb.rect(bx, y2, btnW, 20, p.hudShadow);
-    fb.frame(bx, y2, btnW, 20, p.hudDim);
-    var cl = 'CO-OP  SOON';
-    fb.text(cl, bx + ((btnW - fb.textW(cl, 1)) >> 1), y2 + 7, p.hudDim);
+    menuButton(m.top + m.row2Y, btnW, 'PLAY WITH FRIENDS', { t: 'mp-friends' });
   }
 
   function drawRoom() {
@@ -1259,9 +1259,9 @@
   function dispatch(act) {
     if (!act) return;
     if (act.t === 'solo')  { screen = 'SETUP'; fit(); say('Choose a grid size and a setting, then deal.'); return; }
-    if (act.t === 'multiplayer') { screen = 'MODE'; fit(); say('Competitive or co-op.'); return; }
+    if (act.t === 'multiplayer') { screen = 'MODE'; fit(); say('Play online, or play with friends.'); return; }
 
-    if (act.t === 'mp-competitive') {
+    if (act.t === 'mp-friends') {
       screen = 'ROOM'; roomMode = 'pick'; netMsg = '';
       typing = Net.name() ? null : { field: 'name', value: '' };
       fit(); say('Enter a name, then host or join.'); return;

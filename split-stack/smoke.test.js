@@ -107,7 +107,15 @@ const bandY = markH + 16, labelY = bandY + GWIDL + 4, row1Y = labelY + 7 + 5;
 const row2Y = row1Y + 20 + 14, blockH = row2Y + 20;
 const top = Math.max(8, Math.round((H - blockH) / 2));
 
-visit('ROOM (host or join)', () => tapLogical(W >> 1, top + row1Y + 10));
+/* row2, not row1: the mode screen's first button is the unbuilt matchmaking
+   one and takes no tap. Aiming at it left this walk stopping on MODE while
+   every later check still passed, which is the worst kind of green. */
+visit('ROOM (host or join)', () => tapLogical(W >> 1, top + row2Y + 10));
+/* The live region names the screen, which is the only handle on it from out
+   here — without this the walk could stop on MODE and every later check
+   would still pass, which is the worst kind of green. */
+ok('the walk actually reached ROOM', /name/i.test(els.say.textContent),
+   'say: ' + els.say.textContent);
 visit('ROOM after typing a name', () => { 'ALPHA'.split('').forEach(key); key('Enter'); });
 visit('ROOM (join by code)', () => tapLogical(W >> 1, top + row2Y + 10));
 visit('ROOM with a code typed', () => { '2345'.split('').forEach(key); });
