@@ -451,6 +451,7 @@
   var turnEndsAt = 0;             // wall clock for the turn bar
   var mpOver = null;              // the OVER payload, once a game finishes
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
+  var afterName = '';             // what the name step was opened in order to do
 
   function mp() { return !!net && !!g && g.players > 1; }
   /* Every layout choice a room makes comes from here rather than from a
@@ -516,10 +517,10 @@
     var by = m.top + m.bandY;
 
     if (roomMode === 'pick') {
-      panelLine(by + 18, 'YOUR NAME');
-      field(by + 32, btnW, 'TAP TO TYPE', Net.name(),
-            typing && typing.field === 'name', { t: 'mp-type-name' });
-      panelLine(by + 62, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+      /* The fan runs here too. Getting into a room is still the front of the
+         game, not a form — the deal should not stop while you decide. */
+      drawMenuCards(W >> 1, by + ((GWID - menuCh) >> 1), btnW);
+      if (netMsg) panelLine(by + GWID + 2, netMsg);
       if (pendingRoom) {
         menuButton(m.top + m.row1Y, btnW, 'JOIN ' + pendingRoom, { t: 'mp-join-link' });
         menuButton(m.top + m.row2Y, btnW, 'HOST INSTEAD', { t: 'mp-host' });
@@ -527,7 +528,21 @@
         menuButton(m.top + m.row1Y, btnW, 'HOST A GAME', { t: 'mp-host' });
         menuButton(m.top + m.row2Y, btnW, 'JOIN A GAME', { t: 'mp-join-pick' });
       }
-    } else {
+      return;
+    }
+
+    /* Asked only when it is actually wanted — on the way into a room rather
+       than as a gate in front of the choice of which room. */
+    if (roomMode === 'name') {
+      panelLine(by + 18, 'YOUR NAME');
+      field(by + 32, btnW, 'TAP TO TYPE', Net.name(),
+            typing && typing.field === 'name', { t: 'mp-type-name' });
+      panelLine(by + 62, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+      menuButton(m.top + m.row1Y, btnW, 'CONTINUE', { t: 'mp-name-go' });
+      return;
+    }
+
+    {
       panelLine(by + 18, 'ROOM CODE');
       field(by + 32, btnW, 'FOUR LETTERS',
             typing ? typing.value : '', typing && typing.field === 'code',
@@ -1263,18 +1278,38 @@
     if (act.t === 'multiplayer') { screen = 'MODE'; fit(); say('Play online, or play with friends.'); return; }
 
     if (act.t === 'mp-friends') {
-      screen = 'ROOM'; roomMode = 'pick'; netMsg = '';
-      typing = Net.name() ? null : { field: 'name', value: '' };
-      fit(); say('Enter a name, then host or join.'); return;
+      screen = 'ROOM'; roomMode = 'pick'; netMsg = ''; typing = null;
+      fit(); say('Host a game, or join one.'); return;
+    }
+
+    /* The name is a step on the way in, not a gate in front of the choice.
+       Whatever asked for it is remembered so the player lands where they
+       were going rather than back at the fork. */
+    function askName(next) {
+      afterName = next; roomMode = 'name'; netMsg = '';
+      typing = { field: 'name', value: Net.name() };
+      say('Enter a name.');
+    }
+    if (act.t === 'mp-name-go') {
+      if (!Net.name()) { netMsg = 'A NAME FIRST'; return; }
+      typing = null; netMsg = '';
+      var next = afterName; afterName = '';
+      if (next === 'host') return dispatch({ t: 'mp-host' });
+      if (next === 'link') return dispatch({ t: 'mp-join-link' });
+      roomMode = 'join'; typing = { field: 'code', value: '' };
+      say('Enter the room code.');
+      return;
     }
     if (act.t === 'mp-type-name') { typing = { field:'name', value: Net.name() }; return; }
     if (act.t === 'mp-type-code') { typing = { field:'code', value: typing ? typing.value : '' }; return; }
     if (act.t === 'mp-join-pick') {
-      roomMode = 'join'; netMsg = ''; typing = { field:'code', value:'' }; return;
+      if (!Net.name()) return askName('join');
+      roomMode = 'join'; netMsg = ''; typing = { field:'code', value:'' };
+      say('Enter the room code.'); return;
     }
     if (act.t === 'mp-host') {
       pendingRoom = '';
-      if (!Net.name()) { netMsg = 'NAME FIRST'; typing = { field:'name', value:'' }; return; }
+      if (!Net.name()) return askName('host');
       netMsg = 'MAKING A ROOM…';
       Net.createRoom().then(function (r) { enterRoom(r.code); })
                       .catch(function () { netMsg = 'COULD NOT REACH THE SERVER'; });
@@ -1283,8 +1318,7 @@
     if (act.t === 'mp-join-go') {
       var code = (typing && typing.value || '').toUpperCase();
       if (code.length !== 4) { netMsg = 'FOUR LETTERS'; return; }
-      if (!Net.name()) { netMsg = 'NAME FIRST'; roomMode = 'pick';
-                         typing = { field:'name', value:'' }; return; }
+      if (!Net.name()) return askName('join');
       netMsg = 'LOOKING…';
       Net.probeRoom(code).then(function (r) {
         if (!r.exists) { netMsg = 'NO ROOM ' + code; return; }
@@ -1294,7 +1328,7 @@
       return;
     }
     if (act.t === 'mp-join-link') {
-      if (!Net.name()) { netMsg = 'NAME FIRST'; typing = { field:'name', value:'' }; return; }
+      if (!Net.name()) return askName('link');
       var pc = pendingRoom; pendingRoom = ''; typing = null;
       enterRoom(pc); return;
     }
@@ -1312,7 +1346,10 @@
     if (act.t === 'back')  {
       if (screen === 'MODE') { toMenu(); return; }
       if (screen === 'ROOM') {
-        if (roomMode === 'join') { roomMode = 'pick'; typing = null; netMsg = ''; return; }
+        if (roomMode !== 'pick') {
+          roomMode = 'pick'; typing = null; netMsg = ''; afterName = '';
+          say('Host a game, or join one.'); return;
+        }
         screen = 'MODE'; typing = null; netMsg = ''; fit(); return;
       }
       if (screen === 'LOBBY') { leaveRoom(); screen = 'MODE'; fit(); return; }
@@ -1511,7 +1548,7 @@
        than doing whatever the screen behind would have done with it. */
     if (typing) {
       if (k === 'Enter') {
-        if (typing.field === 'name') { Net.name(typing.value.trim() || 'PLAYER'); typing = null; }
+        if (typing.field === 'name') { Net.name(typing.value.trim() || 'PLAYER'); dispatch({ t: 'mp-name-go' }); }
         else dispatch({ t: 'mp-join-go' });
         e.preventDefault(); return;
       }
