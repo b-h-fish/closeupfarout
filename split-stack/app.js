@@ -82,7 +82,8 @@
     var dpr = window.devicePixelRatio || 1;
     device = L.device(vw, vh, COARSE);
     if (screen === 'MENU' || screen === 'SETUP' ||
-        screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY') {
+        screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY' ||
+        screen === 'ONLINE') {
       scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
       uiSide = false;
     } else {
@@ -497,16 +498,86 @@
        deal being shuffled, not a decoration that begins again per screen. */
     drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
-    /* Matchmaking is not built. The button carries its own name and wears
-       the dim treatment every disabled control in the game wears — the state
-       is the frame and the ink, not a word appended to the label. */
-    var p = pal(), y1 = m.top + m.row1Y, bx = cx - (btnW >> 1);
-    fb.rect(bx, y1, btnW, 20, p.hudShadow);
-    fb.frame(bx, y1, btnW, 20, p.hudDim);
-    var ol = 'PLAY ONLINE';
-    fb.text(ol, bx + ((btnW - fb.textW(ol, 1)) >> 1), y1 + 7, p.hudDim);
+    /* Live now: it leads to a real screen where a name, an avatar and a
+       setting are chosen and kept. Only the match itself is unbuilt, and
+       that button says so where it sits. */
+    menuButton(m.top + m.row1Y, btnW, 'PLAY ONLINE', { t: 'mp-online' });
 
     menuButton(m.top + m.row2Y, btnW, 'PLAY WITH FRIENDS', { t: 'mp-friends' });
+  }
+
+  /* Placeholder avatars: the deck's own four suit emblems on card stock.
+     They cost no new artwork, they are unmistakably of this game, and when
+     real ones arrive only this list and drawAvatar have to change. */
+  var AVATARS = ['S', 'H', 'D', 'C'];
+
+  function drawAvatar(x, y, size, idx) {
+    var p = pal(), n = AVATARS.length;
+    var suit = AVATARS[((idx % n) + n) % n];
+    fb.rect(x, y, size, size, p.ink);
+    fb.rect(x + 1, y + 1, size - 2, size - 2, p.linen);
+    var big = BIG[suit], bw = big[0].length, bh = big.length;
+    var ink = (suit === 'H' || suit === 'D') ? p.red : p.black;
+    fb.blit(big, x + ((size - bw) >> 1), y + ((size - bh) >> 1), ink);
+  }
+
+  /* Everything a ranked game needs to know about you, on the panel every
+     other screen uses — avatar and arrows, name, setting, and the match
+     button. It fits the band as it stands: the content ends 36 units short
+     of it, so nothing here grows the box.
+
+     FIND A MATCH is drawn dim because matchmaking is not built. Everything
+     above it is real, and what it saves is real. */
+  function drawOnline() {
+    var m = menuGeom(), cx = W >> 1, p = pal();
+    panelFrame(m);
+    backArrow(m);
+    var btnW = Math.min(160, m.pw - 32);
+    var by = m.top + m.bandY;
+
+    // ── avatar, an arrow either side ──
+    var av = 30, ax = cx - (av >> 1), ay = by + 2, aw = 16;
+    drawAvatar(ax, ay, av, Net.avatar());
+    var n = AVATARS.length, cur = Net.avatar();
+    function avArrow(bx2, glyph, to) {
+      var hotA = mouse.x >= bx2 && mouse.x < bx2 + aw &&
+                 mouse.y >= ay + 6 && mouse.y < ay + 24;
+      fb.rect(bx2, ay + 6, aw, 18, hotA ? p.hudInk : p.hudShadow);
+      fb.frame(bx2, ay + 6, aw, 18, p.hudInk);
+      fb.text(glyph, bx2 + ((aw - 5) >> 1), ay + 12, hotA ? p.hudShadow : p.hudInk);
+      hit(bx2, ay + 6, aw, 18, { t: 'mp-avatar', i: to });
+    }
+    avArrow(ax - aw - 8, '<', (cur + n - 1) % n);
+    avArrow(ax + av + 8, '>', (cur + 1) % n);
+
+    // ── name ──
+    field(by + 40, btnW, 'TAP TO TYPE', Net.name(),
+          typing && typing.field === 'name', { t: 'mp-type-name' });
+    panelLine(by + 68, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+
+    // ── setting, the row the solo screen already uses ──
+    var rx = cx - (btnW >> 1), y1 = m.top + m.row1Y, sn = SCENES.length;
+    function sceneArrow(sx, glyph, to) {
+      var on2 = mouse.x >= sx && mouse.x < sx + 22 && mouse.y >= y1 && mouse.y < y1 + 20;
+      fb.rect(sx, y1, 22, 20, on2 ? p.hudInk : p.hudShadow);
+      fb.frame(sx, y1, 22, 20, p.hudInk);
+      fb.text(glyph, sx + 8, y1 + 7, on2 ? p.hudShadow : p.hudInk);
+      hit(sx, y1, 22, 20, { t: 'scene', i: to });
+    }
+    sceneArrow(rx, '<', (pickScene + sn - 1) % sn);
+    sceneArrow(rx + btnW - 22, '>', (pickScene + 1) % sn);
+    var nx = rx + 28, nw = btnW - 56;
+    fb.rect(nx, y1, nw, 20, p.hudShadow);
+    fb.frame(nx, y1, nw, 20, p.hudDim);
+    var nm2 = SCENES[pickScene].name.toUpperCase();
+    fb.text(nm2, nx + ((nw - fb.textW(nm2, 1)) >> 1), y1 + 7, p.hudInk);
+
+    // ── the one part that is not built ──
+    var y2 = m.top + m.row2Y, bx3 = cx - (btnW >> 1);
+    fb.rect(bx3, y2, btnW, 20, p.hudShadow);
+    fb.frame(bx3, y2, btnW, 20, p.hudDim);
+    var fl2 = 'FIND A MATCH';
+    fb.text(fl2, bx3 + ((btnW - fb.textW(fl2, 1)) >> 1), y2 + 7, p.hudDim);
   }
 
   function drawRoom() {
@@ -1300,6 +1371,11 @@
       say('Enter the room code.');
       return;
     }
+    if (act.t === 'mp-online') {
+      screen = 'ONLINE'; netMsg = ''; typing = null;
+      fit(); say('Choose a name, an avatar and a setting.'); return;
+    }
+    if (act.t === 'mp-avatar') { Net.avatar(act.i); return; }
     if (act.t === 'mp-type-name') { typing = { field:'name', value: Net.name() }; return; }
     if (act.t === 'mp-type-code') { typing = { field:'code', value: typing ? typing.value : '' }; return; }
     if (act.t === 'mp-join-pick') {
@@ -1345,6 +1421,7 @@
 
     if (act.t === 'back')  {
       if (screen === 'MODE') { toMenu(); return; }
+      if (screen === 'ONLINE') { screen = 'MODE'; typing = null; netMsg = ''; fit(); return; }
       if (screen === 'ROOM') {
         if (roomMode !== 'pick') {
           roomMode = 'pick'; typing = null; netMsg = ''; afterName = '';
@@ -1548,7 +1625,14 @@
        than doing whatever the screen behind would have done with it. */
     if (typing) {
       if (k === 'Enter') {
-        if (typing.field === 'name') { Net.name(typing.value.trim() || 'PLAYER'); dispatch({ t: 'mp-name-go' }); }
+        if (typing.field === 'name') {
+          Net.name(typing.value.trim() || 'PLAYER');
+          /* On the online screen the name is one field among several, so
+             committing it stays put; in the room flow it is a step on the
+             way somewhere, so it continues. */
+          if (screen === 'ONLINE') typing = null;
+          else dispatch({ t: 'mp-name-go' });
+        }
         else dispatch({ t: 'mp-join-go' });
         e.preventDefault(); return;
       }
@@ -1571,7 +1655,8 @@
       return;
     }
 
-    if (screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY') {
+    if (screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY' ||
+        screen === 'ONLINE') {
       if (k === 'Escape') { dispatch({ t:'back' }); e.preventDefault(); }
       return;
     }
@@ -1645,6 +1730,7 @@
     else if (screen === 'SETUP') drawSetup();
     else if (screen === 'MODE') drawMode();
     else if (screen === 'ROOM') drawRoom();
+    else if (screen === 'ONLINE') drawOnline();
     else if (screen === 'LOBBY') drawLobby();
     else { drawGame(); if (confirmMenu) drawConfirm(); }
 

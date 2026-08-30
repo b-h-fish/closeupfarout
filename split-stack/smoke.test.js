@@ -107,9 +107,14 @@ const bandY = markH + 16, labelY = bandY + GWIDL + 4, row1Y = labelY + 7 + 5;
 const row2Y = row1Y + 20 + 14, blockH = row2Y + 20;
 const top = Math.max(8, Math.round((H - blockH) / 2));
 
-/* row2, not row1: the mode screen's first button is the unbuilt matchmaking
-   one and takes no tap. Aiming at it left this walk stopping on MODE while
-   every later check still passed, which is the worst kind of green. */
+/* row1 is PLAY ONLINE — the profile screen. Visit it, then walk back and
+   take row2 for the room flow. */
+visit('ONLINE profile', () => tapLogical(W >> 1, top + row1Y + 10));
+ok('PLAY ONLINE reaches the profile', /avatar/i.test(els.say.textContent),
+   'say: ' + els.say.textContent);
+visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 30, top + bandY + 14));
+visit('back to MODE', () => key('Escape'));
+
 visit('ROOM, host or join', () => tapLogical(W >> 1, top + row2Y + 10));
 /* The live region names the screen, which is the only handle on it from out
    here — without this the walk could stop on MODE and every later check

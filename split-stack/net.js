@@ -19,6 +19,7 @@ var Net = (function () {
      what lets a dropped connection come back to the same seat — it is not a
      login and it is not sent anywhere but the room. */
   var KEY_ID = 'splitstack.id', KEY_NAME = 'splitstack.name';
+  var KEY_AVATAR = 'splitstack.avatar';
 
   function store(k, v) {
     try { if (v === undefined) return localStorage.getItem(k);
@@ -36,6 +37,13 @@ var Net = (function () {
   function myName(set) {
     if (set !== undefined) return store(KEY_NAME, set);
     return store(KEY_NAME) || '';
+  }
+  /* Which avatar, as an index. Stored beside the name because it is the same
+     kind of thing — what the other players see, chosen once and remembered. */
+  function myAvatar(set) {
+    if (set !== undefined) return store(KEY_AVATAR, String(set));
+    var v = parseInt(store(KEY_AVATAR), 10);
+    return isNaN(v) ? 0 : v;
   }
 
   function post(path) {
@@ -116,7 +124,7 @@ var Net = (function () {
 
   return {
     origin: ORIGIN,
-    id: myId, name: myName,
+    id: myId, name: myName, avatar: myAvatar,
     createRoom: createRoom, probeRoom: probeRoom, join: join,
     linkFor: linkFor, codeFromUrl: codeFromUrl
   };
