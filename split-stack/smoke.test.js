@@ -74,6 +74,16 @@ for (const f of ['pixel.js', 'layout.js', 'scenes.js', 'avatars.js',
 }
 ok('every script loads', true);
 ok('the avatar set is non-empty', avatarCount() > 0, 'count ' + avatarCount());
+/* The set has invariants the picker quietly depends on: a common grid, a
+   label that fits under the tile, and no character the palette cannot draw.
+   A sprite that breaks one of these draws as a hole rather than an error. */
+ok('every sprite shares the grid',
+   AVATARS.every(a => a.art.length === 16 && a.art.every(r => r.length === 20)));
+ok('every label fits the tile', AVATARS.every(a => a.name.length <= 5),
+   AVATARS.filter(a => a.name.length > 5).map(a => a.name).join(','));
+ok('every character is in the palette',
+   AVATARS.every(a => a.art.every(r => r.split('').every(c => c === '.' || AV[c]))));
+ok('the default is the first of the set', avatarName(0) === AVATARS[0].name);
 
 function draw() { const fn = rafs.pop(); rafs.length = 0; fn(16); }
 function key(k) { (winH.keydown || []).forEach(fn => fn({ key: k, preventDefault() {} })); }

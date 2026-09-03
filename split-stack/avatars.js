@@ -31,6 +31,29 @@ var AV = {
 
 var AVATARS = [
   {
+    name: 'FISH',
+    /* The default nobody chose, so it wants to be the friendliest of the set.
+       Round body, forked tail, one eye well forward. */
+    art: [
+      '....................',
+      '.........KKK........',
+      '........KOOOK.......',
+      '......KKOOOOOKK.....',
+      '....KKOOOOOOOOOKK.KK',
+      '..KKOOOOOOOOOOOOOKOK',
+      '.KOWOOOOOOOOOOOOOOOK',
+      '.KOOOOOOOOOOOOOOOOOK',
+      '.KKOOOOOOOOOOOOOOKOK',
+      '...KKOOOOOOOOOOKK.KK',
+      '.....KKOOOOOOKK.....',
+      '.......KKOOKK.......',
+      '.........KK.........',
+      '....................',
+      '....................',
+      '....................'
+    ]
+  },
+  {
     name: 'TANK',
     /* Barrel, turret, tracks. The long gun reaching past the hull is the
        one line that says tank rather than truck. */
@@ -135,6 +158,52 @@ var AVATARS = [
       '..KKKKKKK.KKKKKKK...',
       '....................',
       '....................',
+      '....................',
+      '....................'
+    ]
+  },
+  {
+    name: 'MUG',
+    /* Handle on the right and a dark surface at the top — without the coffee
+       showing it is just a cylinder. */
+    art: [
+      '....................',
+      '.........G..........',
+      '........G...........',
+      '....................',
+      '....KKKKKKKKKK......',
+      '....KNNNNNNNNKKKK...',
+      '....KWWWWWWWWK..KK..',
+      '....KWWWWWWWWK...K..',
+      '....KWWWWWWWWK...K..',
+      '....KWWWWWWWWK..KK..',
+      '....KWWWWWWWWKKKK...',
+      '....KWWWWWWWWK......',
+      '....KKKKKKKKKK......',
+      '....................',
+      '....................',
+      '....................'
+    ]
+  },
+  {
+    name: 'RING',
+    /* Seen face on, so the band reads as a ring rather than as a bracelet,
+       with the stone breaking the circle at the top. */
+    art: [
+      '....................',
+      '.........KK.........',
+      '........KCCK........',
+      '.......KCWCCK.......',
+      '.......KCCCCK.......',
+      '......KKYYYYKK......',
+      '.....KYYKKKKYYK.....',
+      '....KYYK....KYYK....',
+      '....KYK......KYK....',
+      '....KYK......KYK....',
+      '....KYYK....KYYK....',
+      '.....KYYKKKKYYK.....',
+      '......KKYYYYKK......',
+      '........KKKK........',
       '....................',
       '....................'
     ]
