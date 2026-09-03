@@ -114,11 +114,18 @@ var Net = (function () {
      socket out. The queue hands back a room code and closes — the caller
      then joins that room like any other. */
   function queue(name, on) {
-    var ws = null, closed = false;
+    var ws = null, closed = false, beat = 0;
     var self = {};
     ws = new WebSocket(ORIGIN.replace(/^http/, 'ws') + '/queue');
     ws.onopen = function () {
       ws.send(JSON.stringify({ t: 'JOIN', id: myId(), name: name }));
+      /* A waiting client sends nothing for minutes at a time, so the queue
+         cannot tell a patient player from a closed laptop. Production had
+         ghosts in the line matching people into empty rooms; this is the
+         proof of life that lets the server put them out. */
+      beat = setInterval(function () {
+        try { ws.send(JSON.stringify({ t: 'PING' })); } catch (e) {}
+      }, 10000);
       if (on.open) on.open();
     };
     ws.onmessage = function (ev) {
@@ -127,6 +134,7 @@ var Net = (function () {
       if (on[m.t]) on[m.t](m);
     };
     ws.onclose = function () {
+      if (beat) { clearInterval(beat); beat = 0; }
       /* The queue closes the socket itself once it has matched you, so a
          close is only worth reporting when no match arrived. */
       if (!closed && on.drop) on.drop();
@@ -135,10 +143,14 @@ var Net = (function () {
 
     self.leave = function () {
       closed = true;
+      if (beat) { clearInterval(beat); beat = 0; }
       try { ws.send(JSON.stringify({ t: 'LEAVE' })); } catch (e) {}
       try { ws.close(); } catch (e) {}
     };
-    self.matched = function () { closed = true; };
+    self.matched = function () {
+      closed = true;
+      if (beat) { clearInterval(beat); beat = 0; }
+    };
     return self;
   }
 

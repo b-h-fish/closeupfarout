@@ -13,6 +13,13 @@ import { WebSocket } from 'ws';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const WSBASE = BASE.replace(/^http/, 'ws');
+/* Patience is short under `wrangler dev --var QUEUE_MS:1500` and is the
+   settled 25s in production, so every wait here is sized from it. Hard-coded
+   six-second waits passed locally and failed against the deployed Worker for
+   no reason but the clock, which is the sort of red that teaches you to
+   ignore red. */
+const PATIENCE = Number(process.env.QUEUE_MS || 1500);
+const SLACK = 6000;
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra) {
@@ -72,17 +79,20 @@ const main = async () => {
   // ── two wait out the clock and are matched anyway ──
   const a = new Waiter('a' + Date.now(), 'ALPHA');
   const b = new Waiter('b' + Date.now(), 'BETA');
-  await a.join(); await sleep(60);
+  /* Waited for rather than slept past: a fixed 60ms is plenty on localhost
+     and not always enough over the internet, and a test that fails on the
+     round trip teaches you to ignore its own red. */
+  await a.join();
+  const waited = await waitFor(() => !!a.last('WAITING'), 4000);
   await b.join();
 
-  const waited = a.last('WAITING');
-  ok('a waiter is told the queue depth', !!waited, JSON.stringify(a.msgs.slice(-1)));
+  ok('a waiter is told the queue depth', waited, JSON.stringify(a.msgs.slice(-1)));
   ok('two do not match on the spot', !a.match && !b.match);
 
   /* Guarded, because a matcher that never matches should fail this suite
      with a message rather than crash it with a TypeError three lines later
      and take every remaining check down with it. */
-  const paired = await waitFor(() => a.match && b.match, 6000);
+  const paired = await waitFor(() => a.match && b.match, PATIENCE + SLACK);
   ok('two are matched once the wait is up', paired);
   ok('the pair share a room', paired && a.match.code === b.match.code);
   ok('the pair is reported as two handed', paired && a.match.players === 2);
@@ -107,7 +117,7 @@ const main = async () => {
      'waiting ' + depth.waiting);
 
   // ── and one player alone is never matched ──
-  await sleep(2200);
+  await sleep(PATIENCE + 700);
   ok('one player alone is never matched', !d2.match);
   d1.close(); d2.close();
 

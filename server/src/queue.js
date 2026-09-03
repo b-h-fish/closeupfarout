@@ -15,6 +15,15 @@ import { claimRoom } from './code.js';
 const FULL = 4;          // the table this game is designed around
 const MIN = 2;           // fewer than this is not a game
 const PATIENCE_MS = 25000;
+/* A waiter has to keep saying it is there. A socket whose client vanished —
+   tab closed hard, laptop shut, network gone — stays in getWebSockets() until
+   the runtime notices, and the local emulator reaps far faster than production
+   does. Production had a ghost in the line matching live players into rooms
+   with nobody in them. readyState catches the closing ones; only a heartbeat
+   catches a connection that is dead but does not know it. */
+const STALE_MS = 40000;  // four missed beats at the client's ten seconds
+const SWEEP_MS = 15000;
+const OPEN = 1;          // WebSocket.OPEN, spelled out for the DO runtime
 
 export class Queue {
   constructor(ctx, env) {
@@ -41,10 +50,27 @@ export class Queue {
   /* Everyone currently waiting, oldest first — the attachment is the whole
      of a waiter's state, so hibernation costs nothing to recover from. */
   seated() {
+    const now = Date.now();
     return this.ctx.getWebSockets()
       .map(ws => ({ ws, a: ws.deserializeAttachment() }))
-      .filter(x => x.a && x.a.since)
+      .filter(x => x.a && x.a.since && x.ws.readyState === OPEN &&
+                   now - (x.a.seen || x.a.since) < STALE_MS)
       .sort((a, b) => a.a.since - b.a.since);
+  }
+
+  /* Anyone who has stopped answering is put out of the line for good. The
+     attachment goes first for the same reason it does in match(): close() is
+     not immediate, and a socket that is merely closing still comes back from
+     getWebSockets(). */
+  sweep() {
+    const now = Date.now();
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment();
+      if (!a || !a.since) continue;
+      if (ws.readyState === OPEN && now - (a.seen || a.since) < STALE_MS) continue;
+      try { ws.serializeAttachment(null); } catch (e) {}
+      try { ws.close(1001, 'stale'); } catch (e) {}
+    }
   }
 
   send(ws, msg) {
@@ -71,26 +97,41 @@ export class Queue {
       for (const x of this.seated()) {
         if (x.a.id === id && x.ws !== ws) { try { x.ws.close(); } catch (e) {} }
       }
-      ws.serializeAttachment({ id, name, since: Date.now() });
+      ws.serializeAttachment({ id, name, since: Date.now(), seen: Date.now() });
       await this.settle();
       return;
     }
 
-    if (m.t === 'LEAVE') { try { ws.close(); } catch (e) {} return; }
-    if (m.t === 'PING')  return this.send(ws, { t: 'PONG' });
+    if (m.t === 'LEAVE') {
+      try { ws.serializeAttachment(null); } catch (e) {}
+      try { ws.close(1000, 'left'); } catch (e) {}
+      await this.settle();
+      return;
+    }
+    /* Any message is proof of life, but PING is the one a waiting client can
+       send without asking for anything. */
+    const a = ws.deserializeAttachment();
+    if (a && a.since) { a.seen = Date.now(); try { ws.serializeAttachment(a); } catch (e) {} }
+    if (m.t === 'PING') return this.send(ws, { t: 'PONG' });
   }
 
   /* Match if we can, and otherwise make sure something will wake us when the
      oldest waiter has waited long enough. */
   async settle() {
+    this.sweep();
     const q = this.seated();
     if (q.length >= FULL) return this.match(q.slice(0, FULL));
 
+    let due = 0;
     if (q.length >= MIN) {
-      const oldest = q[0].a.since;
-      const due = oldest + this.patience;
+      due = q[0].a.since + this.patience;
       if (Date.now() >= due) return this.match(q.slice(0, FULL));
-      await this.ctx.storage.setAlarm(due);
+    }
+    /* Something has to keep waking us while anyone is waiting, or a line of
+       one is never swept and the ghost outlives everybody. */
+    if (q.length) {
+      const sweepAt = Date.now() + SWEEP_MS;
+      await this.ctx.storage.setAlarm(due ? Math.min(due, sweepAt) : sweepAt);
     } else {
       await this.ctx.storage.deleteAlarm();
     }
@@ -98,9 +139,12 @@ export class Queue {
   }
 
   async alarm() {
+    this.sweep();
     const q = this.seated();
-    if (q.length >= MIN) return this.match(q.slice(0, FULL));
-    this.tellEveryone();
+    if (q.length >= MIN && Date.now() >= q[0].a.since + this.patience) {
+      return this.match(q.slice(0, FULL));
+    }
+    await this.settle();
   }
 
   /* Hand a group a room of their own. The room is claimed with the number of
