@@ -20,9 +20,10 @@
   var DEAL_MS = 380, HOLD_MS = 740, FLIP_MS = 380;
 
   /* ── the points, on the pile that earned them ──
-     One size throughout: it slides up as it arrives, holds for a second, and
-     goes in a hurry. No settle from a larger size — the arrival is the whole
-     of the movement.
+     One size, one place. It appears where it stays, holds for a second, and
+     goes in a hurry. It used to travel a little on arrival, which read as a
+     drift rather than as an arrival — a figure that moves after you have
+     started reading it makes you follow it instead.
 
      Colour carries which call it was, so the four are told apart before the
      digit is read. Fixed hex rather than the setting's palette, for the same
@@ -31,9 +32,12 @@
      stock with no plate behind them — an offset drop shadow leaves two sides
      of every stroke touching the card, and on a court card those sides
      disappear. */
-  var POP_K = 3, POP_LIFT = 12;
-  var POP_SLIDE = 220, POP_HOLD = 1000, POP_FADE = 140;
-  var POP_LIFE = POP_SLIDE + POP_HOLD + POP_FADE;
+  /* Set a little above the middle of the pile: centred exactly, the figure
+     sits on the pip column of a numeric card and the outline has nothing to
+     stand against. */
+  var POP_K = 3, POP_UP = 12;
+  var POP_HOLD = 1000, POP_FADE = 140;
+  var POP_LIFE = POP_HOLD + POP_FADE;
   var POP_INK = {
     PLACE: hex('#4da6ff'),   // a Hi or a Lo
     SUIT:  hex('#ffd23c'),
@@ -86,12 +90,9 @@
 
       var b = pileBox(o.pile);
       var str = (o.v < 0 ? '-' : '+') + Math.abs(o.v);
-      var lift = Math.round(POP_LIFT * Math.min(1, age / POP_SLIDE));
       var x = b.x + ((b.w - fb.textW(str, POP_K)) >> 1);
-      var y = b.y + (b.h >> 1) - ((7 * POP_K) >> 1) - lift;
-      var keep = age < POP_SLIDE + POP_HOLD
-        ? 1
-        : 1 - (age - POP_SLIDE - POP_HOLD) / POP_FADE;
+      var y = b.y + (b.h >> 1) - ((7 * POP_K) >> 1) - POP_UP;
+      var keep = age < POP_HOLD ? 1 : 1 - (age - POP_HOLD) / POP_FADE;
 
       var ink = POP_INK[o.kind] || POP_INK.PLACE;
       for (var dy = -1; dy <= 1; dy++) {
