@@ -33,26 +33,26 @@ var AV = {
 var AVATARS = [
   {
     name: 'FISH',
-    /* The default nobody chose, so it wants to be the friendliest of the set.
-       What makes it read as a fish is the taper: a wide body narrowing to a
-       thin peduncle, and only then the tail flaring open. Drawn as one even
-       lozenge it looked like a leaf. */
+    /* A mahi mahi: blue along the back running into green, gold beneath. The
+       blunt forehead and the dorsal fin reaching most of the length are what
+       separate it from a generic fish — and the taper into a thin peduncle
+       before the tail flares is what stops it reading as a leaf. */
     art: [
       '....................',
-      '......KKKK..........',
-      '.....KOOOOK.........',
-      '...KKOOOOOOKK....KKK',
-      '..KOOOOOOOOOOK..KOOK',
-      '.KOOOOOOOOOOOOK.KOOK',
-      '.KOWOOOOOOOOOOKKOOOK',
-      'KOOKOOOOOOOOOOOOOKK.',
-      'KOOOOOOOOOOOOOOOOKK.',
-      '.KEEEEEEEEEEEEKKOOOK',
-      '.KEEKKEEEEEEEEK.KOOK',
-      '..KEEEEEEEEEEK..KOOK',
-      '...KKEEEEEEKK....KKK',
-      '.....KKEEKK.........',
-      '.......KK...........',
+      '....KKKKKKKK........',
+      '...KCCCCCCCCKK......',
+      '..KCCCCCCCCCCKK.KKKK',
+      '.KCCCCCCCCCCCCK.KCCK',
+      '.KCWCCCCCCCCCCK.KCCK',
+      'KTTKTTTTTTTTTTTKKCCK',
+      'KTTTTTTTTTTTTTTTCCK.',
+      'KTTTTTTTTTTTTTTKKCCK',
+      '.KYYYYYYYYYYYYK.KCCK',
+      '.KYYKKYYYYYYYYK.KCCK',
+      '..KYYYYYYYYYYKK.KKKK',
+      '...KKYYYYYYYKK......',
+      '.....KKYYYKK........',
+      '.......KKK..........',
       '....................'
     ]
   },
