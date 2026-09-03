@@ -13,8 +13,12 @@
 import { claimRoom } from './code.js';
 
 const FULL = 4;          // the table this game is designed around
-const MIN = 2;           // fewer than this is not a game
-const PATIENCE_MS = 25000;
+/* No longer a matching threshold — patience alone decides that, and one
+   player is enough. It is what a waiting client is told it is waiting for. */
+const MIN = 2;
+/* Thirty seconds is the whole of the promise: wait that long and you get a
+   game, whoever is or is not about. */
+const PATIENCE_MS = 30000;
 /* A waiter has to keep saying it is there. A socket whose client vanished —
    tab closed hard, laptop shut, network gone — stays in getWebSockets() until
    the runtime notices, and the local emulator reaps far faster than production
@@ -123,9 +127,12 @@ export class Queue {
     if (q.length >= FULL) return this.match(q.slice(0, FULL));
 
     let due = 0;
-    if (q.length >= MIN) {
+    if (q.length) {
+      /* One player is enough to start the clock now. Waiting for a second
+         human before the timer even runs is how somebody sits alone at four
+         in the morning watching a wheel spin: the house fills the rest. */
       due = q[0].a.since + this.patience;
-      if (Date.now() >= due) return this.match(q.slice(0, FULL));
+      if (Date.now() >= due) return this.match(q.slice(0, FULL), true);
     }
     /* Something has to keep waking us while anyone is waiting, or a line of
        one is never swept and the ghost outlives everybody. */
@@ -141,17 +148,20 @@ export class Queue {
   async alarm() {
     this.sweep();
     const q = this.seated();
-    if (q.length >= MIN && Date.now() >= q[0].a.since + this.patience) {
-      return this.match(q.slice(0, FULL));
+    if (q.length && Date.now() >= q[0].a.since + this.patience) {
+      return this.match(q.slice(0, FULL), true);
     }
     await this.settle();
   }
 
   /* Hand a group a room of their own. The room is claimed with the number of
-     players it should expect, because a matched game has nobody to press
-     START — it begins when the last of them arrives. */
-  async match(group) {
-    const code = await claimRoom(this.env, group.length);
+     people it should expect, because a matched game has nobody to press
+     START — it begins when the last of them arrives, house included. */
+  async match(group, fill) {
+    /* Only a table that ran out of patience is filled. A full four never is,
+       and neither is anyone who still has time on the clock. */
+    const bots = fill ? Math.max(0, FULL - group.length) : 0;
+    const code = await claimRoom(this.env, group.length, bots);
     if (!code) {
       for (const x of group) this.send(x.ws, { t: 'ERR', msg: 'no room could be made' });
       return;
@@ -163,7 +173,7 @@ export class Queue {
          ran next — and got matched a second time, into a second room, over
          and over. Clearing the attachment is what actually removes them. */
       try { x.ws.serializeAttachment(null); } catch (e) {}
-      this.send(x.ws, { t: 'MATCH', code, players: group.length });
+      this.send(x.ws, { t: 'MATCH', code, players: group.length + bots });
       try { x.ws.close(1000, 'matched'); } catch (e) {}
     }
     await this.settle();

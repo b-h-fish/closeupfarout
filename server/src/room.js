@@ -16,6 +16,7 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 import HiLo from '../../split-stack/game.js';
+import { botTurn, botDelay, botNames, botId } from './bots.js';
 
 const MAX_SEATS = 4;
 const TIMEOUTS_TO_FORFEIT = 3;
@@ -70,6 +71,11 @@ export class Room {
            they arrive — there is no host in a matched game to press START,
            and asking four strangers to elect one would be absurd. */
         auto: parseInt(url.searchParams.get('auto'), 10) || 0,
+        /* How many seats the house fills when the people have arrived. Kept
+           in meta rather than inferred at start time so a game that was
+           mostly bots stays identifiable after the fact — leaderboards will
+           want to decline it. */
+        bots: parseInt(url.searchParams.get('bots'), 10) || 0,
         hostId: null, started: false, over: false,
         seed: 0, cols: 4, rows: 4, players: 0,
         turnStartedAt: 0, deadline: 0, timeouts: {}
@@ -113,10 +119,16 @@ export class Room {
     }
   }
 
+  /* No ids on the wire. A seat's id is the token that claims it back after a
+     dropped connection, and roster() goes to everybody in the room — so
+     broadcasting them handed every player the means to take somebody else's
+     seat through onHello. Nothing in the client ever read the field. It also
+     spelled out which seats were the house, which is the one thing the house
+     is not supposed to say. */
   roster() {
     return this.seats.map((s, i) => ({
-      seat: i, name: s.name, id: s.id,
-      connected: this.ctx.getWebSockets().some(w => this.seatOf(w) === i),
+      seat: i, name: s.name,
+      connected: !!s.bot || this.ctx.getWebSockets().some(w => this.seatOf(w) === i),
       host: s.id === this.meta.hostId
     }));
   }
@@ -193,6 +205,17 @@ export class Room {
      room filled up. */
   async begin() {
     const m = this.meta;
+    /* The house sits down last, so it fills exactly the seats nobody took
+       and takes a handle nobody at this table is already using. */
+    if (m.bots > 0) {
+      const names = botNames(m.bots, this.seats.map(s => s.name));
+      for (let i = 0; i < names.length; i++) {
+        /* Opaque, and deliberately shaped like anyone else's. The id no
+           longer leaves the server, but a seat token that spells out what it
+           is would be one echo away from undoing the disguise. */
+        this.seats.push({ id: botId(), name: names[i], bot: true });
+      }
+    }
     m.started = true;
     m.players = this.seats.length;
     m.seed = (Math.random() * 0x7fffffff) | 0;
@@ -207,6 +230,13 @@ export class Room {
       t: 'BEGIN', seed: m.seed, cols: m.cols, rows: m.rows,
       players: m.players, seats: this.roster()
     });
+    /* Seat zero can be a bot, so the opening turn may be theirs. */
+    await this.armTurn(true);
+  }
+
+  isBot(seat) {
+    const s = this.seats[seat];
+    return !!(s && s.bot);
   }
 
   async onAct(ws, seat, action) {
@@ -251,18 +281,37 @@ export class Room {
       return;
     }
 
-    /* The clock belongs to the turn, not to the action. Restarting it on
-       every accepted action let a player hold the board indefinitely by
-       picking one pile and then another — selecting is part of your turn,
-       not a fresh one. It restarts only when the turn actually moves. */
     const moved = turnBefore === undefined || g.turn !== turnBefore;
-    if (moved || !m.deadline) {
-      m.deadline = Date.now() + this.turnMs;
-      await this.ctx.storage.setAlarm(m.deadline);
-    }
+    await this.armTurn(moved);
     await this.save();
     if (moved) {
       this.broadcast({ t: 'TURN', turn: g.turn, msLeft: m.deadline - Date.now() });
+    }
+  }
+
+  /* One place decides what the clock is doing, so a turn taken by a person
+     and a turn taken by the house cannot drift apart.
+
+     The clock belongs to the turn, not to the action. Restarting it on every
+     accepted action let a player hold the board indefinitely by picking one
+     pile and then another — selecting is part of your turn, not a fresh one.
+     It restarts only when the turn actually moves.
+
+     A bot gets a think time in place of a deadline. It cannot run out of
+     time, and the pause is most of what stops it reading as software: an
+     opponent who answers in forty milliseconds is not one. `moved` is beside
+     the point for them, because a made Split leaves the turn where it is and
+     the revive still has to be thought about. */
+  async armTurn(moved) {
+    const m = this.meta, g = this.game;
+    if (this.isBot(g.turn)) {
+      m.deadline = 0;
+      await this.ctx.storage.setAlarm(Date.now() + botDelay());
+      return;
+    }
+    if (moved || !m.deadline) {
+      m.deadline = Date.now() + this.turnMs;
+      await this.ctx.storage.setAlarm(m.deadline);
     }
   }
 
@@ -273,6 +322,20 @@ export class Room {
     await this.load();
     const m = this.meta, g = this.game;
     if (!m || !m.started || m.over || !g) return;
+
+    /* The house plays through the same door everyone else does: actions the
+       engine has to accept, committed and fanned out identically. A bot that
+       could reach past legal() would be a second set of rules. */
+    if (this.isBot(g.turn)) {
+      const was = g.turn;
+      let moves = botTurn(g, was);
+      if (!moves.length) moves = this.forcedMove(g, was);
+      if (!moves.length) return;                  // nothing legal; let it settle
+      for (const a of moves) this.commit(a);
+      await this.afterAction(was);
+      return;
+    }
+
     if (Date.now() < m.deadline - 250) {          // a rescheduled alarm
       await this.ctx.storage.setAlarm(m.deadline);
       return;

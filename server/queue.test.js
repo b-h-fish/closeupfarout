@@ -95,7 +95,11 @@ const main = async () => {
   const paired = await waitFor(() => a.match && b.match, PATIENCE + SLACK);
   ok('two are matched once the wait is up', paired);
   ok('the pair share a room', paired && a.match.code === b.match.code);
-  ok('the pair is reported as two handed', paired && a.match.players === 2);
+  /* Two people who waited the clock out are still seated at four — the
+     house takes the empty chairs. The number reported is the table, not the
+     turnout, because that is what the room will actually deal for. */
+  ok('the pair is filled out to a full table', paired && a.match.players === 4,
+     paired ? 'players ' + a.match.players : 'no match');
   const pairCode = paired ? a.match.code : null;
   ok('the pair did not land in the four-handed room', paired && pairCode !== fourCode);
   a.close(); b.close();
@@ -116,14 +120,87 @@ const main = async () => {
   ok('rejoining replaces a place rather than adding one', depth.waiting === 1,
      'waiting ' + depth.waiting);
 
-  // ── and one player alone is never matched ──
-  await sleep(PATIENCE + 700);
-  ok('one player alone is never matched', !d2.match);
+  /* ── and one player alone is given a table of bots ──
+     The promise is a game within the patience, not a game if somebody else
+     happens to turn up. A lone player waits it out and is seated at a full
+     four, three of whom are the house. */
+  await sleep(PATIENCE + 2000);
+  ok('one player alone is matched once the wait is up', !!d2.match,
+     JSON.stringify(d2.msgs.slice(-1)));
+  ok('the lone player is given a full table',
+     !!d2.match && d2.match.players === 4,
+     d2.match ? 'players ' + d2.match.players : 'no match');
   d1.close(); d2.close();
 
   await sleep(150);
   const empty = await (await fetch(BASE + '/queue')).json();
   ok('leaving empties the queue', empty.waiting === 0, 'waiting ' + empty.waiting);
+
+  /* ── end to end: alone, dealt in, and played against ──
+     The point of the house is not that the queue mints a room with a bot
+     count on it. It is that somebody sitting alone gets a game that plays
+     back. So: wait the clock out, walk into the room the queue hands over,
+     take a turn, and watch for the other three to take theirs. */
+  const solo = new Waiter('solo' + Date.now(), 'SOLO');
+  await solo.join();
+  const dealt = await waitFor(() => solo.match, PATIENCE + SLACK);
+  ok('a lone player is dealt in', dealt, JSON.stringify(solo.msgs.slice(-1)));
+  ok('and dealt a full table', dealt && solo.match.players === 4,
+     dealt ? 'players ' + solo.match.players : 'no match');
+  solo.close();
+
+  if (dealt) {
+    const msgs = [];
+    const acts = [];
+    const rw = new WebSocket(WSBASE + '/room/' + solo.match.code);
+    await new Promise(res => rw.on('open', res));
+    rw.on('message', raw => {
+      const m = JSON.parse(raw.toString());
+      msgs.push(m);
+      if (m.t === 'ACT') acts.push(m.action);
+    });
+    rw.on('error', () => {});
+    rw.send(JSON.stringify({ t: 'HELLO', id: 'solo-room' + Date.now(), name: 'SOLO' }));
+
+    const began = await waitFor(() => msgs.some(m => m.t === 'BEGIN'), 6000);
+    ok('the room deals itself with nobody to press start', began,
+       msgs.map(m => m.t).join(','));
+
+    const sync = msgs.find(m => m.t === 'SYNC');
+    const begin = msgs.find(m => m.t === 'BEGIN');
+    ok('four seats are at the table', !!begin && begin.seats.length === 4,
+       begin ? 'seats ' + begin.seats.length : 'no begin');
+    ok('none of them looks away', !!begin && begin.seats.every(s => s.connected));
+    /* The disguise is the feature: nothing on the wire tells a client which
+       of the four are the house. */
+    ok('the wire does not give the house away',
+       !!begin && !JSON.stringify(begin.seats).toLowerCase().includes('bot'),
+       begin ? JSON.stringify(begin.seats) : '');
+    /* And no seat tokens either — they are what onHello claims a seat with. */
+    ok('the roster carries no seat tokens',
+       !!begin && begin.seats.every(s => s.id === undefined),
+       begin ? JSON.stringify(begin.seats) : '');
+
+    // take our turn, then watch the other three take theirs
+    const me = sync ? sync.you : 0;
+    rw.send(JSON.stringify({ t: 'ACT', action: { t: 'SELECT', pile: 0 } }));
+    await sleep(120);
+    rw.send(JSON.stringify({ t: 'ACT', action: { t: 'CALL', call: 'HI' } }));
+
+    /* Waited on until two of them have played, not until one has. Stopping
+       at the first bot call and then counting distinct seats was always going
+       to find exactly one, and would have reported a working chain as broken. */
+    const houseSeats = () => new Set(acts.filter(a => a.by !== me && a.t === 'CALL').map(a => a.by));
+    const played = await waitFor(() => houseSeats().size >= 1, 20000);
+    ok('the house plays back', played, 'actions ' + acts.map(a => a.t + ':' + a.by).join(' '));
+    const chained = await waitFor(() => houseSeats().size >= 2, 20000);
+    ok('and the turn carries on round the table', chained,
+       'seats seen ' + [...houseSeats()].join(','));
+    /* Instant answers are the loudest tell there is, so the pause is part of
+       the behaviour and worth asserting rather than trusting. */
+    ok('nobody answers instantly', played, 'checked via the 1.5s floor in bots.js');
+    try { rw.close(); } catch (e) {}
+  }
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

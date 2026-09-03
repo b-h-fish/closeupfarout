@@ -13,13 +13,15 @@ export function makeCode() {
 }
 
 /* Mint a code nobody is using and claim the room behind it. `auto`, when
-   given, is the number of players the room should start itself at — a
-   matched game has no host to press START. */
-export async function claimRoom(env, auto) {
+   given, is the number of *people* the room should start itself at — a
+   matched game has no host to press START. `bots` is how many seats the
+   house fills once they have all arrived. */
+export async function claimRoom(env, auto, bots) {
   for (let tries = 0; tries < 8; tries++) {
     const code = makeCode();
     const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
-    const url = 'https://room/claim?code=' + code + (auto ? '&auto=' + auto : '');
+    const url = 'https://room/claim?code=' + code +
+                (auto ? '&auto=' + auto : '') + (bots ? '&bots=' + bots : '');
     const res = await stub.fetch(new Request(url, { method: 'POST' }));
     if (res.ok) return code;
   }
