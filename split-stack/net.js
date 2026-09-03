@@ -110,6 +110,38 @@ var Net = (function () {
     return self;
   }
 
+  /* Stand in the matchmaking queue. Same shape as join(): callbacks in, no
+     socket out. The queue hands back a room code and closes — the caller
+     then joins that room like any other. */
+  function queue(name, on) {
+    var ws = null, closed = false;
+    var self = {};
+    ws = new WebSocket(ORIGIN.replace(/^http/, 'ws') + '/queue');
+    ws.onopen = function () {
+      ws.send(JSON.stringify({ t: 'JOIN', id: myId(), name: name }));
+      if (on.open) on.open();
+    };
+    ws.onmessage = function (ev) {
+      var m;
+      try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (on[m.t]) on[m.t](m);
+    };
+    ws.onclose = function () {
+      /* The queue closes the socket itself once it has matched you, so a
+         close is only worth reporting when no match arrived. */
+      if (!closed && on.drop) on.drop();
+    };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+
+    self.leave = function () {
+      closed = true;
+      try { ws.send(JSON.stringify({ t: 'LEAVE' })); } catch (e) {}
+      try { ws.close(); } catch (e) {}
+    };
+    self.matched = function () { closed = true; };
+    return self;
+  }
+
   /* A room in the address bar, so a code can be shared as a link rather than
      read out loud. Kept to the same shape the seeded solo links use. */
   function linkFor(code) {
@@ -125,7 +157,7 @@ var Net = (function () {
   return {
     origin: ORIGIN,
     id: myId, name: myName, avatar: myAvatar,
-    createRoom: createRoom, probeRoom: probeRoom, join: join,
+    createRoom: createRoom, probeRoom: probeRoom, join: join, queue: queue,
     linkFor: linkFor, codeFromUrl: codeFromUrl
   };
 })();

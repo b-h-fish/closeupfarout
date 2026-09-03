@@ -83,7 +83,7 @@
     device = L.device(vw, vh, COARSE);
     if (screen === 'MENU' || screen === 'SETUP' ||
         screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY' ||
-        screen === 'ONLINE') {
+        screen === 'ONLINE' || screen === 'SEARCH') {
       scale = L.step(SETUP_W, SETUP_H, vw, vh, true, dpr);
       uiSide = false;
     } else {
@@ -351,6 +351,59 @@
     }
   }
 
+
+  /* ── the searching wheel ──
+     The deck going round while the queue does its work, in place of the fan
+     and the word SEARCHING. Eight cards on a shallow ellipse, sized by depth
+     so the ring reads as a ring: cards taller than the orbit pile into a band
+     across the middle and the rotation goes with them. 40x33 against a 32x44
+     card is what clears it, and 110 of the band's 111 is what that spends.
+
+     Exactly one card is face up — the frontmost, chosen by depth rather than
+     by a threshold. A threshold looks equivalent and is not: the gap between
+     eight cards is 45 degrees, so two of them sit inside any window wide
+     enough to always contain one, and the face flickers between one card and
+     two. Each time the front passes to the next card it is dealt a new one,
+     which is the same rule the menu fan follows.
+
+     It is always an ace, in one of the four suits. cardFace lays its pips
+     across h-32, so at the 44 this ring can afford, five pips upward merge
+     into vertical blobs and the court art draws outside the card entirely —
+     A-4 survive. The ace is the clearest of those by a distance, because one
+     large pip is the only arrangement with room to breathe at this size, and
+     a wheel is read in glances. Rendering the whole deck at 44 and looking at
+     it is what settled this; the first cut dealt any rank at 29 tall and the
+     face was a red smear. */
+  var wheelSlot = -1, wheelCard = { r: 'A', s: 'S' };
+
+  function drawWheel(cx, cy) {
+    var p = pal(), n = 8, RX = 40, RY = 33, TAU = Math.PI * 2;
+    var spin = now * 0.0010;
+    var at = [];
+    for (var i = 0; i < n; i++) {
+      var a = spin + i * TAU / n;
+      at.push({ i: i, a: a, depth: Math.cos(a) });
+    }
+    at.sort(function (u, v) { return u.depth - v.depth; });   // far ones first
+
+    var front = at[n - 1];
+    if (front.i !== wheelSlot) {
+      wheelSlot = front.i;
+      wheelCard = { r: 'A', s: MENU_SUITS[(Math.random() * MENU_SUITS.length) | 0] };
+    }
+
+    for (var k = 0; k < n; k++) {
+      var o = at[k];
+      var f = 0.80 + 0.20 * (o.depth + 1) / 2;
+      var cw = Math.round(32 * f), ch = Math.round(44 * f);
+      var x = cx + Math.round(Math.sin(o.a) * RX) - (cw >> 1);
+      var y = cy + Math.round(o.depth * RY) - (ch >> 1);
+      fb.dim(x + 2, y + 3, cw, ch, 0.5);
+      if (o === front) cardFace(fb, x, y, cw, ch, wheelCard.r, wheelCard.s, p);
+      else             cardBack(fb, x, y, cw, ch, p);
+    }
+  }
+
   /* One skeleton for both the front page and solo setup, so the panel, the
      mark, and every row hold their ground while only the contents change —
      the shift between the two screens reads as a swap, not a jump.
@@ -479,6 +532,8 @@
   var mpOver = null;              // the OVER payload, once a game finishes
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
   var afterName = '';             // what the name step was opened in order to do
+  var queued = null;              // the live queue socket, while searching
+  var queueInfo = null;           // the last WAITING the queue sent
 
   function mp() { return !!net && !!g && g.players > 1; }
   /* Every layout choice a room makes comes from here rather than from a
@@ -586,12 +641,32 @@
     // ── setting, the same control solo uses ──
     sceneRow(m.top + m.row1Y, btnW);
 
-    // ── the one part that is not built ──
-    var y2 = m.top + m.row2Y, bx3 = cx - (btnW >> 1);
-    fb.rect(bx3, y2, btnW, 20, p.hudShadow);
-    fb.frame(bx3, y2, btnW, 20, p.hudDim);
-    var fl2 = 'FIND A MATCH';
-    fb.text(fl2, bx3 + ((btnW - fb.textW(fl2, 1)) >> 1), y2 + 7, p.hudDim);
+    menuButton(m.top + m.row2Y, btnW, 'FIND A MATCH', { t: 'mp-find' });
+  }
+
+  /* Searching. Deliberately plain: there is nothing to decide here, and the
+     only thing worth showing is that something is still happening and how to
+     stop it. The fan keeps running because the wait is the one place a player
+     is doing nothing at all. */
+  function drawSearch() {
+    var m = menuGeom(), cx = W >> 1;
+    panelFrame(m);
+    backArrow(m);
+    var btnW = Math.min(160, m.pw - 32);
+    var by = m.top + m.bandY;
+
+    /* The wheel is the message: a spinning deck says searching more plainly
+       than the word does, and says it without a row of animated full stops. */
+    drawWheel(cx, by + (GWID >> 1));
+
+    var line = netMsg || (queueInfo
+      ? (queueInfo.waiting + (queueInfo.waiting === 1 ? ' PLAYER WAITING' : ' PLAYERS WAITING'))
+      : 'LOOKING FOR A TABLE');
+    panelLine(by + GWID + 9, line, netMsg ? pal().hudInk : undefined);
+
+    /* CANCEL sits on row2, where FIND A MATCH was pressed a moment ago, so
+       the button does not jump out from under the finger that got here. */
+    menuButton(m.top + m.row2Y, btnW, 'CANCEL', { t: 'mp-unqueue' });
   }
 
   function drawRoom() {
@@ -1335,6 +1410,7 @@
   }
 
   function leaveRoom() {
+    if (queued) { queued.leave(); queued = null; queueInfo = null; }
     if (net) net.close();
     net = null; room = null; mpOver = null; turnEndsAt = 0; netMsg = '';
     typing = null; roomMode = 'pick';
@@ -1373,6 +1449,33 @@
       fit(); say('Choose a name, an avatar and a setting.'); return;
     }
     if (act.t === 'mp-avatar') { Net.avatar(act.i); return; }
+
+    if (act.t === 'mp-find') {
+      if (!Net.name()) { netMsg = 'A NAME FIRST'; typing = { field:'name', value:'' }; return; }
+      screen = 'SEARCH'; netMsg = ''; queueInfo = null; typing = null;
+      fit(); say('Searching for a game.');
+      queued = Net.queue(Net.name(), {
+        WAITING: function (m) { queueInfo = m; netMsg = ''; },
+        MATCH: function (m) {
+          /* The queue closes its own socket once it has matched you, so this
+             is not a drop — tell the client that before joining the room, or
+             it reports a lost connection on the way to a game. */
+          if (queued) queued.matched();
+          queued = null; queueInfo = null;
+          say('Match found. Joining.');
+          enterRoom(m.code);
+        },
+        ERR:  function (m) { netMsg = String(m.msg || '').toUpperCase(); },
+        drop: function () { netMsg = 'LOST THE QUEUE'; }
+      });
+      return;
+    }
+    if (act.t === 'mp-unqueue') {
+      if (queued) queued.leave();
+      queued = null; queueInfo = null; netMsg = '';
+      screen = 'ONLINE'; fit(); say('Choose a name, an avatar and a setting.');
+      return;
+    }
     if (act.t === 'mp-type-name') { typing = { field:'name', value: Net.name() }; return; }
     if (act.t === 'mp-type-code') { typing = { field:'code', value: typing ? typing.value : '' }; return; }
     if (act.t === 'mp-join-pick') {
@@ -1419,6 +1522,7 @@
     if (act.t === 'back')  {
       if (screen === 'MODE') { toMenu(); return; }
       if (screen === 'ONLINE') { screen = 'MODE'; typing = null; netMsg = ''; fit(); return; }
+      if (screen === 'SEARCH') return dispatch({ t: 'mp-unqueue' });
       if (screen === 'ROOM') {
         if (roomMode !== 'pick') {
           roomMode = 'pick'; typing = null; netMsg = ''; afterName = '';
@@ -1653,7 +1757,7 @@
     }
 
     if (screen === 'MODE' || screen === 'ROOM' || screen === 'LOBBY' ||
-        screen === 'ONLINE') {
+        screen === 'ONLINE' || screen === 'SEARCH') {
       if (k === 'Escape') { dispatch({ t:'back' }); e.preventDefault(); }
       return;
     }
@@ -1728,6 +1832,7 @@
     else if (screen === 'MODE') drawMode();
     else if (screen === 'ROOM') drawRoom();
     else if (screen === 'ONLINE') drawOnline();
+    else if (screen === 'SEARCH') drawSearch();
     else if (screen === 'LOBBY') drawLobby();
     else { drawGame(); if (confirmMenu) drawConfirm(); }
 
@@ -1758,7 +1863,11 @@
       /* ?mock=turn|wait|split|over|fresh — a multiplayer board with no
          server behind it, for designing the room screens. */
       var mk = q.get('mock');
-      if (mk) startMock(mk);
+      /* ?mock=search is the odd one out: no board at all, just the wheel with
+         nobody behind it. Searching is a state you pass through, so without
+         this there is no way to sit and look at it. */
+      if (mk === 'search') { screen = 'SEARCH'; queueInfo = { waiting: 3, need: 2 }; }
+      else if (mk) startMock(mk);
 
       var rc = mk ? '' : Net.codeFromUrl();
       if (rc) {

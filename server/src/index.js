@@ -4,17 +4,9 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 export { Room } from './room.js';
+export { Queue } from './queue.js';
 
-/* No I, O, 0 or 1 — a room code gets read aloud and typed by hand, and those
-   four are where that goes wrong. 32^4 is about a million codes. */
-const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-
-function makeCode() {
-  let s = '';
-  const r = crypto.getRandomValues(new Uint8Array(4));
-  for (let i = 0; i < 4; i++) s += ALPHABET[r[i] % ALPHABET.length];
-  return s;
-}
+import { claimRoom } from './code.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -38,14 +30,22 @@ export default {
 
     // POST /new — mint a code nobody is using and claim it
     if (url.pathname === '/new' && request.method === 'POST') {
-      for (let tries = 0; tries < 8; tries++) {
-        const code = makeCode();
-        const res = await room(env, code).fetch(
-          new Request('https://room/claim?code=' + code, { method: 'POST' })
-        );
-        if (res.ok) return json({ code });
-      }
-      return json({ error: 'could not mint a code' }, 503);
+      const code = await claimRoom(env);
+      return code ? json({ code }) : json({ error: 'could not mint a code' }, 503);
+    }
+
+    /* GET /queue — matchmaking. One object for everybody, because matching is
+       a rendezvous and two players can only be paired by something that sees
+       them both. */
+    if (url.pathname === '/queue') {
+      const stub = env.QUEUE.get(env.QUEUE.idFromName('main'));
+      const res = await stub.fetch(new Request('https://queue/ws', { headers: request.headers }));
+      if (res.webSocket) return res;
+      const body = await res.text();
+      return new Response(body, {
+        status: res.status,
+        headers: { 'content-type': 'application/json', ...CORS }
+      });
     }
 
     // GET /room/CODE — websocket upgrade, or a plain probe of whether it exists

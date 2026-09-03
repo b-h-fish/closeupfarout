@@ -130,6 +130,24 @@ ok('PLAY ONLINE reaches the profile', /avatar/i.test(els.say.textContent),
 visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 38, top + bandY + 66));
 ok('the avatar arrow was hit, not the name field',
    !/enter a name/i.test(els.say.textContent), 'say: ' + els.say.textContent);
+/* Searching needs a name — there is nobody to show the other players
+   otherwise — so the unnamed press is a check of its own. */
+visit('FIND A MATCH unnamed', () => tapLogical(W >> 1, top + row2Y + 10));
+ok('searching unnamed asks for a name first',
+   !/searching/i.test(els.say.textContent), 'say: ' + els.say.textContent);
+
+/* Named, it reaches the search and stays there: fetch never settles in this
+   harness and WebSocket is a stub, which is exactly the state worth drawing. */
+Net.name('SOLO');
+visit('SEARCH', () => tapLogical(W >> 1, top + row2Y + 10));
+ok('FIND A MATCH reaches the search', /searching/i.test(els.say.textContent),
+   'say: ' + els.say.textContent);
+visit('SEARCH cancelled', () => key('Escape'));
+ok('cancelling returns to the profile', /avatar/i.test(els.say.textContent),
+   'say: ' + els.say.textContent);
+/* Put the name back the way the room walk below expects to find it. */
+Net.name('');
+
 visit('back to MODE', () => key('Escape'));
 
 visit('ROOM, host or join', () => tapLogical(W >> 1, top + row2Y + 10));

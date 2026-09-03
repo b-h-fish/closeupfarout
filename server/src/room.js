@@ -66,6 +66,10 @@ export class Room {
       if (this.meta) return new Response('taken', { status: 409 });
       this.meta = {
         code: url.searchParams.get('code'),
+        /* A matched room knows how many are coming and starts itself when
+           they arrive — there is no host in a matched game to press START,
+           and asking four strangers to elect one would be absurd. */
+        auto: parseInt(url.searchParams.get('auto'), 10) || 0,
         hostId: null, started: false, over: false,
         seed: 0, cols: 4, rows: 4, players: 0,
         turnStartedAt: 0, deadline: 0, timeouts: {}
@@ -156,7 +160,8 @@ export class Room {
     let seat = this.seats.findIndex(s => s.id === id);
     if (seat < 0) {
       if (this.meta.started) return this.send(ws, { t: 'ERR', msg: 'game already started' });
-      if (this.seats.length >= MAX_SEATS) return this.send(ws, { t: 'ERR', msg: 'room full' });
+      var cap = this.meta.auto || MAX_SEATS;
+      if (this.seats.length >= cap) return this.send(ws, { t: 'ERR', msg: 'room full' });
       seat = this.seats.length;
       this.seats.push({ id, name });
       if (this.meta.hostId === null) this.meta.hostId = id;
@@ -169,14 +174,25 @@ export class Room {
     ws.serializeAttachment({ seat, id });
     this.send(ws, this.syncFor(seat));
     this.broadcast({ t: 'ROSTER', seats: this.roster() }, ws);
+
+    if (this.meta.auto && !this.meta.started && this.seats.length >= this.meta.auto) {
+      await this.begin();
+    }
   }
 
   async onStart(ws, seat) {
     const m = this.meta;
+    if (m.auto) return;   // a matched room starts itself
     if (this.seats[seat].id !== m.hostId) return this.send(ws, { t: 'ERR', msg: 'only the host starts' });
     if (m.started) return;
     if (this.seats.length < 2) return this.send(ws, { t: 'ERR', msg: 'need two players' });
+    await this.begin();
+  }
 
+  /* The one place a game begins, whether a host asked for it or a matched
+     room filled up. */
+  async begin() {
+    const m = this.meta;
     m.started = true;
     m.players = this.seats.length;
     m.seed = (Math.random() * 0x7fffffff) | 0;
