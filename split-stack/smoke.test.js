@@ -68,10 +68,12 @@ global.fetch = () => new Promise(() => {});          // never settles; we only d
 global.navigator = { clipboard: { writeText: () => {} } };
 global.crypto = require('crypto').webcrypto;
 
-for (const f of ['pixel.js', 'layout.js', 'scenes.js', 'game.js', 'net.js', 'app.js']) {
+for (const f of ['pixel.js', 'layout.js', 'scenes.js', 'avatars.js',
+                 'game.js', 'net.js', 'app.js']) {
   eval.call(global, fs.readFileSync(path.join(DIR, f), 'utf8'));
 }
-ok('all five scripts load', true);
+ok('every script loads', true);
+ok('the avatar set is non-empty', avatarCount() > 0, 'count ' + avatarCount());
 
 function draw() { const fn = rafs.pop(); rafs.length = 0; fn(16); }
 function key(k) { (winH.keydown || []).forEach(fn => fn({ key: k, preventDefault() {} })); }

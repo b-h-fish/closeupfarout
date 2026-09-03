@@ -506,21 +506,6 @@
     menuButton(m.top + m.row2Y, btnW, 'PLAY WITH FRIENDS', { t: 'mp-friends' });
   }
 
-  /* Placeholder avatars: the deck's own four suit emblems on card stock.
-     They cost no new artwork, they are unmistakably of this game, and when
-     real ones arrive only this list and drawAvatar have to change. */
-  var AVATARS = ['S', 'H', 'D', 'C'];
-
-  function drawAvatar(x, y, size, idx) {
-    var p = pal(), n = AVATARS.length;
-    var suit = AVATARS[((idx % n) + n) % n];
-    fb.rect(x, y, size, size, p.ink);
-    fb.rect(x + 1, y + 1, size - 2, size - 2, p.linen);
-    var big = BIG[suit], bw = big[0].length, bh = big.length;
-    var ink = (suit === 'H' || suit === 'D') ? p.red : p.black;
-    fb.blit(big, x + ((size - bw) >> 1), y + ((size - bh) >> 1), ink);
-  }
-
   /* Everything a ranked game needs to know about you, on the panel every
      other screen uses — avatar and arrows, name, setting, and the match
      button. It fits the band as it stands: the content ends 36 units short
@@ -537,8 +522,12 @@
 
     // ── avatar, an arrow either side ──
     var av = 30, ax = cx - (av >> 1), ay = by + 2, aw = 16;
-    drawAvatar(ax, ay, av, Net.avatar());
-    var n = AVATARS.length, cur = Net.avatar();
+    var n = avatarCount(), cur = Net.avatar();
+    fb.rect(ax, ay, av, av, p.ink);
+    fb.rect(ax + 1, ay + 1, av - 2, av - 2, p.linen);
+    drawAvatarArt(fb, ax, ay, av, av, cur);
+    var an = avatarName(cur);
+    hud(an, cx - (fb.textW(an, 1) >> 1), ay + av + 4, p.hudDim);
     function avArrow(bx2, glyph, to) {
       var hotA = mouse.x >= bx2 && mouse.x < bx2 + aw &&
                  mouse.y >= ay + 6 && mouse.y < ay + 24;
@@ -551,9 +540,9 @@
     avArrow(ax + av + 8, '>', (cur + 1) % n);
 
     // ── name ──
-    field(by + 40, btnW, 'TAP TO TYPE', Net.name(),
+    field(by + 46, btnW, 'TAP TO TYPE', Net.name(),
           typing && typing.field === 'name', { t: 'mp-type-name' });
-    panelLine(by + 68, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+    panelLine(by + 74, netMsg || 'SHOWN TO THE OTHER PLAYERS');
 
     // ── setting, the row the solo screen already uses ──
     var rx = cx - (btnW >> 1), y1 = m.top + m.row1Y, sn = SCENES.length;
