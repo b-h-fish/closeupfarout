@@ -144,7 +144,7 @@
                    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   var screen = 'MENU';
-  var pickC = 3, pickR = 3, pickScene = 0;   // Dusk Terrace, the load-in default
+  var pickC = 3, pickR = 3, pickScene = 0;   // Palm Court, the load-in default
   var g = null, fx = null, focus = 0, confirmMenu = false;
   /* Keyboard focus is only drawn once the keyboard is in use — otherwise
      pile 0 wears a ring from the moment the board is dealt, which reads as

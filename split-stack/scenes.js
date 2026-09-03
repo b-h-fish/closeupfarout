@@ -25,16 +25,6 @@ var DECK = {
 };
 
 var SCENES = [
-  { key:'dusk', name:'Dusk Terrace',
-    blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
-    pal: P(Object.assign({}, DECK, {
-      sky:['#2b1a4e','#4a2263','#77296a','#a83a63','#d25a51','#ef8248','#ffb267'],
-      tower:'#1a1030', towerFar:'#2e1a48', lit:'#ffe3a0', litDim:'#d8a05e',
-      cloudDim:'#40265c', cloudMid:'#6d3663', cloudLit:'#a85463',
-      wall:'#1d1230', floor:'#241736', floorLit:'#43284a',
-      ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
-      pick:'#ff7a5c'
-    })) },
   { key:'palms', name:'Palm Court',
     blurb:'Daylight, somewhere warm. Turquoise water, palms, and a sun that never quite sets.',
     pal: P(Object.assign({}, DECK, {
@@ -45,6 +35,16 @@ var SCENES = [
       wall:'#2a5f66', floor:'#255760', floorLit:'#3d7a80',
       ui:'#04222b', uiDim:'#0d3f4a', uiShadow:'#cfeef2', btnBg:'#f2ead6', btnInk:'#0b3540',
       pick:'#5fe0c8'
+    })) },
+  { key:'dusk', name:'Dusk Terrace',
+    blurb:'Exterior, the last twenty minutes of light. Dithered sky over a flat skyline.',
+    pal: P(Object.assign({}, DECK, {
+      sky:['#2b1a4e','#4a2263','#77296a','#a83a63','#d25a51','#ef8248','#ffb267'],
+      tower:'#1a1030', towerFar:'#2e1a48', lit:'#ffe3a0', litDim:'#d8a05e',
+      cloudDim:'#40265c', cloudMid:'#6d3663', cloudLit:'#a85463',
+      wall:'#1d1230', floor:'#241736', floorLit:'#43284a',
+      ui:'#ffe0b0', uiDim:'#b08a72', uiShadow:'#170b26', btnBg:'#33204a', btnInk:'#ffe0b0',
+      pick:'#ff7a5c'
     })) },
   { key:'space', name:'Space Port',
     blurb:'Docked, waiting on a berth. Gas and starlight overhead, deck plate underfoot.',
