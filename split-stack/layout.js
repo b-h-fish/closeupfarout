@@ -199,6 +199,7 @@ var HiLoLayout = (function () {
     stripDrop:   32,       // extra air under the calls before the scoreboard
     clock:       'centre', // between the mark and the stock count
     countBelow:  false,    // the stock count keeps the grid table's answer
+    pickUnder:   true,     // PICK A PILE hangs below the call column
     stripFlank:  false,    // scoreboard under the board, not either side of it
     on: {
       /* A flank either side of the board: the calls stand beside it, the
@@ -212,9 +213,13 @@ var HiLoLayout = (function () {
          the block under the board — a phone on its side is wide but its flanks
          are the same 80 units of a much smaller screen, and the cells would
          crowd the cards. */
+      /* Both labels sit above what they name. The board is set against the
+         top of the canvas here, which leaves the band under it to the two of
+         them and nothing else — and a label under a column reads as the next
+         thing along rather than as a caption on it. */
       'desktop-wide': { capW: 640, centreField: true, callSpan: 'fixed',
                         stripCols: 4, stripDrop: 0, clock: 'mirror',
-                        countBelow: true, stripFlank: true },
+                        countBelow: false, pickUnder: false, stripFlank: true },
       'tablet-wide':  { capW: 640, centreField: true, callSpan: 'fixed',
                         stripCols: 4, stripDrop: 0, clock: 'mirror',
                         countBelow: true },

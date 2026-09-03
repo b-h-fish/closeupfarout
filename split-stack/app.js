@@ -1400,7 +1400,10 @@
       if (!on) {
         /* Always under the calls in a room — above them it sat against the
            board's top edge, which is now where the eye starts. */
-        var under = suit || L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
+        /* In a room the room table answers this; solo keeps the per-grid
+           answer the layout table was tuned with. */
+        var under = mp() ? rm().pickUnder
+                         : L.rowFor(g.cols, g.rows, device, W > H).pickUnder;
         hud('PICK A PILE', mid('PICK A PILE'),
             under ? cy + stackH + 6 : cy - 13, p.hudDim);
       }
