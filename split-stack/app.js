@@ -604,7 +604,6 @@
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
   var afterName = '';             // what the name step was opened in order to do
   var queued = null;              // the live queue socket, while searching
-  var queueInfo = null;           // the last WAITING the queue sent
 
   function mp() { return !!net && !!g && g.players > 1; }
   /* Every layout choice a room makes comes from here rather than from a
@@ -730,9 +729,11 @@
        than the word does, and says it without a row of animated full stops. */
     drawWheel(cx, by + (GWID >> 1));
 
-    var line = netMsg || (queueInfo
-      ? (queueInfo.waiting + (queueInfo.waiting === 1 ? ' PLAYER WAITING' : ' PLAYERS WAITING'))
-      : 'LOOKING FOR A TABLE');
+    /* The depth of the queue is not the player's problem. "1 PLAYER WAITING"
+       is a true statement that reads as bad news — it is you, and it says
+       nobody else is here. The house fills the table at thirty seconds
+       either way, so the count never changes what happens next. */
+    var line = netMsg || 'LOOKING FOR PLAYERS';
     panelLine(by + GWID + 9, line, netMsg ? pal().hudInk : undefined);
 
     /* CANCEL sits on row2, where FIND A MATCH was pressed a moment ago, so
@@ -1624,7 +1625,7 @@
   }
 
   function leaveRoom() {
-    if (queued) { queued.leave(); queued = null; queueInfo = null; }
+    if (queued) { queued.leave(); queued = null; }
     if (net) net.close();
     net = null; room = null; mpOver = null; turnEndsAt = 0; turnSpan = 0; netMsg = '';
     pops.length = 0;
@@ -1669,16 +1670,18 @@
 
     if (act.t === 'mp-find') {
       if (!Net.name()) { netMsg = 'A NAME FIRST'; typing = { field:'name', value:'' }; return; }
-      screen = 'SEARCH'; netMsg = ''; queueInfo = null; typing = null;
+      screen = 'SEARCH'; netMsg = ''; typing = null;
       fit(); say('Searching for a game.');
       queued = Net.queue(Net.name(), {
-        WAITING: function (m) { queueInfo = m; netMsg = ''; },
+        /* Still worth hearing even though the count is not shown: it is
+           the queue confirming you are in it. */
+        WAITING: function () { netMsg = ''; },
         MATCH: function (m) {
           /* The queue closes its own socket once it has matched you, so this
              is not a drop — tell the client that before joining the room, or
              it reports a lost connection on the way to a game. */
           if (queued) queued.matched();
-          queued = null; queueInfo = null;
+          queued = null;
           say('Match found. Joining.');
           enterRoom(m.code);
         },
@@ -1689,7 +1692,7 @@
     }
     if (act.t === 'mp-unqueue') {
       if (queued) queued.leave();
-      queued = null; queueInfo = null; netMsg = '';
+      queued = null; netMsg = '';
       screen = 'ONLINE'; fit(); say('Choose a name, an avatar and a setting.');
       return;
     }
@@ -2092,7 +2095,7 @@
       /* ?mock=search is the odd one out: no board at all, just the wheel with
          nobody behind it. Searching is a state you pass through, so without
          this there is no way to sit and look at it. */
-      if (mk === 'search') { screen = 'SEARCH'; queueInfo = { waiting: 3, need: 2 }; }
+      if (mk === 'search') { screen = 'SEARCH'; }
       else if (mk) { startMock(mk === 'pop' ? 'turn' : mk); mockPops = (mk === 'pop'); }
 
       var rc = mk ? '' : Net.codeFromUrl();
