@@ -127,7 +127,7 @@ ok('PLAY ONLINE reaches the profile', /avatar/i.test(els.say.textContent),
 /* The avatar sits below the name now, so its arrow is low in the band —
    aiming where it used to be opened the name field instead, and Escape then
    closed the field rather than the screen. */
-visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 38, top + bandY + 54));
+visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 38, top + bandY + 66));
 ok('the avatar arrow was hit, not the name field',
    !/enter a name/i.test(els.say.textContent), 'say: ' + els.say.textContent);
 visit('back to MODE', () => key('Escape'));

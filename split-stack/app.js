@@ -554,7 +554,15 @@
           typing && typing.field === 'name', { t: 'mp-type-name' });
     panelLine(by + 30, netMsg || 'SHOWN TO OTHERS');
 
-    var av = 46, ax = cx - (av >> 1), ay = by + 42, aw = 18, ah = 22;
+    /* Centred in the space it actually has — between the foot of the name
+       hint and the top of the setting row — rather than pinned to a number
+       that stops being centred the moment anything above or below moves. */
+    var av = 46, aw = 18, ah = 22;
+    var ax = cx - (av >> 1);
+    var hintFoot = by + 30 + 7;
+    var rowTop = m.top + m.row1Y;
+    var block = av + 3 + 7;                  // tile, gap, label
+    var ay = hintFoot + Math.round(((rowTop - hintFoot) - block) / 2);
     var n = avatarCount(), cur = Net.avatar();
     fb.rect(ax, ay, av, av, p.ink);
     fb.rect(ax + 1, ay + 1, av - 2, av - 2, p.linen);
