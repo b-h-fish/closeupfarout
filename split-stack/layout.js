@@ -199,14 +199,22 @@ var HiLoLayout = (function () {
     stripDrop:   32,       // extra air under the calls before the scoreboard
     clock:       'centre', // between the mark and the stock count
     countBelow:  false,    // the stock count keeps the grid table's answer
+    stripFlank:  false,    // scoreboard under the board, not either side of it
     on: {
       /* A flank either side of the board: the calls stand beside it, the
          scoreboard fits in one row, and the corner is free for the clock.
          capW holds the cards to a constant share of the screen — without it
          they shrink between the grid table's scale steps. */
+      /* The scoreboard moves into the flanks on the desktop only: two players
+         outside the deck, two outside the calls, with room for an avatar each.
+         The flank is 80 units at the narrowest desktop canvas and 108 at the
+         widest, which is what the cell is sized against. Everywhere else keeps
+         the block under the board — a phone on its side is wide but its flanks
+         are the same 80 units of a much smaller screen, and the cells would
+         crowd the cards. */
       'desktop-wide': { capW: 640, centreField: true, callSpan: 'fixed',
                         stripCols: 4, stripDrop: 0, clock: 'mirror',
-                        countBelow: true },
+                        countBelow: true, stripFlank: true },
       'tablet-wide':  { capW: 640, centreField: true, callSpan: 'fixed',
                         stripCols: 4, stripDrop: 0, clock: 'mirror',
                         countBelow: true },

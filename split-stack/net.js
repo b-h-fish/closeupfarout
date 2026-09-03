@@ -70,7 +70,7 @@ var Net = (function () {
       ws = new WebSocket(ORIGIN.replace(/^http/, 'ws') + '/room/' + code);
       ws.onopen = function () {
         tries = 0;
-        ws.send(JSON.stringify({ t: 'HELLO', id: myId(), name: name }));
+        ws.send(JSON.stringify({ t: 'HELLO', id: myId(), name: name, av: myAvatar() }));
         if (on.open) on.open();
       };
       ws.onmessage = function (ev) {

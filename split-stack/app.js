@@ -742,6 +742,86 @@
      One strip of cells, centred on whatever it is given and drawn from a
      baseline, so it can move from the sky band to the foot without a layout
      change. Everything about its placement is these two numbers. */
+  /* ── the scoreboard, in the flanks ──
+     Two players outside the deck and two outside the calls, each with the
+     avatar they chose. The deck sits a fixed margin off the board and the
+     calls mirror that margin, so the two flanks are the same width by
+     construction and the pair of columns balance without being placed by
+     hand: 80 units at the narrowest desktop canvas, 108 at the widest.
+
+     The name takes a row of its own above the avatar rather than sitting
+     beside it. Beside it there are 31 units left over, which is five
+     characters — and a name is allowed twelve. */
+  function seatName(i) {
+    return (room && room.seats[i] ? room.seats[i].name : 'P' + (i + 1));
+  }
+  function seatAvatar(i) {
+    return (room && room.seats[i] ? room.seats[i].av | 0 : i);
+  }
+
+  function flankCell(x, y, w, i) {
+    var p = pal();
+    var AVW = 40, AVH = 32, PAD = 4, NAMEH = 12;
+    var h = NAMEH + AVH + PAD;
+    var on = (g.turn === i) && g.phase !== 'WON' && g.phase !== 'LOST';
+
+    /* Filled rather than dimmed. The block under the board sits on one
+       backdrop and can multiply what is behind it; a flank column runs from
+       the skyline down to the ground plane, and a 0.42 multiply gave the top
+       cell a panel and the bottom one nothing at all. Solid shadow is also
+       what the call buttons opposite are drawn on, so the two flanks match. */
+    fb.rect(x, y, w, h, p.hudShadow);
+    fb.frame(x, y, w, h, on ? p.pick : p.hudDim);
+
+    var nm = seatName(i);
+    while (nm.length > 1 && fb.textW(nm, 1) > w - PAD * 2) nm = nm.slice(0, -1);
+    hud(nm, x + PAD, y + 3, on ? p.pick : p.hudDim);
+
+    drawAvatarArt(fb, x + PAD, y + NAMEH, AVW, AVH, seatAvatar(i), 2);
+
+    var sc = String(g.scores[i].score);
+    hud(sc, x + w - PAD - fb.textW(sc, 1), y + NAMEH + ((AVH - 7) >> 1), p.hudInk);
+
+    if (on) {
+      fb.rect(x, y, 2, h, p.pick);
+      /* The same bar the block under the board carries, for the same reason:
+         who is on the clock belongs next to the name, not only in the corner. */
+      if (turnEndsAt && turnSpan) {
+        var left = Math.max(0, turnEndsAt - Date.now()) / turnSpan;
+        fb.rect(x + 2, y + h - 3, w - 4, 1, p.hudShadow);
+        fb.rect(x + 2, y + h - 3, Math.round((w - 4) * Math.min(1, left)), 1, p.pick);
+      }
+    }
+    return h;
+  }
+
+  /* True only where there is genuinely room, rather than only where the
+     layout table says desktop. `device` is read off the pointer, so a coarse
+     pointer on a wide screen has been misclassified before; measuring the
+     flank costs one subtraction and cannot be wrong about it. */
+  function flanksFit() {
+    var deck = stockBox();
+    return uiSide && deck.big && deck.x >= 72;
+  }
+
+  function drawFlanks(b) {
+    var deck = stockBox();
+    var fw = Math.min(96, deck.x - 8);
+    var lx = (deck.x - fw) >> 1;
+    var rx = (W - deck.x) + ((deck.x - fw) >> 1);
+    /* Bottom-aligned with the board, which is where the deck and the calls
+       already sit. Centred on the board instead, the pair straddled the
+       horizon: one cell in the skyline, one on the ground. */
+    var GAPV = 8, h = 12 + 32 + 4;
+    var y0 = b.y + b.h - (h * 2 + GAPV);
+    /* Seat order, left pair then right pair. Sorting by score or floating
+       your own seat to the top would move a player's box out from under the
+       eye that had just learned where it was. */
+    for (var i = 0; i < g.players; i++) {
+      flankCell(i < 2 ? lx : rx, y0 + (i % 2) * (h + GAPV), fw, i);
+    }
+  }
+
   function strip(cx, y, blockW, twoUp) {
     if (!mp()) return;
     var p = pal(), i, GAPC = 6, CELLH = 16, ROWGAP = 5;
@@ -1118,11 +1198,16 @@
          and four cells strung across a phone ran off both edges and cut the
          names. Two up, two down, on the board's own width. The extra drop is
          so the block does not crowd PICK A PILE. */
-      var R = rm(), twoUp = R.stripCols < g.players;
-      var stripY = uiSide ? b.y + b.h + 16
-                          : b.y + b.h + 14 + 20 + R.stripDrop;
-      var blockH2 = twoUp ? 37 : 16;
-      strip(b.x + (b.w >> 1), Math.min(stripY, H - blockH2 - 8), b.w, twoUp);
+      var R = rm();
+      if (R.stripFlank && flanksFit()) {
+        drawFlanks(b);
+      } else {
+        var twoUp = R.stripCols < g.players;
+        var stripY = uiSide ? b.y + b.h + 16
+                            : b.y + b.h + 14 + 20 + R.stripDrop;
+        var blockH2 = twoUp ? 37 : 16;
+        strip(b.x + (b.w >> 1), Math.min(stripY, H - blockH2 - 8), b.w, twoUp);
+      }
     }
     if (mp()) drawClock();
     if (g.phase === 'WON' || g.phase === 'LOST') {
@@ -1622,10 +1707,10 @@
     room = {
       code: 'MOCK', you: 0, started: true,
       seats: [
-        { seat:0, name:'ALPHA',   host:true,  connected:true },
-        { seat:1, name:'BEA',     host:false, connected:true },
-        { seat:2, name:'CASIMIR', host:false, connected:true },
-        { seat:3, name:'DOT',     host:false, connected:false }
+        { seat:0, name:'ALPHA',   av:0, host:true,  connected:true },
+        { seat:1, name:'BEA',     av:3, host:false, connected:true },
+        { seat:2, name:'CASIMIR', av:5, host:false, connected:true },
+        { seat:3, name:'DOT',     av:6, host:false, connected:false }
       ]
     };
     /* Enough of a socket for mp() to be true. Acts apply straight to the

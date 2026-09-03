@@ -16,7 +16,7 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 import HiLo from '../../split-stack/game.js';
-import { botTurn, botDelay, botNames, botId } from './bots.js';
+import { botTurn, botDelay, botNames, botId, botAvatars } from './bots.js';
 
 const MAX_SEATS = 4;
 const TIMEOUTS_TO_FORFEIT = 3;
@@ -136,7 +136,7 @@ export class Room {
      is not supposed to say. */
   roster() {
     return this.seats.map((s, i) => ({
-      seat: i, name: s.name,
+      seat: i, name: s.name, av: s.av | 0,
       connected: !!s.bot || this.ctx.getWebSockets().some(w => this.seatOf(w) === i),
       host: s.id === this.meta.hostId
     }));
@@ -188,6 +188,10 @@ export class Room {
   async onHello(ws, msg) {
     const id = String(msg.id || '').slice(0, 64);
     const name = String(msg.name || 'PLAYER').slice(0, 12).toUpperCase();
+    /* Clamped, not trusted: an index is drawn straight into a sprite table,
+       and the client wraps it, but a non-number would ride the roster out to
+       everyone else. */
+    const av = Math.max(0, Math.min(63, parseInt(msg.av, 10) || 0));
     if (!id) return this.send(ws, { t: 'ERR', msg: 'no id' });
 
     let seat = this.seats.findIndex(s => s.id === id);
@@ -196,11 +200,12 @@ export class Room {
       var cap = this.meta.auto || MAX_SEATS;
       if (this.seats.length >= cap) return this.send(ws, { t: 'ERR', msg: 'room full' });
       seat = this.seats.length;
-      this.seats.push({ id, name });
+      this.seats.push({ id, name, av });
       if (this.meta.hostId === null) this.meta.hostId = id;
       await this.save();
     } else {
       this.seats[seat].name = name;
+      this.seats[seat].av = av;
       await this.save();
     }
 
@@ -230,11 +235,12 @@ export class Room {
        and takes a handle nobody at this table is already using. */
     if (m.bots > 0) {
       const names = botNames(m.bots, this.seats.map(s => s.name));
+      const avs = botAvatars(m.bots, this.seats.map(s => s.av | 0));
       for (let i = 0; i < names.length; i++) {
         /* Opaque, and deliberately shaped like anyone else's. The id no
            longer leaves the server, but a seat token that spells out what it
            is would be one echo away from undoing the disguise. */
-        this.seats.push({ id: botId(), name: names[i], bot: true });
+        this.seats.push({ id: botId(), name: names[i], av: avs[i], bot: true });
       }
     }
     m.started = true;

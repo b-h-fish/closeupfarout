@@ -23,6 +23,7 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 import HiLo from '../../split-stack/game.js';
+import { avatarCount } from '../../split-stack/avatars.js';
 
 /* Handles, not names — nobody at a card table online is called Player 2.
    Kept inside the twelve the room slices to, and free of the confusable
@@ -169,6 +170,21 @@ export function botNames(n, taken) {
     out.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]);
   }
   while (out.length < n) out.push('GUEST' + (out.length + 1));
+  return out;
+}
+
+/* An avatar from the set the players choose from, read rather than hardcoded
+   so the house keeps up when the set grows. Distinct within a table where it
+   can be: four identical fish would be its own kind of tell. */
+export function botAvatars(n, taken) {
+  const used = new Set(taken || []);
+  const free = [];
+  for (let i = 0; i < avatarCount(); i++) if (!used.has(i)) free.push(i);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    if (free.length) out.push(free.splice((Math.random() * free.length) | 0, 1)[0]);
+    else out.push((Math.random() * avatarCount()) | 0);
+  }
   return out;
 }
 

@@ -160,7 +160,7 @@ const main = async () => {
       if (m.t === 'ACT') acts.push(m.action);
     });
     rw.on('error', () => {});
-    rw.send(JSON.stringify({ t: 'HELLO', id: 'solo-room' + Date.now(), name: 'SOLO' }));
+    rw.send(JSON.stringify({ t: 'HELLO', id: 'solo-room' + Date.now(), name: 'SOLO', av: 5 }));
 
     const began = await waitFor(() => msgs.some(m => m.t === 'BEGIN'), 6000);
     ok('the room deals itself with nobody to press start', began,
@@ -176,6 +176,20 @@ const main = async () => {
     ok('the wire does not give the house away',
        !!begin && !JSON.stringify(begin.seats).toLowerCase().includes('bot'),
        begin ? JSON.stringify(begin.seats) : '');
+    /* Avatars travel with the roster now, because the desktop scoreboard
+       draws one per seat. The house takes them from the same set, avoiding
+       what is already at the table — four identical fish would be a tell of
+       its own. */
+    ok('the avatar sent at hello comes back on the roster',
+       !!begin && begin.seats[0] && begin.seats[0].av === 5,
+       begin ? JSON.stringify(begin.seats.map(s => s.av)) : '');
+    ok('every seat carries one',
+       !!begin && begin.seats.every(s => Number.isInteger(s.av)),
+       begin ? JSON.stringify(begin.seats.map(s => s.av)) : '');
+    ok('and no two at the table share it',
+       !!begin && new Set(begin.seats.map(s => s.av)).size === 4,
+       begin ? JSON.stringify(begin.seats.map(s => s.av)) : '');
+
     /* And no seat tokens either — they are what onHello claims a seat with. */
     ok('the roster carries no seat tokens',
        !!begin && begin.seats.every(s => s.id === undefined),

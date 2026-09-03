@@ -240,3 +240,10 @@ function avatarName(idx) {
   return AVATARS[((idx % n) + n) % n].name;
 }
 function avatarCount() { return AVATARS.length; }
+
+/* The Worker imports this to give its bots an avatar, the same way it imports
+   game.js to play by the same rules. Only the count and the names cross that
+   line — drawAvatarArt needs a framebuffer and never runs there. */
+if (typeof module !== 'undefined') {
+  module.exports = { AVATARS: AVATARS, avatarName: avatarName, avatarCount: avatarCount };
+}
