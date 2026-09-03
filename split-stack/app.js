@@ -32,11 +32,16 @@
      stock with no plate behind them — an offset drop shadow leaves two sides
      of every stroke touching the card, and on a court card those sides
      disappear. */
-  /* Set a little above the middle of the pile: centred exactly, the figure
-     sits on the pip column of a numeric card and the outline has nothing to
-     stand against. */
-  var POP_K = 3, POP_UP = 12;
   var POP_HOLD = 1000, POP_FADE = 140;
+
+  /* Sized off the card it lands on rather than fixed at a magnification, so
+     a change to the card scale carries the figure with it instead of leaving
+     a 3x number on a card that is no longer that size. A 74-unit card gives
+     3, which is what this was drawn at, and the figure holds at roughly a
+     quarter to a third of the card from 54 units up to 200. Whole numbers
+     only — this is pixel art and a fractional enlargement smears every edge
+     it has, which is also why the ratio wanders a little between steps. */
+  function popK(h) { return Math.max(2, Math.min(8, Math.round(h / 25))); }
   var POP_LIFE = POP_HOLD + POP_FADE;
   var POP_INK = {
     PLACE: hex('#4da6ff'),   // a Hi or a Lo
@@ -90,17 +95,20 @@
 
       var b = pileBox(o.pile);
       var str = (o.v < 0 ? '-' : '+') + Math.abs(o.v);
-      var x = b.x + ((b.w - fb.textW(str, POP_K)) >> 1);
-      var y = b.y + (b.h >> 1) - ((7 * POP_K) >> 1) - POP_UP;
+      var k = popK(b.h);
+      /* Centred on the card, both ways, off the card's own box — so it stays
+         centred whatever the cards come to measure. */
+      var x = b.x + ((b.w - fb.textW(str, k)) >> 1);
+      var y = b.y + ((b.h - 7 * k) >> 1);
       var keep = age < POP_HOLD ? 1 : 1 - (age - POP_HOLD) / POP_FADE;
 
       var ink = POP_INK[o.kind] || POP_INK.PLACE;
       for (var dy = -1; dy <= 1; dy++) {
         for (var dx = -1; dx <= 1; dx++) {
-          if (dx || dy) popGlyphs(str, x + dx * POP_K, y + dy * POP_K, POP_K, POP_EDGE, keep);
+          if (dx || dy) popGlyphs(str, x + dx * k, y + dy * k, k, POP_EDGE, keep);
         }
       }
-      popGlyphs(str, x, y, POP_K, ink, keep);
+      popGlyphs(str, x, y, k, ink, keep);
     }
   }
 
