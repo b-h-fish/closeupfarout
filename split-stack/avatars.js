@@ -142,17 +142,23 @@ var AVATARS = [
 ];
 
 /* Draw one, centred in a box. The caller decides whether it sits on card
-   stock or bare — the sprite carries no ground of its own. */
-function drawAvatarArt(fb, x, y, w, h, idx) {
+   stock or bare — the sprite carries no ground of its own.
+
+   `k` is a whole-number magnification. A 20x16 sprite lost in a 46-pixel
+   tile reads as a stamp on a lot of empty card; drawn at two it fills the
+   space it was given. Whole numbers only, because this is pixel art and a
+   fractional enlargement smears every edge it has. */
+function drawAvatarArt(fb, x, y, w, h, idx, k) {
   var n = AVATARS.length;
   var art = AVATARS[((idx % n) + n) % n].art;
-  var aw = art[0].length, ah = art.length;
+  k = Math.max(1, k | 0) || 1;
+  var aw = art[0].length * k, ah = art.length * k;
   var ox = x + ((w - aw) >> 1), oy = y + ((h - ah) >> 1);
-  for (var j = 0; j < ah; j++) {
+  for (var j = 0; j < art.length; j++) {
     var row = art[j];
     for (var i = 0; i < row.length; i++) {
       var c = row[i];
-      if (c !== '.') fb.px(ox + i, oy + j, AV[c] ? hex(AV[c]) : null);
+      if (c !== '.') fb.rect(ox + i * k, oy + j * k, k, k, AV[c] ? hex(AV[c]) : null);
     }
   }
 }

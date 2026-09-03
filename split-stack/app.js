@@ -414,6 +414,32 @@
     hit(r.x, r.y, r.w, r.h, { t: 'back' });
   }
 
+  /* The setting picker, shared by solo setup and the online profile. It was
+     written twice with the same arithmetic, and the same arithmetic was wrong
+     in both: arrows 22 wide with 6 either side left the name 59 units on a
+     175-wide phone canvas, where DUSK TERRACE needs 71 and ran over its own
+     box. Narrower arrows and tighter gaps give it 75. */
+  function sceneRow(y, w) {
+    var p = pal(), cx = W >> 1, rx = cx - (w >> 1);
+    var aw = 16, gp = 4, n = SCENES.length;
+
+    function arrow(ax, glyph, to) {
+      var on = mouse.x >= ax && mouse.x < ax + aw && mouse.y >= y && mouse.y < y + 20;
+      fb.rect(ax, y, aw, 20, on ? p.hudInk : p.hudShadow);
+      fb.frame(ax, y, aw, 20, p.hudInk);
+      fb.text(glyph, ax + ((aw - 5) >> 1), y + 7, on ? p.hudShadow : p.hudInk);
+      hit(ax, y, aw, 20, { t: 'scene', i: to });
+    }
+    arrow(rx, '<', (pickScene + n - 1) % n);
+    arrow(rx + w - aw, '>', (pickScene + 1) % n);
+
+    var nx = rx + aw + gp, nw = w - 2 * (aw + gp);
+    fb.rect(nx, y, nw, 20, p.hudShadow);
+    fb.frame(nx, y, nw, 20, p.hudDim);
+    var nm = SCENES[pickScene].name.toUpperCase();
+    fb.text(nm, nx + ((nw - fb.textW(nm, 1)) >> 1), y + 7, p.hudInk);
+  }
+
   function menuButton(y, w, label, act) {
     var p = pal(), cx = W >> 1, bx = cx - (w >> 1);
     var hot = mouse.x >= bx && mouse.x < bx + w && mouse.y >= y && mouse.y < y + 20;
@@ -520,46 +546,37 @@
     var btnW = Math.min(160, m.pw - 32);
     var by = m.top + m.bandY;
 
-    // ── avatar, an arrow either side ──
-    var av = 30, ax = cx - (av >> 1), ay = by + 2, aw = 16;
+    /* Name first, then the avatar under it — and the avatar takes the rest
+       of the band rather than the band ending early and leaving a hole above
+       the setting row. The art is drawn at two, so a bigger tile is a bigger
+       picture and not a stamp on empty card. */
+    field(by + 4, btnW, 'TAP TO TYPE', Net.name(),
+          typing && typing.field === 'name', { t: 'mp-type-name' });
+    panelLine(by + 30, netMsg || 'SHOWN TO OTHERS');
+
+    var av = 46, ax = cx - (av >> 1), ay = by + 42, aw = 18, ah = 22;
     var n = avatarCount(), cur = Net.avatar();
     fb.rect(ax, ay, av, av, p.ink);
     fb.rect(ax + 1, ay + 1, av - 2, av - 2, p.linen);
-    drawAvatarArt(fb, ax, ay, av, av, cur);
+    drawAvatarArt(fb, ax, ay, av, av, cur, 2);
     var an = avatarName(cur);
-    hud(an, cx - (fb.textW(an, 1) >> 1), ay + av + 4, p.hudDim);
+    hud(an, cx - (fb.textW(an, 1) >> 1), ay + av + 3, p.hudDim);
+
     function avArrow(bx2, glyph, to) {
+      var ay2 = ay + ((av - ah) >> 1);
       var hotA = mouse.x >= bx2 && mouse.x < bx2 + aw &&
-                 mouse.y >= ay + 6 && mouse.y < ay + 24;
-      fb.rect(bx2, ay + 6, aw, 18, hotA ? p.hudInk : p.hudShadow);
-      fb.frame(bx2, ay + 6, aw, 18, p.hudInk);
-      fb.text(glyph, bx2 + ((aw - 5) >> 1), ay + 12, hotA ? p.hudShadow : p.hudInk);
-      hit(bx2, ay + 6, aw, 18, { t: 'mp-avatar', i: to });
+                 mouse.y >= ay2 && mouse.y < ay2 + ah;
+      fb.rect(bx2, ay2, aw, ah, hotA ? p.hudInk : p.hudShadow);
+      fb.frame(bx2, ay2, aw, ah, p.hudInk);
+      fb.text(glyph, bx2 + ((aw - 5) >> 1), ay2 + ((ah - 7) >> 1),
+              hotA ? p.hudShadow : p.hudInk);
+      hit(bx2, ay2, aw, ah, { t: 'mp-avatar', i: to });
     }
-    avArrow(ax - aw - 8, '<', (cur + n - 1) % n);
-    avArrow(ax + av + 8, '>', (cur + 1) % n);
+    avArrow(ax - aw - 10, '<', (cur + n - 1) % n);
+    avArrow(ax + av + 10, '>', (cur + 1) % n);
 
-    // ── name ──
-    field(by + 46, btnW, 'TAP TO TYPE', Net.name(),
-          typing && typing.field === 'name', { t: 'mp-type-name' });
-    panelLine(by + 74, netMsg || 'SHOWN TO THE OTHER PLAYERS');
-
-    // ── setting, the row the solo screen already uses ──
-    var rx = cx - (btnW >> 1), y1 = m.top + m.row1Y, sn = SCENES.length;
-    function sceneArrow(sx, glyph, to) {
-      var on2 = mouse.x >= sx && mouse.x < sx + 22 && mouse.y >= y1 && mouse.y < y1 + 20;
-      fb.rect(sx, y1, 22, 20, on2 ? p.hudInk : p.hudShadow);
-      fb.frame(sx, y1, 22, 20, p.hudInk);
-      fb.text(glyph, sx + 8, y1 + 7, on2 ? p.hudShadow : p.hudInk);
-      hit(sx, y1, 22, 20, { t: 'scene', i: to });
-    }
-    sceneArrow(rx, '<', (pickScene + sn - 1) % sn);
-    sceneArrow(rx + btnW - 22, '>', (pickScene + 1) % sn);
-    var nx = rx + 28, nw = btnW - 56;
-    fb.rect(nx, y1, nw, 20, p.hudShadow);
-    fb.frame(nx, y1, nw, 20, p.hudDim);
-    var nm2 = SCENES[pickScene].name.toUpperCase();
-    fb.text(nm2, nx + ((nw - fb.textW(nm2, 1)) >> 1), y1 + 7, p.hudInk);
+    // ── setting, the same control solo uses ──
+    sceneRow(m.top + m.row1Y, btnW);
 
     // ── the one part that is not built ──
     var y2 = m.top + m.row2Y, bx3 = cx - (btnW >> 1);
@@ -597,7 +614,7 @@
       panelLine(by + 18, 'YOUR NAME');
       field(by + 32, btnW, 'TAP TO TYPE', Net.name(),
             typing && typing.field === 'name', { t: 'mp-type-name' });
-      panelLine(by + 62, netMsg || 'SHOWN TO THE OTHER PLAYERS');
+      panelLine(by + 62, netMsg || 'SHOWN TO OTHERS');
       menuButton(m.top + m.row1Y, btnW, 'CONTINUE', { t: 'mp-name-go' });
       return;
     }
@@ -867,25 +884,8 @@
        number of them, and the panel does not have to grow to add more. The
        row takes the exact frame SOLO wears on the front page, as DEAL takes
        MULTIPLAYER's — crossing between the screens, the boxes stand still. */
-    var rowW = Math.min(160, m.pw - 32), rx = cx - (rowW >> 1), aw = 22;
-    var y = m.top + m.row1Y;
-    var n = SCENES.length;
-
-    function arrow(ax, glyph, to) {
-      var on = mouse.x >= ax && mouse.x < ax+aw && mouse.y >= y && mouse.y < y+20;
-      fb.rect(ax, y, aw, 20, on ? p.hudInk : p.hudShadow);
-      fb.frame(ax, y, aw, 20, p.hudInk);
-      fb.text(glyph, ax + ((aw - 5) >> 1), y + 7, on ? p.hudShadow : p.hudInk);
-      hit(ax, y, aw, 20, { t:'scene', i:to });
-    }
-    arrow(rx, '<', (pickScene + n - 1) % n);
-    arrow(rx + rowW - aw, '>', (pickScene + 1) % n);
-
-    var nx = rx + aw + 6, nw = rowW - 2*(aw + 6);
-    fb.rect(nx, y, nw, 20, p.hudShadow);
-    fb.frame(nx, y, nw, 20, p.hudDim);
-    var nm = SCENES[pickScene].name.toUpperCase();
-    fb.text(nm, nx + ((nw - fb.textW(nm,1)) >> 1), y + 7, p.hudInk);
+    var rowW = Math.min(160, m.pw - 32);
+    sceneRow(m.top + m.row1Y, rowW);
 
     menuButton(m.top + m.row2Y, rowW, 'DEAL', { t:'deal' });
     backArrow(m);

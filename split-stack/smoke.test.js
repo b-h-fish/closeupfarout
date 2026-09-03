@@ -114,7 +114,12 @@ const top = Math.max(8, Math.round((H - blockH) / 2));
 visit('ONLINE profile', () => tapLogical(W >> 1, top + row1Y + 10));
 ok('PLAY ONLINE reaches the profile', /avatar/i.test(els.say.textContent),
    'say: ' + els.say.textContent);
-visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 30, top + bandY + 14));
+/* The avatar sits below the name now, so its arrow is low in the band —
+   aiming where it used to be opened the name field instead, and Escape then
+   closed the field rather than the screen. */
+visit('ONLINE, avatar cycled', () => tapLogical((W >> 1) + 38, top + bandY + 54));
+ok('the avatar arrow was hit, not the name field',
+   !/enter a name/i.test(els.say.textContent), 'say: ' + els.say.textContent);
 visit('back to MODE', () => key('Escape'));
 
 visit('ROOM, host or join', () => tapLogical(W >> 1, top + row2Y + 10));
