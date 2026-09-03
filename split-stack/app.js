@@ -867,12 +867,20 @@
     }
 
     /* Measured rather than guessed: head, the column heads, one row per seat,
-       then the button under them. An early version fixed the height at
+       then the buttons under them. An early version fixed the height at
        52 + rows, which put the button back on top of the last seat. */
     var want = PADX * 2 + NAMEW + 8 + colsW + TALLYGAP + SCOREW;
     var pw = Math.min(W - 16, want);
     var ROWY = 34, HEADY = ROWY, FIRSTY = ROWY + 14;
-    var ph = FIRSTY + g.players * 13 + 10 + 18 + 12;
+    /* Two ways out, side by side. They always fit: multiplayer is a 4x4
+       board, so the canvas is sized by the board rather than by the device,
+       and the narrowest phone measured comes out 257 logical units wide —
+       241 of panel, 104 a button. PLAY AGAIN is 59 units of text. A stacked
+       fallback was written for narrow screens and then measured to be
+       unreachable on any of them, so it is not here. */
+    var BGAP = 8, BH = 18;
+    var bw = Math.min(104, (pw - PADX * 2 - BGAP) >> 1);
+    var ph = FIRSTY + g.players * 13 + 10 + BH + 12;
     var px = (W - pw) >> 1, py = (H - ph) >> 1;
     fb.rect(px, py, pw, ph, p.hudShadow);
     fb.frame(px, py, pw, ph, p.hudInk);
@@ -915,8 +923,13 @@
       var rhs = String(r.score);
       hud(rhs, scoreR - fb.textW(rhs, 1), y, col);
     }
-    button(px + ((pw - 84) >> 1), py + FIRSTY + g.players * 13 + 10, 84, 'MENU',
-           { t: 'mp-leave' }, true);
+    /* PLAY AGAIN goes back to the profile screen rather than straight into
+       the queue: pressing it should not commit you to a search you have not
+       asked for a second time. */
+    var by0 = py + FIRSTY + g.players * 13 + 10;
+    var bx0 = px + ((pw - (bw * 2 + BGAP)) >> 1);
+    button(bx0, by0, bw, 'PLAY AGAIN', { t: 'mp-again' }, true);
+    button(bx0 + bw + BGAP, by0, bw, 'HOME', { t: 'mp-leave' }, true);
   }
 
   /* ═══ SETUP ═══════════════════════════════════════════════════════════ */
@@ -1511,6 +1524,12 @@
       return;
     }
     if (act.t === 'mp-leave') { leaveRoom(); toMenu(); return; }
+    if (act.t === 'mp-again') {
+      leaveRoom();
+      screen = 'ONLINE'; typing = null; netMsg = ''; fit();
+      say('Choose a name, an avatar and a setting.');
+      return;
+    }
 
     if (act.t === 'back')  {
       if (screen === 'MODE') { toMenu(); return; }
