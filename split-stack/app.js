@@ -198,8 +198,25 @@
          on its side, where 640 wide leaves 296 of height for a board needing
          311 and the bottom row falls off. So the cap only applies where the
          taller scale still leaves the board and its furniture room to stand. */
-      var cap = L.room(device, vw > vh).capW;
-      if (mp() && cap && cap * scale < vw) {
+      var R = L.room(device, vw > vh);
+      /* Where the scoreboard is in the flanks, the board takes the height.
+         The grid table sizes for a board that shares the screen with a row
+         of furniture underneath it; there is no such row here, so the band
+         it reserved is spare, and lifting the scale until the board nearly
+         fills the height turns that band into card.
+
+         It buys less than it looks like it should. A four by four of these
+         cards is 311 units tall against a canvas of 339 once the margins are
+         taken, so the board is already most of the height and the rest is
+         single figures of per cent. The room to spare on a wide screen is
+         beside the board, and a portrait board cannot reach it. */
+      var cap = R.capW;
+      if (mp() && R.stripFlank) {
+        var rows = g ? g.rows : pickR;
+        scale = Math.max(scale, Math.min(
+          vh / (L.boardH(rows) + ROOM_ABOVE + ROOM_BELOW),
+          vw / ROOM_MIN_W));
+      } else if (mp() && cap && cap * scale < vw) {
         var want = vw / cap;
         if (vh / want >= L.boardH(g ? g.rows : pickR) + 44) scale = want;
       }
@@ -293,6 +310,12 @@
      before. This offset only ever applies while a room is live. */
   var MP_SHIFT = 34;
 
+  /* What a room leaves around the board. Above it there is only sky; below
+     it there is the stock count and nothing else, because the calls and the
+     scoreboard are in the flanks. ROOM_MIN_W is the width those flanks need
+     to stand in — deck, board, calls, and a scoreboard column either side. */
+  var ROOM_ABOVE = 10, ROOM_BELOW = 18, ROOM_MIN_W = 580;
+
   /* Where the mark's top falls in *this* layer's units. The mark is drawn on
      the background at a scale that never changes with the grid, so its
      position has to be converted rather than assumed — the same conversion
@@ -316,6 +339,16 @@
          balance against, so that case keeps the plain shift. */
       if (uiSide) b.x = Math.max(6, Math.round((W - SIDE_W + CARD_W - b.w) / 2));
       else b.x = Math.max(6, b.x - MP_SHIFT);
+      /* Set against the top rather than centred. The two margins are not the
+         same job: above the board there is only sky, below it the stock count
+         has to stand, and centring split the difference and left the count
+         one unit off the bottom edge.
+
+         Tested on the canvas width rather than by asking flanksFit, which
+         reads stockBox, which reads this — the first cut of this line was a
+         stack overflow that only appeared in a room, because the multiplayer
+         guard kept the smoke walk out of it. */
+      if (rm().stripFlank && W >= ROOM_MIN_W) b.y = ROOM_ABOVE;
       /* The board keeps the layout table's vertical answer. Starting it level
          with the mark freed a band for the scoreboard, but the deck and the
          calls are bottom-aligned to the board — so lifting it lifted them
