@@ -25,10 +25,15 @@ export class Room {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
-    /* The settled clock is 30s. It reads from the environment so the timeout
-       path can be tested against a short one — waiting half a minute per
-       assertion is how a rule ends up untested. */
-    this.turnMs = Number(env.TURN_MS) || 30000;
+    /* The settled clock is 10s. It reads from the environment so the timeout
+       path can be tested against a shorter one — waiting out the real clock
+       once per assertion is how a rule ends up untested. */
+    this.turnMs = Number(env.TURN_MS) || 10000;
+    /* A seat's first turn is not on the clock: you are reading a board you
+       have never seen, and ten seconds is not enough to do that in. It still
+       has a deadline, just a long one nobody is shown — without it a player
+       who walks away on their opening turn holds the table forever. */
+    this.firstMs = Number(env.FIRST_MS) || 60000;
     this.game = null;          // built lazily from the stored log
     this.loaded = false;
   }
@@ -78,7 +83,11 @@ export class Room {
         bots: parseInt(url.searchParams.get('bots'), 10) || 0,
         hostId: null, started: false, over: false,
         seed: 0, cols: 4, rows: 4, players: 0,
-        turnStartedAt: 0, deadline: 0, timeouts: {}
+        turnStartedAt: 0, deadline: 0, timeouts: {},
+        /* Turns taken per seat, so a seat's first can be told from its
+           second. `shown` is whether the clock the deadline belongs to
+           is one the players are being shown. */
+        turns: {}, shown: false
       };
       this.seats = [];
       await this.save();
@@ -144,8 +153,20 @@ export class Room {
       seed: m.seed, cols: m.cols, rows: m.rows, players: m.players,
       log: this.log,
       turn: this.game ? this.game.turn : 0,
-      msLeft: m.deadline ? Math.max(0, m.deadline - Date.now()) : 0
+      msLeft: this.msLeft()
     };
+  }
+
+  /* What the clock is worth telling a client. Zero for a turn nobody is on
+     the clock for — a bot thinking, or a seat taking its first turn — and
+     zero rather than a negative, which is the whole of the bug that put a
+     0 in the corner for the entire length of every bot's turn: deadline is
+     0 on those turns, so `deadline - now` went out as minus a trillion, and
+     a client reading it as truthy drew a clock that had run out in 1970. */
+  msLeft() {
+    const m = this.meta;
+    if (!m.shown || !m.deadline) return 0;
+    return Math.max(0, m.deadline - Date.now());
   }
 
   async webSocketMessage(ws, raw) {
@@ -222,9 +243,8 @@ export class Room {
     this.log = [];
     this.rebuild();
 
-    /* No clock on the opening turn — the settled rule. The first player is
-       still reading a board they have never seen. */
     m.deadline = 0;
+    m.turns = {};
     await this.save();
     this.broadcast({
       t: 'BEGIN', seed: m.seed, cols: m.cols, rows: m.rows,
@@ -285,7 +305,7 @@ export class Room {
     await this.armTurn(moved);
     await this.save();
     if (moved) {
-      this.broadcast({ t: 'TURN', turn: g.turn, msLeft: m.deadline - Date.now() });
+      this.broadcast({ t: 'TURN', turn: g.turn, msLeft: this.msLeft() });
     }
   }
 
@@ -304,13 +324,19 @@ export class Room {
      the revive still has to be thought about. */
   async armTurn(moved) {
     const m = this.meta, g = this.game;
+    if (!m.turns) m.turns = {};              // a room claimed before this rule
+    if (moved) m.turns[g.turn] = (m.turns[g.turn] || 0) + 1;
+
     if (this.isBot(g.turn)) {
       m.deadline = 0;
+      m.shown = false;
       await this.ctx.storage.setAlarm(Date.now() + botDelay());
       return;
     }
     if (moved || !m.deadline) {
-      m.deadline = Date.now() + this.turnMs;
+      const first = (m.turns[g.turn] || 0) <= 1;
+      m.deadline = Date.now() + (first ? this.firstMs : this.turnMs);
+      m.shown = !first;
       await this.ctx.storage.setAlarm(m.deadline);
     }
   }

@@ -17,6 +17,9 @@ import HiLo from '../split-stack/game.js';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const WSBASE = BASE.replace(/^http/, 'ws');
+/* What the dev server was started with, so the timeout section can tell
+   whether it is worth running rather than guessing from a message. */
+const TURN_MS = Number(process.env.TURN_MS || 0);
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra) {
@@ -134,12 +137,53 @@ const main = async () => {
   cs[0].send({ t: 'ACT', action: { t: 'CALL', call: 'HI' } });
   const turnMsg = await cs[0].waitFor('TURN');
   ok('a call passes the turn', !!turnMsg);
-  ok('the clock starts after the first move', turnMsg && turnMsg.msLeft > 0);
+  /* Nobody is on the clock for their own first turn — you are reading a board
+     you have never seen. So the turn that lands on seat 1 here carries no
+     clock, and neither does the one after it. */
+  ok('a seat is not on the clock for its first turn',
+     turnMsg && turnMsg.msLeft === 0, turnMsg ? 'msLeft ' + turnMsg.msLeft : 'no turn');
   await sleep(150);
   ok('all four boards still agree after a call',
      cs.every(c => JSON.stringify(c.game.piles) === JSON.stringify(cs[0].game.piles)));
   ok('all four scoreboards agree',
      cs.every(c => JSON.stringify(c.game.scores) === JSON.stringify(cs[0].game.scores)));
+
+  /* ── the clock arrives on a seat's second turn ──
+     Round the table once so every seat has had its first, and watch for the
+     first TURN that carries a clock. Also the place a negative would show up:
+     msLeft went out as `deadline - now` with deadline 0 on any turn nobody
+     was timed for, which is minus a trillion, and a client reading it as a
+     number of milliseconds drew a frozen 0 in the corner. */
+  const clocks = [];
+  for (const c of cs) {
+    c.clear();
+    c.ws.on('message', (raw) => {
+      const m = JSON.parse(raw.toString());
+      if (m.t === 'TURN') clocks.push({ turn: m.turn, msLeft: m.msLeft });
+    });
+    break;                                  // one listener is enough
+  }
+  for (let round = 0; round < 6; round++) {
+    const g = cs[0].game;
+    if (g.phase === 'WON' || g.phase === 'LOST') break;
+    const c = cs[g.turn];
+    if (g.phase === 'RESURRECT') {
+      let d = 0; while (d < g.size && g.piles[d].alive) d++;
+      c.send({ t: 'ACT', action: { t: 'REVIVE', pile: d } });
+    } else {
+      let i = 0; while (i < g.size && !g.piles[i].alive) i++;
+      if (i >= g.size) break;
+      if (g.selected < 0) { c.send({ t: 'ACT', action: { t: 'SELECT', pile: i } }); await sleep(70); }
+      c.send({ t: 'ACT', action: { t: 'CALL', call: 'HI' } });
+    }
+    await sleep(120);
+  }
+  ok('no turn is ever sent a negative clock',
+     clocks.every(c => c.msLeft >= 0),
+     JSON.stringify(clocks.filter(c => c.msLeft < 0)));
+  ok('the clock appears once seats come round a second time',
+     clocks.some(c => c.msLeft > 0),
+     JSON.stringify(clocks));
 
   // ── play a stretch, then check convergence properly ──
   for (let step = 0; step < 24; step++) {
@@ -182,7 +226,8 @@ const main = async () => {
 
   /* ── the clock ──
      Only meaningful against a short TURN_MS; run the dev server with
-     `--var TURN_MS:1200`. At the settled 30s this section is skipped rather
+     `--var TURN_MS:1200` and this test with TURN_MS=1200 so it knows.
+     At the settled 10s this section is skipped rather
      than sitting there holding the suite up. */
   const clockCode = await newRoom();
   const t0 = new Client(clockCode, 'q0', 'ALPHA');
@@ -195,15 +240,33 @@ const main = async () => {
   ok('the clock room started', !!beg);
   await sleep(150);
 
-  // first turn carries no clock, so make one move to start it
-  const cg = t0.game;
-  let ci = 0; while (ci < cg.size && !cg.piles[ci].alive) ci++;
+  /* Every seat's first turn is untimed, so the clock does not exist until
+     both of them have had one. Play a full round before expecting one. */
+  const play = async (c) => {
+    const g = c.game;
+    if (g.phase === 'RESURRECT') {
+      let d = 0; while (d < g.size && g.piles[d].alive) d++;
+      c.send({ t: 'ACT', action: { t: 'REVIVE', pile: d } });
+    } else {
+      let i = 0; while (i < g.size && !g.piles[i].alive) i++;
+      if (g.selected < 0) { c.send({ t: 'ACT', action: { t: 'SELECT', pile: i } }); await sleep(80); }
+      c.send({ t: 'ACT', action: { t: 'CALL', call: 'HI' } });
+    }
+    await sleep(150);
+  };
+  await play(t0);
+  await play(t1);
   t0.clear(); t1.clear();
-  t0.send({ t: 'ACT', action: { t: 'SELECT', pile: ci } });
-  await sleep(80);
-  t0.send({ t: 'ACT', action: { t: 'CALL', call: 'HI' } });
+  await play(t0);
   const firstTurn = await t0.waitFor('TURN');
-  const shortClock = firstTurn && firstTurn.msLeft <= 3000;
+  ok('the clock is running by the second time round',
+     firstTurn && firstTurn.msLeft > 0, firstTurn ? 'msLeft ' + firstTurn.msLeft : 'no turn');
+  /* Gated on what the dev server was actually given rather than inferred from
+     a message. The old gate read the first TURN's msLeft and called anything
+     under three seconds "short" — which became every run the moment an
+     untimed first turn started reporting zero, and quietly ran the whole
+     timeout section against the real clock. */
+  const shortClock = TURN_MS > 0 && TURN_MS <= 3000;
   await sleep(150);
 
   if (shortClock) {
@@ -244,7 +307,7 @@ const main = async () => {
     ok('re-selecting does not hold the board open', sawTimeout,
        'survived ' + selects + ' selects over ' + Math.round(3600 / 1000) + 's with no timeout');
   } else {
-    console.log('  – clock section skipped (TURN_MS is the full 30s)');
+    console.log('  – clock section skipped (set TURN_MS to match the dev server)');
   }
   t0.close(); t1.close();
 

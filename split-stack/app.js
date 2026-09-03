@@ -510,6 +510,11 @@
   var typing = null;              // { field:'name'|'code', value:'' }
   var netMsg = '';                // one line of status, shown under the band
   var turnEndsAt = 0;             // wall clock for the turn bar
+  /* How long the turn on the clock was given. The strip's bar is a fraction
+     of it, and hard-coding that denominator meant the bar read as a third
+     full for a whole turn the moment the clock changed length. The server is
+     the only thing that knows, so it is taken from what the server sent. */
+  var turnSpan = 0;
   var mpOver = null;              // the OVER payload, once a game finishes
   var pendingRoom = '';           // a code arrived on a link, waiting for a name
   var afterName = '';             // what the name step was opened in order to do
@@ -785,8 +790,8 @@
         fb.rect(cxx, cyy, 2, CELLH, p.pick);
         /* The clock as a bar rather than a figure: a fifth number on a screen
            already showing four scores has to be read before it can be used. */
-        if (turnEndsAt) {
-          var left = Math.max(0, turnEndsAt - Date.now()) / 30000;
+        if (turnEndsAt && turnSpan) {
+          var left = Math.max(0, turnEndsAt - Date.now()) / turnSpan;
           fb.rect(cxx + 2, cyy + 14, cellW - 4, 1, p.hudShadow);
           fb.rect(cxx + 2, cyy + 14, Math.round((cellW - 4) * Math.min(1, left)), 1, p.pick);
         }
@@ -797,9 +802,10 @@
   /* ── the clock, in the corner ──
      A figure, not a bar. The strip still carries a bar on the seat whose turn
      it is — that says *who* is on the clock — while this says *how long*, at a
-     size you can read without hunting for it. Under ten seconds it takes the
-     hot end of the ramp and pulses, which is the one moment it should pull
-     the eye away from the board. */
+     size you can read without hunting for it. The last third takes the hot
+     end of the ramp and pulses, which is the one moment it should pull the
+     eye away from the board — a share of the turn rather than a fixed ten
+     seconds, which on a ten second clock would have meant all of it. */
   function drawClock() {
     if (!mp() || !turnEndsAt) return;
     if (g.phase === 'WON' || g.phase === 'LOST') return;
@@ -807,7 +813,7 @@
     var left = Math.max(0, turnEndsAt - Date.now());
     var secs = Math.ceil(left / 1000);
     var txt = String(secs);
-    var urgent = secs <= 10;
+    var urgent = left <= Math.max(1000, turnSpan / 3);
 
     /* Set against the corner the way the mark is set against its own: the
        same inset from the right border that the mark keeps from the left, on
@@ -1340,7 +1346,8 @@
         if (m.started) {
           g = HiLo.replay(m.seed, m.cols, m.rows, m.players, m.log);
           screen = 'GAME'; fx = null; focus = 0;
-          turnEndsAt = m.msLeft ? Date.now() + m.msLeft : 0;
+          turnEndsAt = m.msLeft > 0 ? Date.now() + m.msLeft : 0;
+          turnSpan = m.msLeft > 0 ? m.msLeft : 0;
           fit();
         } else if (screen !== 'LOBBY') { screen = 'LOBBY'; fit(); }
         if (history.replaceState) {
@@ -1353,20 +1360,25 @@
         if (room) room.seats = m.seats;
         g = HiLo.create(m.seed, m.cols, m.rows, m.players);
         screen = 'GAME'; fx = null; focus = 0; mpOver = null;
-        turnEndsAt = 0;
+        turnEndsAt = 0; turnSpan = 0;
         fit();
         say('Game started. ' + m.players + ' players.');
       },
       ACT:  function (m) { applyRemote(m.action); },
       TURN: function (m) {
-        turnEndsAt = m.msLeft ? Date.now() + m.msLeft : 0;
+        /* Guarded on > 0 rather than on truthiness. A turn nobody is on the
+           clock for sends 0, and a server that ever sends a negative must not
+           be read as "a clock that ran out" — that is what put a frozen 0 in
+           the corner for the length of every bot's turn. */
+        turnEndsAt = m.msLeft > 0 ? Date.now() + m.msLeft : 0;
+        turnSpan = m.msLeft > 0 ? m.msLeft : 0;
         if (m.turn === mySeat()) say('Your turn.');
       },
       TIMEOUT: function (m) {
         netMsg = '';
         if (m.seat === mySeat()) say('You ran out of time.');
       },
-      OVER: function (m) { mpOver = m; turnEndsAt = 0; describe(); },
+      OVER: function (m) { mpOver = m; turnEndsAt = 0; turnSpan = 0; describe(); },
       ERR:  function (m) { netMsg = String(m.msg || '').toUpperCase(); },
       drop: function () { netMsg = 'RECONNECTING…'; },
       open: function () { if (netMsg === 'RECONNECTING…') netMsg = ''; }
@@ -1393,7 +1405,7 @@
   function leaveRoom() {
     if (queued) { queued.leave(); queued = null; queueInfo = null; }
     if (net) net.close();
-    net = null; room = null; mpOver = null; turnEndsAt = 0; netMsg = '';
+    net = null; room = null; mpOver = null; turnEndsAt = 0; turnSpan = 0; netMsg = '';
     typing = null; roomMode = 'pick';
   }
 
@@ -1604,7 +1616,7 @@
         a.by = g.turn;
         var was = g.turn;
         applyRemote(a);
-        if (g.turn !== was) turnEndsAt = Date.now() + 30000;
+        if (g.turn !== was) { turnEndsAt = Date.now() + 10000; turnSpan = 10000; }
       },
       start: function () {}, close: function () {}, live: function () { return true; }
     };
@@ -1670,7 +1682,8 @@
       if (a < g.size) HiLo.apply(g, { t: 'SELECT', pile: a, by: g.turn });
     }
 
-    turnEndsAt = (kind === 'over') ? 0 : Date.now() + 21000;
+    turnEndsAt = (kind === 'over') ? 0 : Date.now() + 7000;
+    turnSpan = turnEndsAt ? 10000 : 0;
     screen = 'GAME'; fx = null; focus = 0;
     fit();
     say('Mock room. Nothing here is live.');
