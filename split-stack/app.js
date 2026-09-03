@@ -213,7 +213,7 @@
       var cap = R.capW;
       if (mp() && R.stripFlank) {
         var rows = g ? g.rows : pickR;
-        scale = Math.max(scale, Math.min(
+        scale = Math.max(scale, ROOM_EASE * Math.min(
           vh / (L.boardH(rows) + ROOM_ABOVE + ROOM_BELOW),
           vw / ROOM_MIN_W));
       } else if (mp() && cap && cap * scale < vw) {
@@ -315,6 +315,9 @@
      scoreboard are in the flanks. ROOM_MIN_W is the width those flanks need
      to stand in — deck, board, calls, and a scoreboard column either side. */
   var ROOM_ABOVE = 10, ROOM_BELOW = 18, ROOM_MIN_W = 580;
+  /* A hair off the maximum the height allows. Taken right to the limit the
+     board reads as wedged between the edges rather than sitting in them. */
+  var ROOM_EASE = 0.99;
 
   /* Where the mark's top falls in *this* layer's units. The mark is drawn on
      the background at a scale that never changes with the grid, so its
