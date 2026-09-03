@@ -1500,11 +1500,33 @@
     HiLo.apply(g, action);
   }
 
+  /* The address bar carries ?room= only while you are actually in one.
+     Joining writes it so a refresh reconnects to the same seat; leaving has
+     to take it off again, or the next refresh offers to rejoin a game you
+     deliberately walked out of. Play Again is where this showed: it leaves
+     the room for the profile screen, and a refresh there landed on JOIN
+     <dead code> instead of the menu.
+
+     Only the room key is removed. A seed or a setting in the same query
+     string belongs to the player, not to the room, and survives. */
+  function dropRoomFromUrl() {
+    if (!history.replaceState) return;
+    try {
+      var q = new URLSearchParams(location.search);
+      if (!q.has('room')) return;
+      q['delete']('room');
+      var rest = q.toString();
+      history.replaceState(null, '', location.pathname + (rest ? '?' + rest : ''));
+    } catch (e) { /* a browser without URLSearchParams keeps its stale link */ }
+  }
+
   function leaveRoom() {
     if (queued) { queued.leave(); queued = null; queueInfo = null; }
     if (net) net.close();
     net = null; room = null; mpOver = null; turnEndsAt = 0; turnSpan = 0; netMsg = '';
     typing = null; roomMode = 'pick';
+    pendingRoom = '';
+    dropRoomFromUrl();
   }
 
   function dispatch(act) {
@@ -1625,6 +1647,10 @@
           roomMode = 'pick'; typing = null; netMsg = ''; afterName = '';
           say('Host a game, or join one.'); return;
         }
+        /* Backing out of the join screen abandons the invite too. Without
+           this the code stayed in the address bar and in pendingRoom, and
+           the next refresh walked straight back into the screen just left. */
+        pendingRoom = ''; dropRoomFromUrl();
         screen = 'MODE'; typing = null; netMsg = ''; fit(); return;
       }
       if (screen === 'LOBBY') { leaveRoom(); screen = 'MODE'; fit(); return; }
