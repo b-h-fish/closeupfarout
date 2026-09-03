@@ -26,30 +26,33 @@ var AV = {
   R: '#e0453f',   // red
   T: '#3fbfa0',   // teal
   S: '#c98a52',   // cigar wrapper, lit side
-  N: '#7d4a2c'    // cigar wrapper, shaded side
+  N: '#7d4a2c',   // cigar wrapper, shaded side
+  E: '#d1662a'    // orange, shaded
 };
 
 var AVATARS = [
   {
     name: 'FISH',
     /* The default nobody chose, so it wants to be the friendliest of the set.
-       Round body, forked tail, one eye well forward. */
+       What makes it read as a fish is the taper: a wide body narrowing to a
+       thin peduncle, and only then the tail flaring open. Drawn as one even
+       lozenge it looked like a leaf. */
     art: [
       '....................',
-      '.........KKK........',
-      '........KOOOK.......',
-      '......KKOOOOOKK.....',
-      '....KKOOOOOOOOOKK.KK',
-      '..KKOOOOOOOOOOOOOKOK',
-      '.KOWOOOOOOOOOOOOOOOK',
-      '.KOOOOOOOOOOOOOOOOOK',
-      '.KKOOOOOOOOOOOOOOKOK',
-      '...KKOOOOOOOOOOKK.KK',
-      '.....KKOOOOOOKK.....',
-      '.......KKOOKK.......',
-      '.........KK.........',
-      '....................',
-      '....................',
+      '......KKKK..........',
+      '.....KOOOOK.........',
+      '...KKOOOOOOKK....KKK',
+      '..KOOOOOOOOOOK..KOOK',
+      '.KOOOOOOOOOOOOK.KOOK',
+      '.KOWOOOOOOOOOOKKOOOK',
+      'KOOKOOOOOOOOOOOOOKK.',
+      'KOOOOOOOOOOOOOOOOKK.',
+      '.KEEEEEEEEEEEEKKOOOK',
+      '.KEEKKEEEEEEEEK.KOOK',
+      '..KEEEEEEEEEEK..KOOK',
+      '...KKEEEEEEKK....KKK',
+      '.....KKEEKK.........',
+      '.......KK...........',
       '....................'
     ]
   },
