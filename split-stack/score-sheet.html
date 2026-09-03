@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Split Stack — what a score looks like when it lands</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 16px; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+  .note { color: #8a7f96; margin-top: 6px; max-width: 90ch; }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .row > i { font-style: normal; color: #6d6379; letter-spacing: .08em; }
+  .row button {
+    font: inherit; color: #b9ae94; background: #17111f; border: 1px solid #2e2438;
+    padding: 4px 10px; cursor: pointer; letter-spacing: .04em;
+  }
+  .row button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
+  .sheet { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 16px; align-items: flex-start; }
+  figcaption { color: #b9ae94; padding: 8px 2px 0; max-width: 30ch; }
+  figcaption b { color: #f4edda; font-weight: 600; display: block; letter-spacing: .06em; }
+  canvas { display: block; image-rendering: pixelated; border: 1px solid #2e2438; }
+</style>
+</head>
+<body>
+<h1>SPLIT STACK — WHAT A SCORE LOOKS LIKE WHEN IT LANDS</h1>
+<p class="note">
+  The points from a call, on the pile it was called on: pops in a size too
+  big, settles, rises a little, gone at a second. Real renderer, real card
+  art, at the size it ships at. Every payout in the game is here &mdash; +1 for a
+  placement, +3 for a suit, +4 for a split, &minus;2 for a kill &mdash; each on a card
+  chosen to be awkward for its colour.
+</p>
+<div class="row" id="scenes"><i>SETTING</i></div>
+<div class="row" id="speeds"><i>SPEED</i></div>
+<div class="sheet" id="sheet"></div>
+
+<script src="pixel.js"></script>
+<script src="scenes.js"></script>
+<script src="scorepop.js"></script>
+<script>
+(function () {
+  var CW = 54, CH = 74, PAD = 26, K = 4;
+  var W = CW + PAD * 2, H = CH + PAD * 2;
+  var scene = 0, speed = 1, GAP = 500;
+
+  /* One card per payout, each picked to be hard on its own colour: the
+     yellow lands on a red court, the green on a blue one, the blue on a
+     card of red pips. */
+  var ROWS = [
+    { v: 1,  kind: 'PLACE', card: ['9', 'D'], note: 'PLACEMENT · a Hi or a Lo' },
+    { v: 3,  kind: 'SUIT',  card: ['Q', 'H'], note: 'SUIT' },
+    { v: 4,  kind: 'SPLIT', card: ['K', 'S'], note: 'SPLIT' },
+    { v: -2, kind: 'KILL',  card: ['7', 'C'], note: 'KILL · the pile is lost' }
+  ];
+
+  function picker(id, items, initial, set) {
+    var host = document.getElementById(id);
+    items.forEach(function (label, i) {
+      var b = document.createElement('button');
+      b.textContent = label;
+      b.onclick = function () {
+        set(i);
+        [].forEach.call(host.querySelectorAll('button'), function (o, j) {
+          o.setAttribute('aria-pressed', j === i);
+        });
+      };
+      b.setAttribute('aria-pressed', i === initial);
+      host.appendChild(b);
+    });
+  }
+  picker('scenes', SCENES.map(function (s) { return s.name.toUpperCase(); }), 0,
+         function (i) { scene = i; });
+  picker('speeds', ['FULL', 'HALF', 'QUARTER'], 0,
+         function (i) { speed = [1, 0.5, 0.25][i]; });
+
+  var sheet = document.getElementById('sheet');
+  var cells = ROWS.map(function (r) {
+    var fig = document.createElement('figure');
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    cv.style.width = (W * K) + 'px';
+    cv.style.height = (H * K) + 'px';
+    var cap = document.createElement('figcaption');
+    cap.innerHTML = '<b>' + (r.v < 0 ? '' : '+') + r.v + ' · ' + r.kind + '</b>' + r.note;
+    fig.appendChild(cv); fig.appendChild(cap);
+    sheet.appendChild(fig);
+    return { ctx: cv.getContext('2d'), fb: new FB(W, H), r: r };
+  });
+
+  (function loop(now) {
+    var P = SCENES[scene].pal;
+    var cycle = (ScorePop.LIFE + GAP) / speed;
+    var ms = (now % cycle) * speed;
+    cells.forEach(function (c) {
+      var fb = c.fb;
+      fb.clear();
+      fb.skyBand(0, 0, W, H, P.sky);
+      fb.dim(PAD + 3, PAD + 4, CW, CH, 0.5);
+      cardFace(fb, PAD, PAD, CW, CH, c.r.card[0], c.r.card[1], P);
+      ScorePop.draw(fb, PAD, PAD, CW, CH, ms, c.r.v, c.r.kind);
+      c.ctx.putImageData(new ImageData(new Uint8ClampedArray(fb.d), W, H), 0, 0);
+    });
+    requestAnimationFrame(loop);
+  })(0);
+})();
+</script>
+</body>
+</html>
