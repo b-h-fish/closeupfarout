@@ -359,38 +359,20 @@
      across the middle and the rotation goes with them. 40x33 against a 32x44
      card is what clears it, and 110 of the band's 111 is what that spends.
 
-     Exactly one card is face up — the frontmost, chosen by depth rather than
-     by a threshold. A threshold looks equivalent and is not: the gap between
-     eight cards is 45 degrees, so two of them sit inside any window wide
-     enough to always contain one, and the face flickers between one card and
-     two. Each time the front passes to the next card it is dealt a new one,
-     which is the same rule the menu fan follows.
-
-     It is always an ace, in one of the four suits. cardFace lays its pips
-     across h-32, so at the 44 this ring can afford, five pips upward merge
-     into vertical blobs and the court art draws outside the card entirely —
-     A-4 survive. The ace is the clearest of those by a distance, because one
-     large pip is the only arrangement with room to breathe at this size, and
-     a wheel is read in glances. Rendering the whole deck at 44 and looking at
-     it is what settled this; the first cut dealt any rank at 29 tall and the
-     face was a red smear. */
-  var wheelSlot = -1, wheelCard = { r: 'A', s: 'S' };
-
+     All face down. Nothing has been dealt yet — there is no hand, no board
+     and no opponent — so a card turned up here would be showing something
+     the game does not know. Backs also hold their read at every size on the
+     ring, which no face does: cardFace lays its pips across h-32, and at 44
+     anything above a four merges into blobs. */
   function drawWheel(cx, cy) {
     var p = pal(), n = 8, RX = 40, RY = 33, TAU = Math.PI * 2;
     var spin = now * 0.0010;
     var at = [];
     for (var i = 0; i < n; i++) {
       var a = spin + i * TAU / n;
-      at.push({ i: i, a: a, depth: Math.cos(a) });
+      at.push({ a: a, depth: Math.cos(a) });
     }
     at.sort(function (u, v) { return u.depth - v.depth; });   // far ones first
-
-    var front = at[n - 1];
-    if (front.i !== wheelSlot) {
-      wheelSlot = front.i;
-      wheelCard = { r: 'A', s: MENU_SUITS[(Math.random() * MENU_SUITS.length) | 0] };
-    }
 
     for (var k = 0; k < n; k++) {
       var o = at[k];
@@ -399,8 +381,7 @@
       var x = cx + Math.round(Math.sin(o.a) * RX) - (cw >> 1);
       var y = cy + Math.round(o.depth * RY) - (ch >> 1);
       fb.dim(x + 2, y + 3, cw, ch, 0.5);
-      if (o === front) cardFace(fb, x, y, cw, ch, wheelCard.r, wheelCard.s, p);
-      else             cardBack(fb, x, y, cw, ch, p);
+      cardBack(fb, x, y, cw, ch, p);
     }
   }
 
