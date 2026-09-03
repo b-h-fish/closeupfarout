@@ -1253,7 +1253,12 @@
 
     // ── stock ──
     var s = stockBox();
-    if (s.big) {
+    /* Gone once the game is over, the same way the calls are. An exhausted
+       stock drew as an empty outline — a frame around nothing, left standing
+       behind the standings, and the one thing on the board still asking to be
+       looked at when there is nothing left to deal. */
+    var settled = g.phase === 'WON' || g.phase === 'LOST';
+    if (s.big && !settled) {
       fb.dim(s.x+3, s.y+4, CARD_W, CARD_H, 0.55);
       if (HiLo.stockLeft(g) > 0) cardBack(fb, s.x, s.y, CARD_W, CARD_H, p);
       else { fb.frame(s.x, s.y, CARD_W, CARD_H, p.hudDim); }
