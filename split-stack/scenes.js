@@ -145,6 +145,10 @@ function palm(fb, x, baseY, h, lean, P2, seed, sway) {
    inherits the whole of that work by calling these two. */
 var GROUND = 0.58;
 function groundY(H)    { return Math.round(H * GROUND); }
+/* The lit lip where the scene meets the deck. Half what it was: at a
+   twentieth of the height it read as an ornament laid between the two, and
+   at a fortieth it reads as the edge of the ground catching the light. */
+function groundBand(H) { return Math.min(11, Math.round(H * 0.025)); }
 
 /* A galactic band. skyBand only ramps vertically, so this is the one genuinely
    new primitive the setting needs: distance from a tilted line, dithered so the
@@ -748,6 +752,7 @@ function drawScene(fb, S, W, H, noMotion) {
     skyline(fb, 0, r(0.16), W, gy, p.tower, p.lit, p.litDim, 23, 0.26, found);
     duskPickLive(found, W, H, p);
     fb.rect(0, gy, W, H, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
   } else if (S.key === 'space') {
     fb.skyBand(0, 0, W, gy, p.sky);
@@ -775,8 +780,9 @@ function drawScene(fb, S, W, H, noMotion) {
     var seen = [];
     stars(fb, W, gy, p, Math.max(90, Math.round(W * gy / 560)), 1301, seen, noMotion);
     if (noMotion) spaceSetLive(seen, p);
-    // the deck: flat, meeting the dark on a hard edge like the others
+    // the deck: flat, and a lit lip where it meets the dark, like the others
     fb.rect(0, gy, W, H - gy, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
 
   } else if (S.key === 'jungle') {
     fb.skyBand(0, 0, W, gy, p.sky);        // dark overhead, bright down the trail
@@ -858,6 +864,7 @@ function drawScene(fb, S, W, H, noMotion) {
     canopy(fb, W, gy, gy * 0.13, p.leafNear, 266, 12, true, bh2);
 
     fb.rect(0, gy, W, H - gy, p.floor);
+    fb.skyBand(0, gy, W, groundBand(H), [p.floorLit, p.floor]);
     if (bag) { jungleDone(bag, pre, fb, W); jungleBrush(bh1, bh2, W, gy, p); }
 
   } else {
@@ -888,6 +895,7 @@ function drawScene(fb, S, W, H, noMotion) {
        set of crests on another. */
     if (!noMotion) water(fb, p, W, wtop, wbot, 0);
     fb.rect(0, wbot, W, H-wbot, p.floor);
+    fb.skyBand(0, wbot, W, groundBand(H), [p.floorLit, p.floor]);
     // palms spread across whatever width we were given, rather than the four
     // hand-placed ones the mock could get away with
     /* Palms are placed rather than merely scattered: each one knows how far
