@@ -19,6 +19,90 @@
      Split. It now sits face up for a beat before it turns. */
   var DEAL_MS = 380, HOLD_MS = 740, FLIP_MS = 380;
 
+  /* ── the points, on the pile that earned them ──
+     One size throughout: it slides up as it arrives, holds for a second, and
+     goes in a hurry. No settle from a larger size — the arrival is the whole
+     of the movement.
+
+     Colour carries which call it was, so the four are told apart before the
+     digit is read. Fixed hex rather than the setting's palette, for the same
+     reason the avatars are: what a Split is worth does not change with the
+     time of day. Every one is outlined, which is what lets them sit on card
+     stock with no plate behind them — an offset drop shadow leaves two sides
+     of every stroke touching the card, and on a court card those sides
+     disappear. */
+  var POP_K = 3, POP_LIFT = 12;
+  var POP_SLIDE = 220, POP_HOLD = 1000, POP_FADE = 140;
+  var POP_LIFE = POP_SLIDE + POP_HOLD + POP_FADE;
+  var POP_INK = {
+    PLACE: hex('#4da6ff'),   // a Hi or a Lo
+    SUIT:  hex('#ffd23c'),
+    SPLIT: hex('#4fd67a'),
+    KILL:  hex('#ff4d5a')
+  };
+  var POP_EDGE = hex('#140f1c');
+  var pops = [];
+  /* ?mock=pop keeps four of them on the board, one per kind, re-armed as
+     they expire. A pop lasts a second and a third; without this the only way
+     to look at one is to play a hand and be quick. */
+  var mockPops = false;
+
+  /* What a resolved call paid, read off the same PAYS table the engine scores
+     with rather than off literals here — a repriced call must not leave the
+     board saying one thing and the scoreboard another. */
+  function payFor(last) {
+    if (!last || !last.call) return null;
+    if (!last.survived)         return { v: HiLo.PAYS.KILL,  kind: 'KILL' };
+    if (last.call === 'SPLIT')  return { v: HiLo.PAYS.SPLIT, kind: 'SPLIT' };
+    if (last.call === 'SUIT')   return { v: HiLo.PAYS.SUIT,  kind: 'SUIT' };
+    return { v: HiLo.PAYS.PLACE, kind: 'PLACE' };
+  }
+
+  /* Glyphs a pixel at a time, so the fade can be an ordered dither. There is
+     no alpha in this renderer — a pixel is on or it is off — and the Bayer
+     table the skies already dissolve through is what stands in for one. */
+  function popGlyphs(str, x, y, k, col, keep) {
+    for (var i = 0; i < str.length; i++) {
+      var gl = GLYPH[str[i]];
+      if (!gl) continue;
+      for (var j = 0; j < gl.length; j++) {
+        var row = gl[j];
+        for (var m = 0; m < row.length; m++) {
+          if (row[m] === '.') continue;
+          var px = x + i * 6 * k + m * k, py = y + j * k;
+          if (keep < 1 &&
+              BAYER[((py / k) | 0) & 7][((px / k) | 0) & 7] / 64 >= keep) continue;
+          fb.rect(px, py, k, k, col);
+        }
+      }
+    }
+  }
+
+  function drawPops() {
+    for (var i = pops.length - 1; i >= 0; i--) {
+      var o = pops[i], age = now - o.at;
+      if (age < 0) continue;
+      if (age >= POP_LIFE) { pops.splice(i, 1); continue; }
+
+      var b = pileBox(o.pile);
+      var str = (o.v < 0 ? '-' : '+') + Math.abs(o.v);
+      var lift = Math.round(POP_LIFT * Math.min(1, age / POP_SLIDE));
+      var x = b.x + ((b.w - fb.textW(str, POP_K)) >> 1);
+      var y = b.y + (b.h >> 1) - ((7 * POP_K) >> 1) - lift;
+      var keep = age < POP_SLIDE + POP_HOLD
+        ? 1
+        : 1 - (age - POP_SLIDE - POP_HOLD) / POP_FADE;
+
+      var ink = POP_INK[o.kind] || POP_INK.PLACE;
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          if (dx || dy) popGlyphs(str, x + dx * POP_K, y + dy * POP_K, POP_K, POP_EDGE, keep);
+        }
+      }
+      popGlyphs(str, x, y, POP_K, ink, keep);
+    }
+  }
+
   var WM_X = 6, WM_Y = 6;                // the mark's corner, in world units
   /* A coarse pointer is the only thing that tells a tablet from a desktop
      window of the same shape; read once, since it cannot change under us.
@@ -1209,6 +1293,14 @@
         strip(b.x + (b.w >> 1), Math.min(stripY, H - blockH2 - 8), b.w, twoUp);
       }
     }
+    if (mockPops && !pops.length) {
+      var KINDS = [['PLACE', HiLo.PAYS.PLACE], ['SUIT', HiLo.PAYS.SUIT],
+                   ['SPLIT', HiLo.PAYS.SPLIT], ['KILL', HiLo.PAYS.KILL]];
+      for (var mi = 0; mi < KINDS.length; mi++) {
+        pops.push({ pile: mi * 5, v: KINDS[mi][1], kind: KINDS[mi][0], at: now });
+      }
+    }
+    if (mp()) drawPops();
     if (mp()) drawClock();
     if (g.phase === 'WON' || g.phase === 'LOST') {
       if (mp()) drawStandings(); else drawResult();
@@ -1418,6 +1510,14 @@
 
   function endFx() {
     var was = fx; fx = null;
+    /* The points show when the card lands. Raised at the moment of the call
+       instead, the figure sat over a pile whose card was still in the air.
+       g.last still describes this call: applyRemote flushes the running fx
+       before applying the next action, so nothing has overwritten it. */
+    if (was.kind === 'deal' && mp() && g) {
+      var pay = payFor(g.last);
+      if (pay) pops.push({ pile: was.pile, v: pay.v, kind: pay.kind, at: now });
+    }
     if (was.kind === 'deal' && !g.piles[was.pile].alive) {
       // a beat with the losing card still face up, before it turns over
       fx = { kind:'hold', pile:was.pile, t:0, dur:HOLD_MS };
@@ -1443,7 +1543,9 @@
         netMsg = '';
         if (m.started) {
           g = HiLo.replay(m.seed, m.cols, m.rows, m.players, m.log);
-          screen = 'GAME'; fx = null; focus = 0;
+          /* A resync replays the whole log at once. Anything still on screen
+             belongs to the game before the reconnect. */
+          screen = 'GAME'; fx = null; focus = 0; pops.length = 0;
           turnEndsAt = m.msLeft > 0 ? Date.now() + m.msLeft : 0;
           turnSpan = m.msLeft > 0 ? m.msLeft : 0;
           fit();
@@ -1458,7 +1560,7 @@
         if (room) room.seats = m.seats;
         g = HiLo.create(m.seed, m.cols, m.rows, m.players);
         screen = 'GAME'; fx = null; focus = 0; mpOver = null;
-        turnEndsAt = 0; turnSpan = 0;
+        turnEndsAt = 0; turnSpan = 0; pops.length = 0;
         fit();
         say('Game started. ' + m.players + ' players.');
       },
@@ -1524,6 +1626,7 @@
     if (queued) { queued.leave(); queued = null; queueInfo = null; }
     if (net) net.close();
     net = null; room = null; mpOver = null; turnEndsAt = 0; turnSpan = 0; netMsg = '';
+    pops.length = 0;
     typing = null; roomMode = 'pick';
     pendingRoom = '';
     dropRoomFromUrl();
@@ -1989,7 +2092,7 @@
          nobody behind it. Searching is a state you pass through, so without
          this there is no way to sit and look at it. */
       if (mk === 'search') { screen = 'SEARCH'; queueInfo = { waiting: 3, need: 2 }; }
-      else if (mk) startMock(mk);
+      else if (mk) { startMock(mk === 'pop' ? 'turn' : mk); mockPops = (mk === 'pop'); }
 
       var rc = mk ? '' : Net.codeFromUrl();
       if (rc) {
