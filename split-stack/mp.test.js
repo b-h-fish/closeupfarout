@@ -3,7 +3,7 @@
 
    Companion to rules.test.js, which covers the game itself. These cover the
    things a shared board adds: who is allowed to act, what a call is worth,
-   and how the board-clear bonus lands.
+   and that nothing is paid beyond the calls themselves.
 
    Turn enforcement is tested here rather than trusted to the server on
    purpose. Because it lives in `legal`, a replayed log rejects an out-of-turn
@@ -158,10 +158,18 @@ ok('scores go negative rather than flooring', d.g.scores[0].score < 0);
   ok('a split holds the board for its author', false, 'no deal found');
 })();
 
-// ── the board-clear bonus ──
+/* A seat's score is the sum of what it called and nothing else. There used
+   to be a board-clear bonus that paid a seat's placements and suits a second
+   time; it is gone, and this is what says so. Asserted off PAYS rather than
+   off literals, so the check follows the table if a call is ever repriced. */
+function earned(s) {
+  return s.placements * H.PAYS.PLACE + s.suits * H.PAYS.SUIT +
+         s.splits * H.PAYS.SPLIT + s.kills * H.PAYS.KILL;
+}
+
+// ── clearing the board pays nothing extra ──
 (function () {
   const t = H.create(1234, 4, 4, 4);
-  // hand-build a finished game: drive it to WON however the deal allows
   let guard = 0;
   while (t.phase === 'PLAY' && guard++ < 200) {
     const seat = t.turn;
@@ -177,23 +185,24 @@ ok('scores go negative rather than flooring', d.g.scores[0].score < 0);
     }
   }
   if (t.phase === 'WON') {
-    ok('clearing the board pays a bonus', t.bonusPaid);
-    let anyBonus = false;
+    let scored = 0;
     for (let i = 0; i < 4; i++) {
-      const s = t.scores[i];
-      /* The bonus pays a seat's call earnings a second time, so it has to be
-         read off the same table the calls are — not a literal that drifts. */
-      ok('seat ' + i + ' bonus is its own calls doubled',
-         s.bonus === s.placements * H.PAYS.PLACE + s.suits * H.PAYS.SUIT);
-      if (s.bonus > 0) anyBonus = true;
+      ok('seat ' + i + ' is paid its calls and no more',
+         t.scores[i].score === earned(t.scores[i]),
+         'score ' + t.scores[i].score + ' vs calls ' + earned(t.scores[i]));
+      if (t.scores[i].score !== 0) scored = 1;
     }
-    ok('someone earned a bonus', anyBonus);
+    /* Without this the check above passes on a game where nobody called
+       anything, which is exactly the game it cannot speak for. */
+    ok('somebody actually scored in it', scored === 1);
+    ok('no seat carries a bonus field any more',
+       t.scores.every(s => s.bonus === undefined), JSON.stringify(t.scores[0]));
   } else {
-    ok('the bonus game reached WON', false, 'ended ' + t.phase);
+    ok('the cleared-board game reached WON', false, 'ended ' + t.phase);
   }
 })();
 
-// ── a lost board pays no bonus ──
+// ── and neither does losing it ──
 (function () {
   const t = H.create(1234, 2, 2, 4);
   let guard = 0;
@@ -209,7 +218,9 @@ ok('scores go negative rather than flooring', d.g.scores[0].score < 0);
       H.apply(t, { t: 'REVIVE', pile: dead, by: t.turn });
     }
   }
-  ok('a lost board pays no bonus', t.phase !== 'LOST' || !t.bonusPaid);
+  ok('a finished board is still only worth its calls',
+     t.scores.every(s => s.score === earned(s)),
+     'phase ' + t.phase + ' ' + JSON.stringify(t.scores));
 })();
 
 // ── standings ──

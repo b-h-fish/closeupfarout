@@ -1644,7 +1644,7 @@
 
     if (kind === 'over') {
       /* Stop the game where the standings are worth looking at: a close top
-         two, somebody well behind, and a bonus actually paid. */
+         two and somebody well behind. */
       g.phase = 'WON';
       g.scores[0].placements = 6; g.scores[0].suits = 1; g.scores[0].splits = 1;
       g.scores[0].kills = 2; g.scores[0].score = 11;
@@ -1654,8 +1654,6 @@
       g.scores[2].kills = 4; g.scores[2].score = 0;
       g.scores[3].placements = 2; g.scores[3].suits = 0; g.scores[3].splits = 0;
       g.scores[3].kills = 5; g.scores[3].score = -8;
-      g.bonusPaid = true;
-      for (var b = 0; b < 4; b++) g.scores[b].bonus = g.scores[b].placements + g.scores[b].suits * 2;
       mpOver = { phase:'WON', scores:g.scores, standings:HiLo.standings(g) };
     }
 

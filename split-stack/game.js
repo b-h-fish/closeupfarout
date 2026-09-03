@@ -56,7 +56,7 @@ var HiLo = (function () {
   function makeScores(n) {
     var s = [], i;
     for (i = 0; i < n; i++) {
-      s.push({ score: 0, placements: 0, suits: 0, splits: 0, kills: 0, bonus: 0 });
+      s.push({ score: 0, placements: 0, suits: 0, splits: 0, kills: 0 });
     }
     return s;
   }
@@ -79,7 +79,6 @@ var HiLo = (function () {
       players: n,
       turn: 0,
       scores: makeScores(n),
-      bonusPaid: false,
       last: null,                 // what just happened, for the renderer to show
       log: []
     });
@@ -215,10 +214,10 @@ var HiLo = (function () {
     if (state.players > 1) state.turn = (state.turn + 1) % state.players;
   }
 
-  /* What each call pays. One table, read by both the per-call scoring and the
-     board-clear bonus — the bonus doubles what a seat earned by calling, so a
-     value changed in one place and not the other would leave the two
-     disagreeing about what a Suit was worth. */
+  /* What each call pays, and the whole of what anything pays. Clearing the
+     board earns nothing beyond the calls that cleared it: a seat's score is
+     the sum of what it called, start to finish, with no settling up at the
+     end that can reorder the table after the last card. */
   var PAYS = { PLACE: 1, SUIT: 3, SPLIT: 4, KILL: -2 };
 
   /* Points ride on the call, not on the board: a player's score is theirs
@@ -231,20 +230,6 @@ var HiLo = (function () {
     if (call === 'SPLIT')     { s.splits++;     s.score += PAYS.SPLIT; }
     else if (call === 'SUIT') { s.suits++;      s.score += PAYS.SUIT; }
     else                      { s.placements++; s.score += PAYS.PLACE; }
-  }
-
-  /* Clearing the board doubles what each player earned by calling — so the
-     reward lands on whoever called well rather than on whoever happens to be
-     behind. Splits are left out of the doubling; at four points they are
-     already paid. Paid once, guarded because settle can be reached twice. */
-  function awardClearBonus(state) {
-    if (state.players < 2 || state.bonusPaid) return;
-    state.bonusPaid = true;
-    for (var i = 0; i < state.players; i++) {
-      var s = state.scores[i];
-      s.bonus = s.placements * PAYS.PLACE + s.suits * PAYS.SUIT;
-      s.score += s.bonus;
-    }
   }
 
   /* Seats ordered as the end screen wants them: most points first, fewest
@@ -272,7 +257,7 @@ var HiLo = (function () {
      win, not a loss. */
   function settle(state) {
     if (state.phase === 'RESURRECT') return state;
-    if (stockLeft(state) === 0) { state.phase = 'WON'; awardClearBonus(state); }
+    if (stockLeft(state) === 0) state.phase = 'WON';
     else if (aliveCount(state) === 0) state.phase = 'LOST';
     else state.phase = 'PLAY';
     return autoPick(state);
