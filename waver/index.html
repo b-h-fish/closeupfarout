@@ -117,7 +117,7 @@
     // of the wheel, and the mix field all scale off it, so they stay in the
     // same proportion to each other however slow it goes. The field's own
     // motion is not in here: that lives in each line's `speed`.
-    const RATE = 0.55;
+    const RATE = 0.70;
     const W1 = 0.26 * RATE, W2 = 0.19 * RATE, WM = 0.13 * RATE;
     const TURN = 6 * RATE;   // degrees/sec the wheel turns    // hue is quantised this finely: one stroke() each,
                          // and ~7 degrees apart, which does not read as a step
