@@ -48,6 +48,52 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 200px 200px;
     }
+
+    /* The page's only chrome, and it is absent by default — see the controls
+       block in the script for when it comes and goes. Clickable only while
+       visible, so an invisible bar can never swallow a click meant for the
+       page. Sits above the grain, or the grain would veil it. */
+    .modes {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 60;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.3rem 1.7rem;
+      padding: 1.4rem 1.2rem;
+      padding-bottom: calc(1.4rem + env(safe-area-inset-bottom, 0px));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.65s ease;
+      font: 11px/1 ui-sans-serif, -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
+    }
+    .modes.awake { opacity: 1; pointer-events: auto; }
+
+    .modes button {
+      -webkit-appearance: none; appearance: none;
+      background: none;
+      border: 0;
+      padding: 0.4rem 0.2rem;
+      font: inherit;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #8fc7e8;
+      opacity: 0.5;
+      cursor: pointer;
+      transition: opacity 0.25s ease, color 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modes button:hover { opacity: 0.85; }
+    .modes button[aria-pressed="true"] { opacity: 1; color: #dceffa; }
+    .modes button:focus-visible {
+      outline: 1px solid rgba(220, 239, 250, 0.45);
+      outline-offset: 5px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .modes { transition: none; }
+    }
   </style>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
@@ -59,6 +105,8 @@
   <main><canvas id="waves" aria-hidden="true"></canvas></main>
 
   <div class="grain"></div>
+
+  <nav class="modes" id="modes" aria-label="Field modes"></nav>
 
   <script>
   (function () {
@@ -96,36 +144,56 @@
     const SPAN = SPAN_BOT - SPAN_TOP;
     const STEP = 6;  // px between sampled points along a line
 
-    const ALPHA = 0.20;
-    const SAT = 65, LIGHT = 73;     // the old palette's weight, as HSL
-
-    // ── the colour wash ──────────────────────────────────────────────
-    // Hue is a smooth field over the whole screen rather than a value held by
-    // a line or a cell. A line runs through several hues on its way across,
-    // and the boundaries between them are this field's own contours — curved
-    // and soft, instead of the straight edges a grid of cells leaves behind.
+    // ── the modes ────────────────────────────────────────────────────
+    // A mode is only numbers, so this list is both the settings and the
+    // version history: a look worth keeping becomes a row rather than a copy
+    // of the page, and a fix here reaches every one of them.
     //
-    // Two waves travelling at different angles and different speeds. Their
-    // sum is quasi-periodic, so patches of colour gather, slide across, and
-    // dissolve rather than cycling back to an arrangement already seen. Both
-    // terms travel: that is what carries the colour over the screen instead
-    // of making it pulse in place.
-    const SPREAD = 75;   // degrees of hue the wash carries at its fullest
-    const BANDS = 48;
+    // On the colour wash itself: hue is a smooth field over the whole screen
+    // rather than a value held by a line. A line runs through several hues on
+    // its way across, and the boundaries between them are that field's own
+    // contours — curved and soft, instead of the straight edges a grid of
+    // cells leaves behind. Two waves travel at different angles and speeds,
+    // and their sum is quasi-periodic, so patches of colour gather, slide
+    // across and dissolve rather than cycling back to an arrangement already
+    // seen. Both terms travel: that is what carries the colour over the
+    // screen instead of making it pulse in place.
+    const MODES = [
+      { id: 'wash', label: 'Wash',
+        alpha: 0.20,     // weight of a single line
+        sat: 65,         // the original shade's own saturation and lightness:
+        light: 73,       // #8fc7e8 is hsl(202, 66%, 73%)
+        blue: 202,       // the hue a mix of zero returns to, so zero is not an
+                         // approximation of the original look, it is the look
+        spread: 75,      // degrees of hue the wash carries at its fullest
+        bands: 48,       // hue quantised this finely: one stroke() per band,
+                         // ~7 degrees apart, which does not read as a step
+        rate: 0.70 },    // pace of the whole wash
+    ];
 
-    // One knob for the pace of the whole wash — the two hue waves, the turn
-    // of the wheel, and the mix field all scale off it, so they stay in the
-    // same proportion to each other however slow it goes. The field's own
-    // motion is not in here: that lives in each line's `speed`.
-    const RATE = 0.70;
-    const W1 = 0.26 * RATE, W2 = 0.19 * RATE, WM = 0.13 * RATE;
-    const TURN = 6 * RATE;   // degrees/sec the wheel turns    // hue is quantised this finely: one stroke() each,
-                         // and ~7 degrees apart, which does not read as a step
+    // The mode in force, and the handful of values derived from it. Switching
+    // recomputes these and nothing else — the lines are not rebuilt and the
+    // clock is not reset, so the field carries on through a change rather
+    // than restarting into it.
+    let M = MODES[0];
+    let W1, W2, WM, TURN, STROKES;
 
-    // The field's original hue. SAT and LIGHT above are already the original
-    // shade — #8fc7e8 is hsl(202, 66%, 73%) — so a mix of zero is not an
-    // approximation of the old look, it is the old look.
-    const BLUE = 202;
+    function applyMode(mode) {
+      M = mode;
+      // The wash's two waves, the turn of the wheel and the mix field all
+      // scale off one rate, so they hold their proportion at any pace. The
+      // field's own motion is deliberately outside it: that is per-line.
+      W1 = 0.26 * M.rate;
+      W2 = 0.19 * M.rate;
+      WM = 0.13 * M.rate;
+      TURN = 6 * M.rate;      // degrees/sec the wheel turns
+      // One stroke per band, at the band's middle hue. Within a mode these
+      // never change — the wash moves segments between bands rather than
+      // recolouring a band.
+      STROKES = Array.from({ length: M.bands }, (_, j) =>
+        'hsla(' + ((j + 0.5) / M.bands * 360).toFixed(1) + ',' +
+        M.sat + '%,' + M.light + '%,' + M.alpha + ')');
+    }
 
     // How far the wash takes over, as a second slow field of its own. It runs
     // at a different angle and speed from the hue, so the two never lock into
@@ -140,11 +208,11 @@
     function hueAt(u, v, t) {
       const q = 1.00 * fsin((u * 1.30 + v * 0.80) * TAU - t * W1)
               + 0.65 * fsin((u * 2.10 - v * 1.70) * TAU - t * W2);
-      const wash = t * TURN + (q / 1.65) * SPREAD;
+      const wash = t * TURN + (q / 1.65) * M.spread;
       // Hue is a circle, so take the short way round from blue to the wash.
-      let d = ((wash - BLUE) % 360 + 360) % 360;
+      let d = ((wash - M.blue) % 360 + 360) % 360;
       if (d > 180) d -= 360;
-      return BLUE + d * mixAt(u, v, t);
+      return M.blue + d * mixAt(u, v, t);
     }
 
     // Math.sin is the hot path at this count — a table is several times quicker
@@ -174,12 +242,6 @@
       });
     }
     const NORM = 1.00 + 0.42 + 0.65;
-
-    // One stroke per band, at the band's middle hue. These never change —
-    // the wash moves segments between bands rather than recolouring a band.
-    const STROKES = Array.from({ length: BANDS }, (_, j) =>
-      'hsla(' + ((j + 0.5) / BANDS * 360).toFixed(1) + ',' +
-      SAT + '%,' + LIGHT + '%,' + ALPHA + ')');
 
     let w = 0, h = 0;
 
@@ -211,8 +273,9 @@
       // One path per band, built in a single pass over the lines. A segment
       // joins the band its own position falls in, so a line changes colour
       // partway across wherever it crosses a contour of the wash.
-      const paths = new Array(BANDS);
-      for (let j = 0; j < BANDS; j++) paths[j] = new Path2D();
+      const bands = M.bands;
+      const paths = new Array(bands);
+      for (let j = 0; j < bands; j++) paths[j] = new Path2D();
 
       for (const ln of lines) {
         const baseY = ln.y * h;
@@ -234,8 +297,8 @@
           // The wash is sampled at the segment's own position, so colour
           // follows the line as it rises and falls rather than sitting in a
           // fixed layer the line passes behind.
-          let g = (hueAt(u, sy / h, t) / 360 * BANDS) | 0;
-          g = ((g % BANDS) + BANDS) % BANDS;   // hue is a circle, and negative
+          let g = (hueAt(u, sy / h, t) / 360 * bands) | 0;
+          g = ((g % bands) + bands) % bands;   // hue is a circle, and negative
 
           if (run < 0) {
             paths[g].moveTo(sx, sy);
@@ -257,7 +320,7 @@
         }
       }
 
-      for (let j = 0; j < BANDS; j++) {
+      for (let j = 0; j < bands; j++) {
         ctx.strokeStyle = STROKES[j];
         ctx.stroke(paths[j]);
       }
@@ -284,8 +347,78 @@
     new ResizeObserver(() => { resize(); if (REDUCED) draw(0); }).observe(host);
     document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
 
+    // A mode named in the URL wins over the default, so a link opens the one
+    // the sender was looking at rather than whatever the default happens to be.
+    const asked = new URLSearchParams(location.search).get('mode');
+    applyMode(MODES.find(m => m.id === asked) || MODES[0]);
+
     resize();
     if (REDUCED) draw(0); else start();
+
+    /* ── the controls ──────────────────────────────────────────────────
+       The page's only chrome. It surfaces on any sign of someone there — a
+       pointer moving, a touch, a key — and withdraws once nothing has
+       happened for a few seconds, so the field is unaccompanied whenever it
+       is simply being watched.
+
+       Idleness is read from a timestamp on a slow interval rather than by
+       resetting a timer on every event: pointermove fires hundreds of times
+       a second, and clearing and rearming a timeout on each one is a lot of
+       churn for something that only needs checking three times a second.
+       ───────────────────────────────────────────────────────────────── */
+    const bar = document.getElementById('modes');
+    if (bar) {
+      const IDLE = 2600;    // ms of stillness before the controls withdraw
+      let lastAt = 0, awake = false;
+
+      function wake() {
+        lastAt = performance.now();
+        if (!awake) { awake = true; bar.classList.add('awake'); }
+      }
+
+      setInterval(() => {
+        if (!awake) return;
+        // Never pull the bar out from under the keyboard: a control that
+        // faded while focused would leave the focus ring on nothing.
+        if (bar.contains(document.activeElement)) { lastAt = performance.now(); return; }
+        if (performance.now() - lastAt > IDLE) {
+          awake = false;
+          bar.classList.remove('awake');
+        }
+      }, 300);
+
+      function select(i) {
+        applyMode(MODES[i]);
+        for (let j = 0; j < bar.children.length; j++) {
+          bar.children[j].setAttribute('aria-pressed', String(j === i));
+        }
+        // The mode travels in the URL. replaceState rather than pushState:
+        // the back button should leave the page, not walk back through every
+        // mode tried along the way.
+        const url = new URL(location.href);
+        url.searchParams.set('mode', MODES[i].id);
+        history.replaceState(null, '', url);
+        if (REDUCED) draw(0);
+        wake();
+      }
+
+      MODES.forEach((m, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = m.label;
+        b.setAttribute('aria-pressed', String(m === M));
+        b.addEventListener('click', () => select(i));
+        bar.appendChild(b);
+      });
+
+      ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart']
+        .forEach(ev => window.addEventListener(ev, wake, { passive: true }));
+      bar.addEventListener('focusin', wake);
+
+      // Shown on arrival and then left to withdraw — enough to be noticed
+      // without being insisted on.
+      wake();
+    }
   })();
   </script>
 
