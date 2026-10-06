@@ -111,9 +111,15 @@
     // terms travel: that is what carries the colour over the screen instead
     // of making it pulse in place.
     const SPREAD = 75;   // degrees of hue the wash carries at its fullest
-    const TURN = 6;      // degrees/sec the whole wheel turns, so the palette
-                         // itself keeps changing — a full turn takes a minute
-    const BANDS = 48;    // hue is quantised this finely: one stroke() each,
+    const BANDS = 48;
+
+    // One knob for the pace of the whole wash — the two hue waves, the turn
+    // of the wheel, and the mix field all scale off it, so they stay in the
+    // same proportion to each other however slow it goes. The field's own
+    // motion is not in here: that lives in each line's `speed`.
+    const RATE = 0.55;
+    const W1 = 0.26 * RATE, W2 = 0.19 * RATE, WM = 0.13 * RATE;
+    const TURN = 6 * RATE;   // degrees/sec the wheel turns    // hue is quantised this finely: one stroke() each,
                          // and ~7 degrees apart, which does not read as a step
 
     // The field's original hue. SAT and LIGHT above are already the original
@@ -127,13 +133,13 @@
     // which is what keeps patches of the original blue standing while colour
     // slides past them.
     function mixAt(u, v, t) {
-      const m = fsin((u * 0.90 - v * 1.40) * TAU - t * 0.13) * 0.75 + 0.35;
+      const m = fsin((u * 0.90 - v * 1.40) * TAU - t * WM) * 0.75 + 0.35;
       return m < 0 ? 0 : m > 1 ? 1 : m;
     }
 
     function hueAt(u, v, t) {
-      const q = 1.00 * fsin((u * 1.30 + v * 0.80) * TAU - t * 0.26)
-              + 0.65 * fsin((u * 2.10 - v * 1.70) * TAU - t * 0.19);
+      const q = 1.00 * fsin((u * 1.30 + v * 0.80) * TAU - t * W1)
+              + 0.65 * fsin((u * 2.10 - v * 1.70) * TAU - t * W2);
       const wash = t * TURN + (q / 1.65) * SPREAD;
       // Hue is a circle, so take the short way round from blue to the wash.
       let d = ((wash - BLUE) % 360 + 360) % 360;
