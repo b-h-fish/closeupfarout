@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Waver save 1 — closeupfarout</title>
+  <style>
+    /* ── WAVER · SAVE 1 ───────────────────────────────────────
+       A snapshot of /waver, frozen where it stood: the field filling the
+       screen, and the colour wash drifting at RATE 0.70 over standing blue.
+       Nothing here gets edited — /waver carries on from this point, and this
+       stays put so there is something to come back to and to diff against.
+
+       Still deliberately self-contained: no shared stylesheet, no shared
+       script, nothing here reaching into ../index.html. */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #090909;
+    }
+
+    /* The field's host: the script measures this for its size, and the canvas
+       is positioned against it. */
+    main {
+      position: fixed;
+      inset: 0;
+      background: #090909;
+    }
+
+    /* Must stay absolutely positioned. In flow a <canvas> is a replaced element
+       whose intrinsic size comes from its width/height attributes, and it would
+       size the layout rather than overlay it. */
+    #waves {
+      position: absolute;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+    }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+  </style>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+
+  <main><canvas id="waves" aria-hidden="true"></canvas></main>
+
+  <div class="grain"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // A dense field of light-blue lines. Each is a sum of three sines at
+    // unrelated frequencies rather than one clean sine, so the curve wanders
+    // instead of repeating — the difference between reading as water and
+    // reading as a signal trace.
+    //
+    // Parameters vary smoothly with position down the field rather than being
+    // drawn at random per line. At this density random parameters read as fizz;
+    // related ones read as a field, with neighbours moving almost together and
+    // the whole thing shearing slowly. The progressive `phase` is what makes
+    // the crests travel down the field rather than each line pulsing in place.
+    const host = document.querySelector('main');
+    const canvas = document.getElementById('waves');
+    if (!host || !canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const TAU = Math.PI * 2;
+
+    // Spacing, not CPU, is the binding constraint — much below ~1.2px apart the
+    // lines stop resolving and flatten into a wash. So the count is derived
+    // from the height on offer rather than fixed.
+    const SPACING = 1.2;
+    const N_MIN = 40, N_MAX = 750;
+
+    // The field runs past the top and bottom of the screen by more than any
+    // line's amplitude, so a line swinging can never uncover an edge. At
+    // 0.02..0.98 the outermost line pulled away from the top and left a band
+    // of background behind it; the count scales with the span to hold SPACING.
+    const SPAN_TOP = -0.035, SPAN_BOT = 1.035;
+    const SPAN = SPAN_BOT - SPAN_TOP;
+    const STEP = 6;  // px between sampled points along a line
+
+    const ALPHA = 0.20;
+    const SAT = 65, LIGHT = 73;     // the old palette's weight, as HSL
+
+    // ── the colour wash ──────────────────────────────────────────────
+    // Hue is a smooth field over the whole screen rather than a value held by
+    // a line or a cell. A line runs through several hues on its way across,
+    // and the boundaries between them are this field's own contours — curved
+    // and soft, instead of the straight edges a grid of cells leaves behind.
+    //
+    // Two waves travelling at different angles and different speeds. Their
+    // sum is quasi-periodic, so patches of colour gather, slide across, and
+    // dissolve rather than cycling back to an arrangement already seen. Both
+    // terms travel: that is what carries the colour over the screen instead
+    // of making it pulse in place.
+    const SPREAD = 75;   // degrees of hue the wash carries at its fullest
+    const BANDS = 48;
+
+    // One knob for the pace of the whole wash — the two hue waves, the turn
+    // of the wheel, and the mix field all scale off it, so they stay in the
+    // same proportion to each other however slow it goes. The field's own
+    // motion is not in here: that lives in each line's `speed`.
+    const RATE = 0.70;
+    const W1 = 0.26 * RATE, W2 = 0.19 * RATE, WM = 0.13 * RATE;
+    const TURN = 6 * RATE;   // degrees/sec the wheel turns    // hue is quantised this finely: one stroke() each,
+                         // and ~7 degrees apart, which does not read as a step
+
+    // The field's original hue. SAT and LIGHT above are already the original
+    // shade — #8fc7e8 is hsl(202, 66%, 73%) — so a mix of zero is not an
+    // approximation of the old look, it is the old look.
+    const BLUE = 202;
+
+    // How far the wash takes over, as a second slow field of its own. It runs
+    // at a different angle and speed from the hue, so the two never lock into
+    // step. The bias leaves roughly a third of the screen sitting at zero,
+    // which is what keeps patches of the original blue standing while colour
+    // slides past them.
+    function mixAt(u, v, t) {
+      const m = fsin((u * 0.90 - v * 1.40) * TAU - t * WM) * 0.75 + 0.35;
+      return m < 0 ? 0 : m > 1 ? 1 : m;
+    }
+
+    function hueAt(u, v, t) {
+      const q = 1.00 * fsin((u * 1.30 + v * 0.80) * TAU - t * W1)
+              + 0.65 * fsin((u * 2.10 - v * 1.70) * TAU - t * W2);
+      const wash = t * TURN + (q / 1.65) * SPREAD;
+      // Hue is a circle, so take the short way round from blue to the wash.
+      let d = ((wash - BLUE) % 360 + 360) % 360;
+      if (d > 180) d -= 360;
+      return BLUE + d * mixAt(u, v, t);
+    }
+
+    // Math.sin is the hot path at this count — a table is several times quicker
+    // and the error is invisible at these amplitudes.
+    const LUT_BITS = 12, LUT_N = 1 << LUT_BITS;
+    const LUT = new Float32Array(LUT_N);
+    for (let i = 0; i < LUT_N; i++) LUT[i] = Math.sin(i / LUT_N * TAU);
+    const SCALE = LUT_N / TAU;
+    const fsin = a => LUT[((a * SCALE) | 0) & (LUT_N - 1)];
+
+    let lines = [];
+
+    function buildLines(n) {
+      lines = Array.from({ length: n }, (_, i) => {
+        const f = i / (n - 1); // 0 at the top of the field, 1 at the bottom
+        return {
+          y: SPAN_TOP + f * SPAN,
+          amp: 0.010 + 0.013 * (0.5 + 0.5 * Math.sin(f * 5.1 + 0.7)),
+          // Neighbouring lines sit slightly further through the same waveform,
+          // which is what turns a stack of curves into a travelling swell.
+          phase: f * 12.0,
+          k1: 1.10 + 0.45 * Math.sin(f * 3.3),
+          k2: 2.60 + 0.60 * Math.sin(f * 2.1 + 1.3),
+          k3: 0.55 + 0.20 * Math.sin(f * 4.7 + 2.2),
+          speed: 0.05 + 0.045 * Math.sin(f * 2.6 + 0.4),
+        };
+      });
+    }
+    const NORM = 1.00 + 0.42 + 0.65;
+
+    // One stroke per band, at the band's middle hue. These never change —
+    // the wash moves segments between bands rather than recolouring a band.
+    const STROKES = Array.from({ length: BANDS }, (_, j) =>
+      'hsla(' + ((j + 0.5) / BANDS * 360).toFixed(1) + ',' +
+      SAT + '%,' + LIGHT + '%,' + ALPHA + ')');
+
+    let w = 0, h = 0;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = host.clientWidth;
+      h = host.clientHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      // Required, not belt-and-braces: <canvas> is a replaced element, so
+      // `inset: 0` with `width: auto` resolves to its intrinsic size (the
+      // attributes just set, in CSS px) rather than to the container. Without
+      // these the element is dpr times too large on a retina display.
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const n = Math.max(N_MIN, Math.min(N_MAX, Math.round(h * SPAN / SPACING)));
+      if (n !== lines.length) buildLines(n);
+    }
+
+    function draw(t) {
+      if (!w || !h) return; // not laid out yet
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineWidth = 1;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      // One path per band, built in a single pass over the lines. A segment
+      // joins the band its own position falls in, so a line changes colour
+      // partway across wherever it crosses a contour of the wash.
+      const paths = new Array(BANDS);
+      for (let j = 0; j < BANDS; j++) paths[j] = new Path2D();
+
+      for (const ln of lines) {
+        const baseY = ln.y * h;
+        const amp = ln.amp * h;
+        const drift = ln.phase + t * ln.speed;
+        let run = -1, px = 0, py = 0;
+
+        for (let x = 0; ; x += STEP) {
+          // The last sample lands exactly on the right edge whatever STEP
+          // divides into, rather than up to STEP short of it.
+          const last = x >= w;
+          const sx = last ? w : x;
+          const u = sx / w;
+          const v = 1.00 * fsin(u * ln.k1 * TAU + drift)
+                  + 0.42 * fsin(u * ln.k2 * TAU + drift * 1.3)
+                  + 0.65 * fsin(u * ln.k3 * TAU + drift * 0.7);
+          const sy = baseY + (v / NORM) * amp;
+
+          // The wash is sampled at the segment's own position, so colour
+          // follows the line as it rises and falls rather than sitting in a
+          // fixed layer the line passes behind.
+          let g = (hueAt(u, sy / h, t) / 360 * BANDS) | 0;
+          g = ((g % BANDS) + BANDS) % BANDS;   // hue is a circle, and negative
+
+          if (run < 0) {
+            paths[g].moveTo(sx, sy);
+            run = g;
+          } else if (g !== run) {
+            // The crossing segment goes into both runs. Starting the new one
+            // at this point alone would leave a STEP-wide gap at every colour
+            // change, and those gaps would trace the contours in background.
+            paths[run].lineTo(sx, sy);
+            paths[g].moveTo(px, py);
+            paths[g].lineTo(sx, sy);
+            run = g;
+          } else {
+            paths[g].lineTo(sx, sy);
+          }
+
+          px = sx; py = sy;
+          if (last) break;
+        }
+      }
+
+      for (let j = 0; j < BANDS; j++) {
+        ctx.strokeStyle = STROKES[j];
+        ctx.stroke(paths[j]);
+      }
+    }
+
+    let raf = null;
+    const startedAt = performance.now();
+
+    function frame(now) {
+      draw((now - startedAt) / 1000);
+      raf = requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (raf || REDUCED) return;
+      raf = requestAnimationFrame(frame);
+    }
+    function stop() {
+      if (!raf) return;
+      cancelAnimationFrame(raf);
+      raf = null;
+    }
+
+    new ResizeObserver(() => { resize(); if (REDUCED) draw(0); }).observe(host);
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+    resize();
+    if (REDUCED) draw(0); else start();
+  })();
+  </script>
+
+</body>
+</html>
