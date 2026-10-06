@@ -97,27 +97,48 @@
     const STEP = 6;  // px between sampled points along a line
 
     const ALPHA = 0.20;
-
-    // Colour comes from where a segment sits on screen now, not from which
-    // line it belongs to. The screen is a grid of cells, each a 60th of it,
-    // and every cell takes a random hue that is rerolled on a fixed beat.
-    //
-    // Cells draw from a small set of hues rather than each holding its own:
-    // it keeps the frame to one stroke() per hue, and neighbours landing on
-    // the same colour breaks up the grid that 60 separate hues would show.
-    const COLS = 10, ROWS = 6;      // 60 cells, so each is a 60th of the screen
-    const CELLS = COLS * ROWS;
-    const HUES = 12;                // distinct colours alive at any one moment
-    const CYCLE = 1.2;              // seconds between rerolls
     const SAT = 65, LIGHT = 73;     // the old palette's weight, as HSL
 
-    // Deterministic noise, so a cell's colour is a pure function of (cell,
-    // beat): nothing to store, nothing to rebuild, and the reroll happens by
-    // the beat number changing rather than by a timer firing.
-    function hash(i, beat) {
-      let x = (i * 374761393 + beat * 668265263) | 0;
-      x = Math.imul(x ^ (x >>> 13), 1274126177);
-      return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+    // ── the colour wash ──────────────────────────────────────────────
+    // Hue is a smooth field over the whole screen rather than a value held by
+    // a line or a cell. A line runs through several hues on its way across,
+    // and the boundaries between them are this field's own contours — curved
+    // and soft, instead of the straight edges a grid of cells leaves behind.
+    //
+    // Two waves travelling at different angles and different speeds. Their
+    // sum is quasi-periodic, so patches of colour gather, slide across, and
+    // dissolve rather than cycling back to an arrangement already seen. Both
+    // terms travel: that is what carries the colour over the screen instead
+    // of making it pulse in place.
+    const SPREAD = 75;   // degrees of hue the wash carries at its fullest
+    const TURN = 6;      // degrees/sec the whole wheel turns, so the palette
+                         // itself keeps changing — a full turn takes a minute
+    const BANDS = 48;    // hue is quantised this finely: one stroke() each,
+                         // and ~7 degrees apart, which does not read as a step
+
+    // The field's original hue. SAT and LIGHT above are already the original
+    // shade — #8fc7e8 is hsl(202, 66%, 73%) — so a mix of zero is not an
+    // approximation of the old look, it is the old look.
+    const BLUE = 202;
+
+    // How far the wash takes over, as a second slow field of its own. It runs
+    // at a different angle and speed from the hue, so the two never lock into
+    // step. The bias leaves roughly a third of the screen sitting at zero,
+    // which is what keeps patches of the original blue standing while colour
+    // slides past them.
+    function mixAt(u, v, t) {
+      const m = fsin((u * 0.90 - v * 1.40) * TAU - t * 0.13) * 0.75 + 0.35;
+      return m < 0 ? 0 : m > 1 ? 1 : m;
+    }
+
+    function hueAt(u, v, t) {
+      const q = 1.00 * fsin((u * 1.30 + v * 0.80) * TAU - t * 0.26)
+              + 0.65 * fsin((u * 2.10 - v * 1.70) * TAU - t * 0.19);
+      const wash = t * TURN + (q / 1.65) * SPREAD;
+      // Hue is a circle, so take the short way round from blue to the wash.
+      let d = ((wash - BLUE) % 360 + 360) % 360;
+      if (d > 180) d -= 360;
+      return BLUE + d * mixAt(u, v, t);
     }
 
     // Math.sin is the hot path at this count — a table is several times quicker
@@ -148,10 +169,11 @@
     }
     const NORM = 1.00 + 0.42 + 0.65;
 
-    // Flat colour, edge to edge — no end fade, so the lines carry their full
-    // weight right to both sides.
-    const strokeFor = hue =>
-      'hsla(' + hue.toFixed(1) + ',' + SAT + '%,' + LIGHT + '%,' + ALPHA + ')';
+    // One stroke per band, at the band's middle hue. These never change —
+    // the wash moves segments between bands rather than recolouring a band.
+    const STROKES = Array.from({ length: BANDS }, (_, j) =>
+      'hsla(' + ((j + 0.5) / BANDS * 360).toFixed(1) + ',' +
+      SAT + '%,' + LIGHT + '%,' + ALPHA + ')');
 
     let w = 0, h = 0;
 
@@ -180,19 +202,11 @@
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
 
-      // This beat's colour. The hue set and each cell's place in it are
-      // rerolled together, so the whole screen turns over at once.
-      const beat = Math.floor(t / CYCLE);
-      const hues = new Array(HUES);
-      for (let j = 0; j < HUES; j++) hues[j] = hash(j, beat) * 360;
-      const groupOf = new Uint8Array(CELLS);
-      for (let c = 0; c < CELLS; c++) groupOf[c] = (hash(c + 9973, beat) * HUES) | 0;
-
-      // One path per hue, built in a single pass over the lines. A segment
-      // joins the path of whatever cell it lands in, so a line changes colour
-      // partway across wherever it crosses a cell edge.
-      const paths = new Array(HUES);
-      for (let j = 0; j < HUES; j++) paths[j] = new Path2D();
+      // One path per band, built in a single pass over the lines. A segment
+      // joins the band its own position falls in, so a line changes colour
+      // partway across wherever it crosses a contour of the wash.
+      const paths = new Array(BANDS);
+      for (let j = 0; j < BANDS; j++) paths[j] = new Path2D();
 
       for (const ln of lines) {
         const baseY = ln.y * h;
@@ -211,21 +225,19 @@
                   + 0.65 * fsin(u * ln.k3 * TAU + drift * 0.7);
           const sy = baseY + (v / NORM) * amp;
 
-          // Lines that sit off the top or bottom take the nearest cell's
-          // colour; they are drawn only to keep the edges covered.
-          let row = (sy / h * ROWS) | 0;
-          if (row < 0) row = 0; else if (row >= ROWS) row = ROWS - 1;
-          let col = (u * COLS) | 0;
-          if (col >= COLS) col = COLS - 1;
-          const g = groupOf[row * COLS + col];
+          // The wash is sampled at the segment's own position, so colour
+          // follows the line as it rises and falls rather than sitting in a
+          // fixed layer the line passes behind.
+          let g = (hueAt(u, sy / h, t) / 360 * BANDS) | 0;
+          g = ((g % BANDS) + BANDS) % BANDS;   // hue is a circle, and negative
 
           if (run < 0) {
             paths[g].moveTo(sx, sy);
             run = g;
           } else if (g !== run) {
             // The crossing segment goes into both runs. Starting the new one
-            // at this point alone would leave a STEP-wide gap on every cell
-            // boundary, and the seams would read as a grid in background.
+            // at this point alone would leave a STEP-wide gap at every colour
+            // change, and those gaps would trace the contours in background.
             paths[run].lineTo(sx, sy);
             paths[g].moveTo(px, py);
             paths[g].lineTo(sx, sy);
@@ -239,8 +251,8 @@
         }
       }
 
-      for (let j = 0; j < HUES; j++) {
-        ctx.strokeStyle = strokeFor(hues[j]);
+      for (let j = 0; j < BANDS; j++) {
+        ctx.strokeStyle = STROKES[j];
         ctx.stroke(paths[j]);
       }
     }
