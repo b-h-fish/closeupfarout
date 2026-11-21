@@ -89,6 +89,16 @@
       transform: scale(4.0, 4.6);
     }
 
+    /* The other state a letter can come back in: the sideways lowercase from
+       the first version of this strip, when the whole wordmark ran down it like
+       a spine. The scales are swapped because the quarter turn swaps the axes —
+       4.6 is along the letter's own width, which is now the vertical. Turning
+       them also sidesteps a problem upright lowercase has: f and l have ascents
+       of ~59px against a 57.5px row, so they would overflow their row. */
+    #brand .ltr.alt {
+      transform: rotate(90deg) scale(4.6, 4.0);
+    }
+
     #brand text {
       font-family: 'Josefin Sans', sans-serif;
       font-weight: 200; /* 100 goes wispy once the strokes are stretched thin */
@@ -741,16 +751,20 @@
     if (!letters.length) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const MAX_GONE = 4;          // never more than this many away at once
-    // Tuned by simulation, not by eye: at [900,3400] the steady state pinned
-    // against the ceiling — 3 or 4 letters away 70% of the time, the full word
-    // visible 0.1%. Letters were leaving every ~2s but staying away ~7s. This
-    // sits at 1-3 away and touches 4 about 1% of the time, so the cap is a real
-    // ceiling rather than the resting state.
-    const GAP      = [1800, 5000]; // between one departure and the next
-    const FADE_OUT = [1600, 4200];
-    const DWELL    = [1500, 6500]; // time spent fully away
-    const FADE_IN  = [700, 3000];
+    // Counts letters mid-change, not just invisible ones — a letter part way
+    // through a fade is visibly disturbed, so that is what the ceiling should
+    // govern.
+    const MAX_GONE = 4;
+
+    // Settled by simulation against three things at once: each letter goes and
+    // returns quickly, each then holds still for a long time, and the column as
+    // a whole is never completely at rest. A letter's whole cycle is 6.7s, it
+    // holds about 22s between its own turns, and across 13 letters something is
+    // moving essentially 100% of the time. The pace already averages 3 away, so
+    // the ceiling of 4 only turns away about 2% of departures.
+    const FADE  = 3000;        // to go, and to return — one rate for both
+    const GAP   = [1200, 3200]; // between one letter leaving and the next
+    const DWELL = [300, 1000];  // fully invisible before it comes back
 
     const rnd = r => r[0] + Math.random() * (r[1] - r[0]);
     const gone = new Set();
@@ -764,14 +778,21 @@
       const open = letters.filter(el => !gone.has(el));
       if (gone.size < MAX_GONE && open.length) {
         const el = open[Math.floor(Math.random() * open.length)];
-        const out = rnd(FADE_OUT);
         gone.add(el);
-        fade(el, '0', out);
-        // Freed the moment it starts back, which is when it stops being away.
+        fade(el, '0', FADE);
+
         setTimeout(function () {
-          gone.delete(el);
-          fade(el, '1', rnd(FADE_IN));
-        }, out + rnd(DWELL));
+          // Swap states while it is invisible, so the column drifts between
+          // upright capitals and the sideways lowercase of the original strip
+          // rather than being one or the other. Letters in two different states
+          // is what keeps the stack from reading as uniform.
+          const c = el.textContent;
+          el.textContent = el.classList.toggle('alt') ? c.toLowerCase() : c.toUpperCase();
+          fade(el, '1', FADE);
+          // Held until it is fully back, so the ceiling counts it all the way
+          // through rather than freeing it the moment it starts returning.
+          setTimeout(function () { gone.delete(el); }, FADE);
+        }, FADE + rnd(DWELL));
       }
       setTimeout(step, rnd(GAP));
     }
