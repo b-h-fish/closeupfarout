@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;400&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@1,400&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,8 +19,10 @@
       --dim: rgba(26, 16, 8, 0.45);
       /* Slim bar across the top. A shade off the #090909 page so it separates
          without becoming a band of colour. */
-      --nav-h: 50px; /* 25% up from 40px */
-      --hdr: #171717;
+      --logo-w: 90px; /* the logo strip down the left edge */
+      /* One black for the whole page, so the logo strip is not a separate
+         surface that has to be kept matching. */
+      --page: #090909;
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
@@ -29,23 +31,21 @@
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
-      background: var(--paper);
+      background: var(--page);
       color: var(--ink);
     }
 
 
     /* ── HEADER ── */
+    /* The wordmark runs down the far left rather than across the top, so there
+       is no header band any more and the teasers start at the very top of the
+       page. */
     body > header {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0; bottom: 0; left: 0;
       z-index: 100;
-      height: var(--nav-h);
-      background: var(--hdr);
-      display: flex;
-      align-items: center;
-      /* Same 2rem the teaser uses, so the wordmark starts on the page's left
-         margin rather than a margin of its own. */
-      padding: 0 2rem;
+      width: var(--logo-w);
+      /* No background of its own — the page black shows through. */
     }
 
     /* The wordmark is stretched to the full width of the bar — every letter
@@ -58,15 +58,35 @@
        it reflows for free at any window width. preserveAspectRatio="none" maps
        the viewBox onto the element, which is what lets the height stay fixed
        while the width follows the bar. */
+    /* Upright capitals stacked down the strip. textLength cannot do this — it
+       stretches along the run, which once the letters stand up is the wrong
+       axis — so each letter gets its own row and its own vertical scale.
+
+       13 equal rows, 4vh clear at each end so the C and the T stay off the
+       edges. The left padding is what nudges the column toward Split rather
+       than sitting on the page margin. */
     #brand {
-      width: 100%;
-      line-height: 0; /* the svg is the only content — drop the text leading */
+      height: 100%;
+      display: grid;
+      grid-template-rows: repeat(13, 1fr);
+      place-items: center;
+      padding: 4vh 0 4vh 14px;
     }
 
-    #brand svg {
+    #brand .ltr {
       display: block;
-      width: 100%;
-      height: 30px;
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 400;
+      /* Glyph height is font-size x scaleY in fixed px, while the rows divide
+         the viewport — so a short window would have the letters running into
+         each other. Capping the size against vh keeps the ratio safe at any
+         height; 22px is the ceiling on a tall screen. */
+      font-size: min(18px, 2.05vh);
+      line-height: 1;
+      color: rgba(245, 242, 236, 0.85);
+      /* Wide as well as tall — the horizontal scale is what makes it read as
+         a logo rather than letters sitting in a margin. */
+      transform: scale(4.0, 4.6);
     }
 
     #brand text {
@@ -87,13 +107,14 @@
     /* ── MAIN: Cento teaser left, Split teaser lower right ── */
     main {
       position: fixed;
-      top: var(--nav-h);
-      left: 0; right: 0;
-      bottom: 0;
+      top: 0; bottom: 0;
+      left: var(--logo-w);
+      right: 0;
       display: grid;
-      /* Cento teaser takes 40%, Split the remaining 60%. */
-      grid-template-columns: 2fr 3fr;
-      background: #090909;
+      /* Split Stack now sits beside the logo strip and Cento takes the outside.
+         Each keeps the width it had before the swap — Split 60%, Cento 40%. */
+      grid-template-columns: 3fr 2fr;
+      background: var(--page);
     }
 
     /* ── Left: hover veil over the preview block ── */
@@ -150,13 +171,12 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      /* Full height of its column, under the header. */
-      grid-column: 1;
+      grid-column: 2;
       grid-row: 1;
       position: relative;
       z-index: 1;
-      /* Full margin against the page edge, half of it facing the right column. */
-      padding: 0 1rem 0 2rem;
+      /* Full margin against the page edge, half of it facing Split. */
+      padding: 0 2rem 0 1rem;
 
       /* Cento's own dark colourway, kept to this block so the rest of the page
          stays on paper. The voice hues need no adjustment — they were chosen
@@ -287,13 +307,13 @@
       min-height: 0;
       position: relative;
       z-index: 1;
-      grid-column: 2;
+      grid-column: 1;
       grid-row: 1;
       background: #090909;
       color: #f5f2ec;
-      /* Mirror of the weave's margins: full against the page edge, half
-         facing the left column. */
-      padding: 0 2rem 0 1rem;
+      /* Mirror of the weave's margins: half facing Cento, full against the
+         logo strip. */
+      padding: 0 1rem 0 2rem;
     }
 
     #hilo-link {
@@ -336,9 +356,11 @@
 
     /* ── MOBILE: the two previews stack ── */
     @media (max-width: 768px) {
+      /* The strip stays, just narrower — it is the only wordmark now. */
+      :root { --logo-w: 38px; }
       main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-      #weave-pane { grid-column: 1; grid-row: 1; }
-      #hilo-pane  { grid-column: 1; grid-row: 2; padding: 0 1.4rem; }
+      #hilo-pane  { grid-column: 1; grid-row: 1; padding: 0 1.4rem; }
+      #weave-pane { grid-column: 1; grid-row: 2; }
     }
   </style>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -349,15 +371,22 @@
 <body>
 
   <header>
-    <h1 id="brand">
+    <h1 id="brand" aria-label="closeupfarout">
       <!-- role/aria-label rather than relying on the <text> node: it names the
            heading the same way in every screen reader. -->
-      <svg viewBox="0 0 1000 40" preserveAspectRatio="none" role="img" aria-label="closeupfarout">
-        <!-- One tspan per letter so each can be faded on its own. textLength is
-             on the <text>, so the run is still stretched as a whole and the
-             layout is identical to the plain version. -->
-        <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs"><tspan class="ltr">c</tspan><tspan class="ltr">l</tspan><tspan class="ltr">o</tspan><tspan class="ltr">s</tspan><tspan class="ltr">e</tspan><tspan class="ltr">u</tspan><tspan class="ltr">p</tspan><tspan class="ltr">f</tspan><tspan class="ltr">a</tspan><tspan class="ltr">r</tspan><tspan class="ltr">o</tspan><tspan class="ltr">u</tspan><tspan class="ltr">t</tspan></text>
-      </svg>
+<span class="ltr" aria-hidden="true">C</span>
+        <span class="ltr" aria-hidden="true">L</span>
+        <span class="ltr" aria-hidden="true">O</span>
+        <span class="ltr" aria-hidden="true">S</span>
+        <span class="ltr" aria-hidden="true">E</span>
+        <span class="ltr" aria-hidden="true">U</span>
+        <span class="ltr" aria-hidden="true">P</span>
+        <span class="ltr" aria-hidden="true">F</span>
+        <span class="ltr" aria-hidden="true">A</span>
+        <span class="ltr" aria-hidden="true">R</span>
+        <span class="ltr" aria-hidden="true">O</span>
+        <span class="ltr" aria-hidden="true">U</span>
+        <span class="ltr" aria-hidden="true">T</span>
     </h1>
   </header>
 
