@@ -21,6 +21,8 @@
          without becoming a band of colour. */
       --nav-h: 50px; /* 25% up from 40px */
       --hdr: #171717;
+      /* One full turn of the year in the wordmark — four seasons, 15s each. */
+      --season: 60s;
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
@@ -73,7 +75,52 @@
       font-family: 'Josefin Sans', sans-serif;
       font-weight: 200; /* 100 goes wispy once the strokes are stretched thin */
       font-size: 36px;
-      fill: rgba(245, 242, 236, 0.85);
+    }
+
+    /* Kasane no irome — the Heian practice of layering robes in named seasonal
+       colour pairs. The wordmark turns through four of them, so the gradient
+       changes for a reason rather than drifting through hue.
+
+       Traditional palettes run muted, and the Edo greys and browns would vanish
+       against #171717 — so each season takes the lighter end of its range.
+       stop-color is an animatable CSS property, which is what lets this be
+       three keyframe rules rather than SMIL or a script. The stops also carry
+       stop-color attributes, so reduced motion lands on summer rather than on
+       nothing. */
+    #brand stop {
+      animation-duration: var(--season);
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+    #brand .s1 { animation-name: season1; }
+    #brand .s2 { animation-name: season2; }
+    #brand .s3 { animation-name: season3; }
+
+    /* The loop opens on summer and runs forward: summer, autumn, winter, spring.
+       浅葱 asagi · 山吹 yamabuki · 白藍 shiraai · 桜 sakura */
+    @keyframes season1 {
+      0%, 100% { stop-color: #7fd4d8; }
+      25%      { stop-color: #f8b500; }
+      50%      { stop-color: #c1e4e9; }
+      75%      { stop-color: #f6c6cf; }
+    }
+    /* 露草 tsuyukusa · 柿 kaki · 藤 fuji · 紅梅 kōbai */
+    @keyframes season2 {
+      0%, 100% { stop-color: #38a1db; }
+      25%      { stop-color: #ed6d3d; }
+      50%      { stop-color: #bbbcde; }
+      75%      { stop-color: #f2a0a1; }
+    }
+    /* 若竹 wakatake · 茜 akane · 藍 ai · 若草 wakakusa */
+    @keyframes season3 {
+      0%, 100% { stop-color: #68be8d; }
+      25%      { stop-color: #d4484e; }
+      50%      { stop-color: #4a84ab; }
+      75%      { stop-color: #c3d825; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #brand stop { animation: none; }
     }
 
     /* ── MAIN: Cento teaser left, Split teaser lower right ── */
@@ -345,7 +392,15 @@
       <!-- role/aria-label rather than relying on the <text> node: it names the
            heading the same way in every screen reader. -->
       <svg viewBox="0 0 1000 40" preserveAspectRatio="none" role="img" aria-label="closeupfarout">
-        <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs">closeupfarout</text>
+        <defs>
+          <linearGradient id="brand-season" x1="0" y1="0" x2="1" y2="0">
+            <stop class="s1" offset="0%"   stop-color="#7fd4d8"/>
+            <stop class="s2" offset="50%"  stop-color="#38a1db"/>
+            <stop class="s3" offset="100%" stop-color="#68be8d"/>
+          </linearGradient>
+        </defs>
+        <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs"
+              fill="url(#brand-season)">closeupfarout</text>
       </svg>
     </h1>
   </header>
