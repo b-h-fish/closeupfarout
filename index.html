@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200&family=Space+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Spectral:ital,wght@1,400&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -48,14 +48,32 @@
       padding: 0 2rem;
     }
 
+    /* The wordmark is stretched to the full width of the bar — every letter
+       widened by the same factor, so the proportions between them survive and
+       it still reads as a word.
+
+       SVG does this natively: textLength forces the run to an exact width and
+       lengthAdjust="spacingAndGlyphs" gets there by scaling the glyphs as well
+       as the gaps. So there is no measuring script and no resize listener, and
+       it reflows for free at any window width. preserveAspectRatio="none" maps
+       the viewBox onto the element, which is what lets the height stay fixed
+       while the width follows the bar. */
     #brand {
+      width: 100%;
+      line-height: 0; /* the svg is the only content — drop the text leading */
+    }
+
+    #brand svg {
+      display: block;
+      width: 100%;
+      height: 30px;
+    }
+
+    #brand text {
       font-family: 'Josefin Sans', sans-serif;
-      font-weight: 100;
-      font-size: 1.19rem; /* 25% up from 0.95rem */
-      letter-spacing: 0.15em;
-      text-transform: lowercase;
-      color: rgba(245, 242, 236, 0.78);
-      white-space: nowrap;
+      font-weight: 200; /* 100 goes wispy once the strokes are stretched thin */
+      font-size: 36px;
+      fill: rgba(245, 242, 236, 0.85);
     }
 
     /* ── MAIN: Cento teaser left, Split teaser lower right ── */
@@ -322,7 +340,15 @@
 </head>
 <body>
 
-  <header><h1 id="brand">closeupfarout</h1></header>
+  <header>
+    <h1 id="brand">
+      <!-- role/aria-label rather than relying on the <text> node: it names the
+           heading the same way in every screen reader. -->
+      <svg viewBox="0 0 1000 40" preserveAspectRatio="none" role="img" aria-label="closeupfarout">
+        <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs">closeupfarout</text>
+      </svg>
+    </h1>
+  </header>
 
   <main>
     <div id="weave-pane">
