@@ -327,6 +327,20 @@
     }
     .loading-msg { animation: fadeInOut 2s ease-in-out infinite; }
 
+    /* The archive is down. Readable rather than faint like the empty-state
+       dash — this one has something to say, and shouldn't pulse as though
+       it were still working. */
+    .outage-msg {
+      max-width: 34rem;
+      margin: 0 auto;
+      color: var(--ctrl);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      font-style: italic;
+      line-height: 1.7;
+      text-align: center;
+    }
+
     /* ── Voice panels ────────────────────────────────────────── */
     .vp {
       position: relative;
@@ -958,7 +972,16 @@
       const active = voices.filter(v => v.active && v.paragraphs.length > 0);
 
       if (!active.length) {
-        out.innerHTML = '<p class="loading-msg" style="animation:none;opacity:0.3">—</p>';
+        // Tell an upstream outage apart from the reader simply silencing
+        // everything. The API hands back source:'error' voices when it can't
+        // reach the archive, so four of those means Gutenberg is down rather
+        // than Cento being broken — which is what an empty weave looks like.
+        const live = voices.filter(v => v && v.active);
+        const sourceDown = live.length > 0 && live.every(v => v.source === 'error');
+
+        out.innerHTML = sourceDown
+          ? '<p class="outage-msg">Project Gutenberg is unavailable right now — Cento draws every voice from the archive, so there is nothing to weave until it returns.</p>'
+          : '<p class="loading-msg" style="animation:none;opacity:0.3">—</p>';
         return;
       }
 
