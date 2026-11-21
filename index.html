@@ -21,8 +21,6 @@
          without becoming a band of colour. */
       --nav-h: 50px; /* 25% up from 40px */
       --hdr: #171717;
-      /* One full pass of the wordmark across the bar. */
-      --tick: 60s;
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
@@ -45,9 +43,9 @@
       background: var(--hdr);
       display: flex;
       align-items: center;
-      /* No side padding: the wordmark now runs as a ticker, and letters have to
-         enter and leave at the screen edge or the loop reads as a mistake. */
-      padding: 0;
+      /* Same 2rem the teaser uses, so the wordmark starts on the page's left
+         margin rather than a margin of its own. */
+      padding: 0 2rem;
     }
 
     /* The wordmark is stretched to the full width of the bar — every letter
@@ -59,27 +57,15 @@
        as the gaps. So there is no measuring script and no resize listener, and
        it reflows for free at any window width. preserveAspectRatio="none" maps
        the viewBox onto the element, which is what lets the height stay fixed
-       while the width follows the bar.
-
-       The ticker is two identical copies on a track twice the bar's width,
-       slid by exactly half. At the end of the cycle copy two sits precisely
-       where copy one began, so the loop has no seam — and because each copy is
-       itself stretched to one bar width, the geometry holds at any size. */
+       while the width follows the bar. */
     #brand {
       width: 100%;
       line-height: 0; /* the svg is the only content — drop the text leading */
-      overflow: hidden;
-    }
-
-    #brand .track {
-      display: flex;
-      width: 200%;
-      animation: tick var(--tick) linear infinite;
     }
 
     #brand svg {
-      flex: 0 0 50%; /* one bar width each */
       display: block;
+      width: 100%;
       height: 30px;
     }
 
@@ -88,17 +74,6 @@
       font-weight: 200; /* 100 goes wispy once the strokes are stretched thin */
       font-size: 36px;
       fill: rgba(245, 242, 236, 0.85);
-    }
-
-    @keyframes tick {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-
-    /* Held still, the first copy fills the bar exactly — so the static state is
-       the stretched wordmark, not a half-scrolled one. */
-    @media (prefers-reduced-motion: reduce) {
-      #brand .track { animation: none; }
     }
 
     /* ── MAIN: Cento teaser left, Split teaser lower right ── */
@@ -367,17 +342,11 @@
 
   <header>
     <h1 id="brand">
-      <div class="track">
-        <!-- role/aria-label rather than relying on the <text> node: it names the
-             heading the same way in every screen reader. The second copy is
-             scenery — it exists only so the loop has no seam. -->
-        <svg viewBox="0 0 1000 40" preserveAspectRatio="none" role="img" aria-label="closeupfarout">
-          <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs">closeupfarout</text>
-        </svg>
-        <svg viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
-          <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs">closeupfarout</text>
-        </svg>
-      </div>
+      <!-- role/aria-label rather than relying on the <text> node: it names the
+           heading the same way in every screen reader. -->
+      <svg viewBox="0 0 1000 40" preserveAspectRatio="none" role="img" aria-label="closeupfarout">
+        <text x="0" y="31" textLength="1000" lengthAdjust="spacingAndGlyphs">closeupfarout</text>
+      </svg>
     </h1>
   </header>
 
