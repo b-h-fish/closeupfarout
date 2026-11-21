@@ -673,7 +673,26 @@
         setInterval(() => pane.classList.toggle('mono'), MONO_INTERVAL);
       }
 
-      setInterval(swapWeave, SWAP_INTERVAL);
+      // Only draw new books while someone can actually see them. A backgrounded
+      // tab left open would otherwise fetch four books a minute forever, and
+      // every one of those reaches R2 — nothing between here and the bucket
+      // caches. Swapping resumes on return, and the colour cycle above is left
+      // running either way since it is pure CSS and costs no requests.
+      let swapTimer = null;
+      const startSwapping = () => {
+        if (!swapTimer) swapTimer = setInterval(swapWeave, SWAP_INTERVAL);
+      };
+      const stopSwapping = () => {
+        clearInterval(swapTimer);
+        swapTimer = null;
+      };
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') stopSwapping();
+        else startSwapping();
+      });
+
+      if (document.visibilityState !== 'hidden') startSwapping();
     }
 
     load();
