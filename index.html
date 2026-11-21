@@ -80,7 +80,7 @@
       /* Glyph height is font-size x scaleY in fixed px, while the rows divide
          the viewport — so a short window would have the letters running into
          each other. Capping the size against vh keeps the ratio safe at any
-         height; 22px is the ceiling on a tall screen. */
+         height; 18px is the ceiling on a tall screen. */
       font-size: min(18px, 2.05vh);
       line-height: 1;
       color: rgba(245, 242, 236, 0.85);
@@ -89,15 +89,6 @@
       transform: scale(4.0, 4.6);
     }
 
-    /* The other state a letter can come back in: the sideways lowercase from
-       the first version of this strip, when the whole wordmark ran down it like
-       a spine. The scales are swapped because the quarter turn swaps the axes —
-       4.6 is along the letter's own width, which is now the vertical. Turning
-       them also sidesteps a problem upright lowercase has: f and l have ascents
-       of ~59px against a 57.5px row, so they would overflow their row. */
-    #brand .ltr.alt {
-      transform: rotate(90deg) scale(4.6, 4.0);
-    }
 
     #brand text {
       font-family: 'Josefin Sans', sans-serif;
@@ -107,12 +98,6 @@
     }
 
 
-    /* Letters leave and come back. The timing is random and stateful — how many
-       are away, and which — so it lives in the script rather than in keyframes;
-       all the CSS owes it is something to transition. */
-    #brand .ltr {
-      opacity: 1;
-    }
 
     /* ── MAIN: Cento teaser left, Split teaser lower right ── */
     main {
@@ -311,9 +296,22 @@
        actual thing rather than a picture of it. The game plays itself here
        through its own rules engine, renderer and palettes, so a card on the
        front page is the card you get when you follow the link. */
+    /* The pane read as one square quartered: Split Stack in the upper left,
+       the upper right empty for now, Waver across both lower cells.
+
+       The top row carries a minimum. The teaser only draws at whole-number
+       scales, and a 2x2 board needs 336x436 to reach scale 2 — at an even split
+       of an 813px viewport each row is 406, thirty short, and the cards halve.
+       minmax keeps the rows equal wherever there is room for both to clear the
+       floor (a viewport of ~888 and up) and holds it below that. The floor is
+       444 rather than 436 so the comparison is not decided by sub-pixel
+       rounding: at exactly 436 a fraction either way silently halves the card
+       and nothing reports it. */
     #hilo-pane {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: minmax(444px, 1fr) 1fr;
+      /* No gap: the two teasers meet. */
       min-height: 0;
       position: relative;
       z-index: 1;
@@ -327,8 +325,9 @@
     }
 
     #hilo-link {
+      grid-column: 1;
+      grid-row: 1;
       position: relative;
-      flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
@@ -345,8 +344,86 @@
       flex: 1;
       min-height: 0;
       /* Margin, not padding: the stage box is what the canvas measures itself
-         against, so it should already be the drawable area. */
-      margin: 1.2rem 0;
+         against, so it should already be the drawable area. No vertical margin
+         — the stage is the whole cell, so the two teasers touch. */
+    }
+
+    /* ── Waver teaser ── */
+    /* The real page in an iframe rather than a copy of its field. waver's test
+       pulls the script straight out of waver/index.html so it tests the page
+       and not a copy that can drift — which means there is no module to import
+       and reproducing the field here would be exactly the drift that test
+       exists to prevent. Embedding it cannot fall out of step. */
+    #waver-link {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      position: relative;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    #waver-stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* The same veil Cento wears, for the same reason: the teaser is a live
+       thing, so the name only appears when it is being reached for.
+       pointer-events: none is what lets the click pass through to the link
+       underneath rather than landing on the veil. */
+    #waver-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 9, 9, 0.88);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Touch devices have no hover, so the veil never shows — the tap just
+       follows the link through to Waver. */
+    @media (hover: hover) {
+      #waver-link:hover #waver-overlay { opacity: 1; }
+    }
+
+    #waver-logo {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 200;
+      font-size: clamp(2.1rem, 3.2vw, 3.2rem);
+      letter-spacing: 0.3em;
+      text-indent: 0.3em; /* offset the trailing letter-space so it reads centred */
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Across the hue range the field itself travels — its base blue is
+       hsl(202, 65%, 73%) and the wash carries ~75 degrees either side, so the
+       word is coloured out of the thing it sits on, the way Cento's letters
+       take the four voice hues. */
+    #waver-logo span:nth-child(1) { color: hsl(165, 65%, 73%); }
+    #waver-logo span:nth-child(2) { color: hsl(184, 65%, 73%); }
+    #waver-logo span:nth-child(3) { color: hsl(202, 65%, 73%); }
+    #waver-logo span:nth-child(4) { color: hsl(221, 65%, 73%); }
+    #waver-logo span:nth-child(5) { color: hsl(240, 65%, 73%); }
+
+    #waver-stage iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      /* Clicks belong to the link wrapping it, not to the embedded page. */
+      pointer-events: none;
     }
     #hilo-canvas {
       /* Sized in JS to a whole multiple of the art, then centred — the few
@@ -369,7 +446,11 @@
       /* The strip stays, just narrower — it is the only wordmark now. */
       :root { --logo-w: 38px; }
       main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-      #hilo-pane  { grid-column: 1; grid-row: 1; padding: 0 1.4rem; }
+      /* Too little room to quarter: the two teasers stack instead. */
+      #hilo-pane  { grid-column: 1; grid-row: 1; padding: 0 1.4rem;
+                    grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      #hilo-link  { grid-column: 1; grid-row: 1; }
+      #waver-link { grid-column: 1; grid-row: 2; }
       #weave-pane { grid-column: 1; grid-row: 2; }
     }
   </style>
@@ -415,6 +496,16 @@
       <a id="hilo-link" href="/split-stack/" aria-label="Open Split Stack">
         <div id="hilo-stage"><canvas id="hilo-canvas" aria-hidden="true"></canvas></div>
       </a>
+
+      <a id="waver-link" href="/waver/" aria-label="Open Waver">
+        <div id="waver-stage">
+          <iframe src="/waver/" title="" aria-hidden="true" tabindex="-1"
+                  scrolling="no"></iframe>
+        </div>
+        <div id="waver-overlay" aria-hidden="true">
+          <div id="waver-logo"><span>W</span><span>A</span><span>V</span><span>E</span><span>R</span></div>
+        </div>
+      </a>
     </div>
 
   </main>
@@ -436,7 +527,7 @@
     var cv = document.getElementById('hilo-canvas');
     if (!cv || !window.HiLoTeaser) return;
 
-    var t = window.HiLoTeaser.make(cv, { cols: 3, rows: 3 });
+    var t = window.HiLoTeaser.make(cv, { cols: 2, rows: 2 });
     if (!t) return;
 
     var link = document.getElementById('hilo-link');
@@ -736,68 +827,6 @@
 
     load();
 
-  })();
-  </script>
-
-  <script>
-  (function () {
-    'use strict';
-
-    // ── Wordmark: letters come and go ────────────────────────
-    // Each letter fades out slowly, waits, and fades back at its own rate. A
-    // letter schedules its own return at the moment it leaves, so nothing has
-    // to sweep for stragglers and every letter is guaranteed to come back.
-    const letters = Array.from(document.querySelectorAll('#brand .ltr'));
-    if (!letters.length) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    // Counts letters mid-change, not just invisible ones — a letter part way
-    // through a fade is visibly disturbed, so that is what the ceiling should
-    // govern.
-    const MAX_GONE = 4;
-
-    // Settled by simulation against three things at once: each letter goes and
-    // returns quickly, each then holds still for a long time, and the column as
-    // a whole is never completely at rest. A letter's whole cycle is 6.7s, it
-    // holds about 22s between its own turns, and across 13 letters something is
-    // moving essentially 100% of the time. The pace already averages 3 away, so
-    // the ceiling of 4 only turns away about 2% of departures.
-    const FADE  = 3000;        // to go, and to return — one rate for both
-    const GAP   = [1200, 3200]; // between one letter leaving and the next
-    const DWELL = [300, 1000];  // fully invisible before it comes back
-
-    const rnd = r => r[0] + Math.random() * (r[1] - r[0]);
-    const gone = new Set();
-
-    function fade(el, to, ms) {
-      el.style.transition = 'opacity ' + Math.round(ms) + 'ms ease-in-out';
-      el.style.opacity = to;
-    }
-
-    function step() {
-      const open = letters.filter(el => !gone.has(el));
-      if (gone.size < MAX_GONE && open.length) {
-        const el = open[Math.floor(Math.random() * open.length)];
-        gone.add(el);
-        fade(el, '0', FADE);
-
-        setTimeout(function () {
-          // Swap states while it is invisible, so the column drifts between
-          // upright capitals and the sideways lowercase of the original strip
-          // rather than being one or the other. Letters in two different states
-          // is what keeps the stack from reading as uniform.
-          const c = el.textContent;
-          el.textContent = el.classList.toggle('alt') ? c.toLowerCase() : c.toUpperCase();
-          fade(el, '1', FADE);
-          // Held until it is fully back, so the ceiling counts it all the way
-          // through rather than freeing it the moment it starts returning.
-          setTimeout(function () { gone.delete(el); }, FADE);
-        }, FADE + rnd(DWELL));
-      }
-      setTimeout(step, rnd(GAP));
-    }
-
-    setTimeout(step, rnd(GAP));
   })();
   </script>
 
