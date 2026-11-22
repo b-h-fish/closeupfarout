@@ -28,8 +28,17 @@
   var STOCK_GAP = 26, CALLS_GAP = 26;
   var DEAL_MS = 380, HOLD_MS = 740, FLIP_MS = 380;
 
-  /* The teaser's own beats: the pauses where a player would be deciding. */
-  var T_SELECT = 420, T_CALL = 440, T_SETTLE = 320, T_OVER = 2200, T_START = 520;
+  /* The teaser's own beats: the pauses where a player would be deciding.
+     Only these — the animation lengths above are the game's and stay matched
+     to it, so the cards still deal and flip at exactly the speed they do in
+     /split-stack. What changes here is how long the bot appears to think.
+
+     PACE is the single dial. Scaling every beat by one factor keeps their
+     proportions, so the rhythm is the same rhythm played slower rather than a
+     different one. 1 is the original pace. */
+  var PACE = 1.45;
+  var T_SELECT = 420 * PACE, T_CALL = 440 * PACE, T_SETTLE = 320 * PACE,
+      T_OVER = 2200 * PACE, T_START = 520 * PACE;
 
   var SCENE_MS = 11000;          // how long a setting holds
   var FADE_MS  = 900;            // and how long it takes to give way
