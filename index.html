@@ -349,152 +349,136 @@
     }
 
 
-    /* ── Music, upper right ── */
-    /* Two states in one cell: browsing the catalogue, and an album open with
-       its art filling the quarter. Only one is in the DOM flow at a time, so
-       neither has to be positioned around the other. */
+    /* ── Music, upper right: a mini Canon ────────────────────
+       The display out of the Canon mockup (~/Desktop/BHF/music-player),
+       reduced to the part that shows a record: the cover grid, the notch,
+       and the panel that opens in place wearing colours pulled out of the
+       cover itself. None of Canon's chrome — no toolbar, LCD, transport,
+       search or Get Info.
+
+       Canon is a white macOS app; this wears the page's black instead, so
+       the quarter meets Split Stack and Waver without a seam. The panel is
+       the same either way: ColorArt chooses its own background per album,
+       and never matched the surround in Canon either.
+
+       Canon's own typeface, though. The system sans is most of what makes
+       it read as that app rather than as the rest of this page. */
     #music {
       grid-column: 2;
       grid-row: 1;
-      position: relative;
       min-height: 0;
       overflow: hidden;
+      background: #090909;
+      font: 13px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+      color: #f5f2ec;
     }
 
-    #music > div { position: absolute; inset: 0; }
-    #music [hidden] { display: none; }
-
-    /* Browsing: the cover sits inset, so selecting it filling the cell reads
-       as a change of state rather than a change of picture. */
-    #music-browse {
-      display: grid;
-      grid-template-rows: 1fr auto;
-      align-items: center;
-      padding: 1.4rem 0.6rem 1rem;
-      gap: 0.7rem;
-    }
-
-    #mu-stage {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      gap: 0.5rem;
-      min-height: 0;
-    }
-
-    #mu-pick {
-      padding: 0;
-      border: none;
-      background: none;
-      cursor: pointer;
+    #mu-lib {
       height: 100%;
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      overflow-y: auto;
+      /* The quarter is a small scroller inside a fixed page — without this a
+         flick that reaches the end keeps going and scrolls whatever is
+         behind it. */
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    #mu-lib::-webkit-scrollbar { width: 0; }
+
+    #mu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.05rem 0.85rem;
+      padding: 0.9rem 0.85rem 1.2rem;
     }
 
-    #mu-pick img {
-      max-width: 100%;
-      max-height: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.3s ease;
+    .mu-tile {
+      min-width: 0; display: block; width: 100%;
+      padding: 0; border: 0; background: none; text-align: left;
+      font: inherit; color: inherit; cursor: pointer;
     }
-    #mu-pick:hover img { transform: scale(1.03); }
-
-    .mu-arrow {
-      padding: 0.3rem 0.45rem;
-      border: none;
-      background: none;
-      color: #f5f2ec;
-      opacity: 0.45;
-      font-size: 1.5rem;
-      line-height: 1;
-      cursor: pointer;
-      transition: opacity 0.2s;
+    .mu-tile img {
+      width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
+      outline: 2px solid transparent; outline-offset: 2px;
+      transition: outline-color 0.2s;
     }
-    .mu-arrow:hover { opacity: 1; }
-
-    .mu-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.62rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: #f5f2ec;
-      text-align: center;
+    .mu-tile[aria-expanded="true"] img { outline-color: #4a8af4; }
+    .mu-tile b {
+      display: block; font-size: 0.625rem; font-weight: 600; margin-top: 0.45rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .mu-label span { opacity: 0.45; }
+    .mu-tile i {
+      display: block; font-size: 0.625rem; font-style: normal; color: #7d7d7d;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-    /* Open: art edge to edge, the controls only on reaching for it — the same
-       bargain Cento and Waver make. */
+    /* The panel breaks out of the grid's padding to the full width of the
+       quarter, the way Canon's spans the window. */
+    #mu-pan {
+      grid-column: 1 / -1;
+      margin: -0.45rem -0.85rem 0;
+      position: relative;
+    }
+    #mu-pan[hidden] { display: none; }
+
+    #mu-notch {
+      position: absolute; top: 0; width: 0; height: 0; margin-left: -9px;
+      border: 9px solid transparent; border-top: 0; border-bottom-color: var(--mu-bg);
+      transition: left 0.3s cubic-bezier(0.2, 0.75, 0.25, 1), border-bottom-color 0.3s;
+    }
+
+    #mu-body {
+      margin-top: 9px; position: relative; overflow: hidden;
+      background: var(--mu-bg);
+      transition: background-color 0.3s;
+    }
+    /* Canon draws this over the cover too, so the panel reads as a drawer
+       pulled open rather than a block laid on top. */
+    #mu-body::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      box-shadow: inset 0 6px 8px -6px rgba(0, 0, 0, 0.45),
+                  inset 0 -6px 8px -6px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Fixing the art's width rather than squaring it off the panel's height
+       keeps the text column predictable — the panel's height moves with the
+       track count, and a square would take the words with it. */
     #mu-art {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+      position: absolute; top: 0; right: 0; height: 100%; width: 48%;
+      object-fit: cover; display: block;
+    }
+    #mu-fade {
+      position: absolute; top: 0; right: 0; height: 100%; width: 48%;
+      background: linear-gradient(90deg, var(--mu-bg) 0%, transparent 72%);
+      transition: background 0.3s;
     }
 
-    #mu-panel {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 1rem 0.9rem;
-      background: rgba(9, 9, 9, 0.86);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
+    #mu-tx { position: relative; padding: 1.05rem 1rem 1.1rem 1.1rem; }
+    #mu-title {
+      font-size: 1rem; font-weight: 600; letter-spacing: -0.2px; color: var(--mu-p);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: color 0.3s;
     }
-    @media (hover: hover) {
-      #music-play:hover #mu-panel { opacity: 1; pointer-events: auto; }
-    }
-    /* No hover to reach with: the panel simply stays up rather than being
-       unreachable. */
-    @media (hover: none) {
-      #mu-panel { opacity: 1; pointer-events: auto; }
-    }
+    #mu-sub { font-size: 0.625rem; color: var(--mu-s); margin-top: 0.12rem; transition: color 0.3s; }
 
-    #mu-tracks { list-style: none; display: flex; flex-direction: column; gap: 0.15rem; }
-
+    #mu-tracks { list-style: none; margin-top: 0.8rem; max-width: 56%; }
     #mu-tracks button {
-      width: 100%;
-      text-align: left;
-      padding: 0.2rem 0;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.64rem;
-      letter-spacing: 0.1em;
-      color: #f5f2ec;
-      opacity: 0.6;
-      transition: opacity 0.2s;
+      display: flex; gap: 0.55rem; width: 100%;
+      padding: 0.13rem 0.3rem; margin: 0 -0.3rem; border: 0; border-radius: 3px;
+      background: none; font: inherit; font-size: 0.69rem; color: var(--mu-p);
+      cursor: pointer; transition: color 0.3s;
     }
-    #mu-tracks button:hover { opacity: 1; }
-    #mu-tracks button[aria-current="true"] { opacity: 1; }
-    #mu-tracks button[aria-current="true"]::before { content: '\2022\00a0'; }
-
-    #mu-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-
-    #mu-foot button {
-      padding: 0.25rem 0;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: #f5f2ec;
-      opacity: 0.55;
-      transition: opacity 0.2s;
+    #mu-tracks button:hover { background: color-mix(in srgb, var(--mu-p) 12%, transparent); }
+    #mu-tracks button[aria-current="true"] { background: color-mix(in srgb, var(--mu-p) 18%, transparent); }
+    #mu-tracks .n {
+      width: 0.8rem; flex: none; text-align: right; color: var(--mu-d);
+      font-variant-numeric: tabular-nums; transition: color 0.3s;
     }
-    #mu-foot button:hover { opacity: 1; }
+    #mu-tracks .t { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #mu-tracks .du { flex: none; color: var(--mu-d); font-variant-numeric: tabular-nums; transition: color 0.3s; }
+    #mu-foot { font-size: 0.59rem; color: var(--mu-s); margin-top: 0.75rem; transition: color 0.3s; }
 
-    #music :focus-visible { outline: 1px solid #f5f2ec; outline-offset: 3px; opacity: 1; }
+    #music :focus-visible { outline: 2px solid #4a8af4; outline-offset: 2px; }
 
     /* ── Waver teaser ── */
     /* The real page in an iframe rather than a copy of its field. waver's test
@@ -646,29 +630,13 @@
       </a>
 
       <div id="music">
-        <div id="music-browse">
-          <div id="mu-stage">
-            <button class="mu-arrow" id="mu-prev" type="button" aria-label="Previous album">&#8249;</button>
-            <button id="mu-pick" type="button"><img id="mu-cover" alt=""></button>
-            <button class="mu-arrow" id="mu-next" type="button" aria-label="Next album">&#8250;</button>
-          </div>
-          <div class="mu-label" id="mu-browse-label"></div>
-        </div>
-
-        <div id="music-play" hidden>
-          <img id="mu-art" alt="">
-          <div id="mu-panel">
-            <div>
-              <div class="mu-label" style="text-align:left" id="mu-album"></div>
-              <ul id="mu-tracks"></ul>
-            </div>
-            <div id="mu-foot">
-              <button id="mu-back" type="button">&#8249; albums</button>
-              <button id="mu-pp" type="button">play</button>
-            </div>
+        <div id="mu-lib">
+          <div id="mu-grid">
+            <!-- Tiles and the panel are built by the script: the panel has to
+                 be moved between rows as a different album is opened, which
+                 is the one thing this layout cannot express in markup. -->
           </div>
         </div>
-
         <audio id="mu-audio" preload="none"></audio>
       </div>
 
@@ -1009,116 +977,257 @@
   (function () {
     'use strict';
 
-    // ── Music, upper right ───────────────────────────────────
-    // The covers are real. The album names and track names are still
-    // placeholders — only 'Desaparezco' is its own. The comment on each line
-    // says which picture the cover is, so the real title can go straight in.
-    // The audio is not there yet either; `srcFor` below says where it goes.
-    // Nothing further down reads anything else about an album, so this array
-    // is the whole thing to edit.
+    // ── Music, upper right: a mini Canon ─────────────────────
+    // The covers are real. Everything else — album names apart from
+    // Desaparezco, track names, durations, years, genres — is still
+    // placeholder, and this array is the only place to edit it. Once there
+    // are real files, `dur` can come off the audio itself instead (an
+    // <audio> reports duration on loadedmetadata) and be dropped from here.
     const CATALOG = [
-      { title: 'Desaparezco', cover: '/images/audio/cover-01.webp', tracks: ['First Light', 'Undertow', 'Slow Hand', 'Ferrous'] },
-      { title: 'Album Two',   cover: '/images/audio/cover-02.webp', tracks: ['Orange Line', 'Sixteen Hours', 'Parallax'] },                              // straw hat on rippled sand
-      { title: 'Album Three', cover: '/images/audio/cover-03.webp', tracks: ['Greenhouse', 'Nine Volt', 'Hollow Way', 'Sightlines', 'Drift'] },          // sleeping duckling
-      { title: 'Album Four',  cover: '/images/audio/cover-04.webp', tracks: ['Paper Weather', 'Long Exposure', 'Tallow'] },                              // inverted plums, pink and blue
-      { title: 'Album Five',  cover: '/images/audio/cover-05.webp', tracks: ['Deep Field', 'Cold Open', 'Vantage', 'Nightwatch'] },                      // purple bleachers at night
+      { title: 'Desaparezco', year: 2026, genre: 'Electronic', cover: '/images/audio/cover-01.webp',
+        tracks: [['First Light','4:12'], ['Undertow','5:03'], ['Slow Hand','3:48'], ['Ferrous','6:21']] },
+      // straw hat on rippled sand
+      { title: 'Album Two', year: 2025, genre: 'Ambient', cover: '/images/audio/cover-02.webp',
+        tracks: [['Orange Line','5:30'], ['Sixteen Hours','7:02'], ['Parallax','4:19']] },
+      // sleeping duckling
+      { title: 'Album Three', year: 2024, genre: 'Folk', cover: '/images/audio/cover-03.webp',
+        tracks: [['Greenhouse','3:21'], ['Nine Volt','4:47'], ['Hollow Way','5:12'], ['Sightlines','3:58'], ['Drift','6:40']] },
+      // inverted plums, pink and blue
+      { title: 'Album Four', year: 2023, genre: 'Rock', cover: '/images/audio/cover-04.webp',
+        tracks: [['Paper Weather','4:02'], ['Long Exposure','8:14'], ['Tallow','3:33']] },
+      // purple bleachers at night
+      { title: 'Album Five', year: 2022, genre: 'Jazz', cover: '/images/audio/cover-05.webp',
+        tracks: [['Deep Field','6:55'], ['Cold Open','3:12'], ['Vantage','5:41'], ['Nightwatch','7:28']] },
     ];
+    const ARTIST = 'closeupfarout';
+    const COLS = 3;
+
     const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const srcFor = (al, i) => '/audio/tracks/' + slug(al.title) + '-' + String(i + 1).padStart(2, '0') + '.mp3';
 
-    const el = id => document.getElementById(id);
-    const browse = el('music-browse'), play = el('music-play'), audio = el('mu-audio');
-    if (!browse || !play || !audio) return;
-
-    let album = 0, track = 0, loaded = -1;
-
-    // ── browsing ──
-    function showBrowse() {
-      const al = CATALOG[album];
-      el('mu-cover').src = al.cover;
-      el('mu-cover').alt = al.title + ' cover';
-      el('mu-browse-label').innerHTML =
-        al.title + ' <span>&nbsp;/&nbsp; ' + al.tracks.length + ' tracks</span>';
-      browse.hidden = false;
-      play.hidden = true;
-      audio.pause();
+    /* ── ColorArt ──────────────────────────────────────────────
+       Lifted from the Canon mockup unchanged, which took it from Panic's
+       ColorArt by way of iTunes 11. Background is the commonest colour down
+       the cover's left edge — the edge that fades into the panel — skipping
+       black and white if a real colour is nearly as common. Primary,
+       secondary and detail are the commonest colours in the whole cover
+       that contrast with that background and are distinct from each other.
+       If it changes in Canon it should change here. */
+    const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    const isDark = c => lum(c) < 0.5;
+    const isBW = c => (c[0] > .91 && c[1] > .91 && c[2] > .91) || (c[0] < .09 && c[1] < .09 && c[2] < .09);
+    const contrasts = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05) > 1.6; };
+    const isGrey = c => Math.abs(c[0] - c[1]) < .03 && Math.abs(c[0] - c[2]) < .03;
+    function distinct(a, b) {
+      if (Math.abs(a[0] - b[0]) > .25 || Math.abs(a[1] - b[1]) > .25 || Math.abs(a[2] - b[2]) > .25)
+        return !(isGrey(a) && isGrey(b));            // two greys never count as distinct
+      return false;
     }
-    function step(d) { album = (album + d + CATALOG.length) % CATALOG.length; showBrowse(); }
-    el('mu-prev').addEventListener('click', () => step(-1));
-    el('mu-next').addEventListener('click', () => step(1));
+    function minSaturation(c, min) {
+      const mx = Math.max(...c), mn = Math.min(...c), s = mx ? (mx - mn) / mx : 0;
+      // Panic boosts every colour to 15% saturation; true greys would pick up a red cast, so leave them alone.
+      if (s >= min || s < .04) return c;
+      return c.map(v => mx - (mx - v) * (min / s));
+    }
+    function analyze(img) {
+      const W = Math.min(160, img.naturalWidth), H = Math.round(img.naturalHeight * W / img.naturalWidth);
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0, W, H);
+      const d = cx.getImageData(0, 0, W, H).data;
+      const edge = new Map(), all = new Map();
+      const add = (m, r, g, b) => {
+        const k = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3);
+        let e = m.get(k); if (!e) m.set(k, e = { n: 0, r: 0, g: 0, b: 0 });
+        e.n++; e.r += r; e.g += g; e.b += b;
+      };
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+        add(all, r, g, b); if (x < 2) add(edge, r, g, b);
+      }
+      const toList = m => [...m.values()]
+        .map(e => ({ c: [e.r / e.n / 255, e.g / e.n / 255, e.b / e.n / 255], n: e.n }))
+        .sort((a, b) => b.n - a.n);
 
-    // ── an album open ──
-    function openAlbum() {
-      const al = CATALOG[album];
+      const edges = toList(edge);
+      let bg = edges[0];
+      if (isBW(bg.c)) for (const e of edges.slice(1)) { if (e.n / bg.n <= .3) break; if (!isBW(e.c)) { bg = e; break; } }
+      const B = bg.c, darkBg = isDark(B);
+
+      const cands = toList(all).map(e => ({ c: minSaturation(e.c, .15), n: e.n })).filter(e => isDark(e.c) !== darkBg);
+      let pr, se, dt;
+      for (const { c } of cands) {
+        if (!contrasts(c, B)) continue;
+        if (!pr) pr = c;
+        else if (!se) { if (distinct(c, pr)) se = c; }
+        else if (!dt) { if (distinct(c, pr) && distinct(c, se)) { dt = c; break; } }
+      }
+      const fb = darkBg ? [1, 1, 1] : [0, 0, 0];
+      const css = c => 'rgb(' + c.map(v => Math.round(v * 255)).join(',') + ')';
+      return { bg: css(B), p: css(pr || fb), s: css(se || fb), d: css(dt || se || fb) };
+    }
+
+    // Black is what the page shows while a cover is still loading, and what
+    // it keeps if one never does — the panel stays legible either way.
+    const FALLBACK = { bg: '#141414', p: '#f5f2ec', s: '#9a9a9a', d: '#7d7d7d' };
+
+    // ── the page ──
+    const el = id => document.getElementById(id);
+    const grid = el('mu-grid'), audio = el('mu-audio');
+    if (!grid || !audio) return;
+
+    const secs = d => { const [m, s] = d.split(':').map(Number); return m * 60 + s; };
+    const mins = al => Math.round(al.tracks.reduce((n, t) => n + secs(t[1]), 0) / 60);
+
+    let open = -1;      // album whose panel is showing, -1 for none
+    let track = -1, playingAlbum = -1, loaded = '';
+
+    const tiles = CATALOG.map(function (al, i) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mu-tile';
+      b.setAttribute('aria-expanded', 'false');
+      const im = document.createElement('img');
+      im.src = al.cover; im.alt = al.title + ' cover'; im.draggable = false;
+      const t = document.createElement('b'); t.textContent = al.title;
+      const a = document.createElement('i'); a.textContent = ARTIST;
+      b.append(im, t, a);
+      b.addEventListener('click', function () { toggle(i); });
+      grid.appendChild(b);
+
+      // One decode per cover, kept on the album. A second <img> rather than
+      // reusing the tile's: the tile may not have finished loading, and
+      // analyze() needs naturalWidth.
+      al.colors = null;
+      const probe = new Image();
+      probe.onload = function () {
+        try { al.colors = analyze(probe); } catch (err) { al.colors = FALLBACK; }
+        if (open === i) paint(al);
+      };
+      probe.onerror = function () { al.colors = FALLBACK; if (open === i) paint(al); };
+      probe.src = al.cover;
+      return b;
+    });
+
+    // The panel, built once and moved between rows.
+    const pan = document.createElement('div');
+    pan.id = 'mu-pan';
+    pan.hidden = true;
+    pan.innerHTML =
+      '<div id="mu-notch"></div>' +
+      '<div id="mu-body">' +
+        '<img id="mu-art" alt="">' +
+        '<div id="mu-fade"></div>' +
+        '<div id="mu-tx">' +
+          '<div id="mu-title"></div>' +
+          '<div id="mu-sub"></div>' +
+          '<ul id="mu-tracks"></ul>' +
+          '<div id="mu-foot"></div>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(pan);
+
+    function paint(al) {
+      const c = al.colors || FALLBACK;
+      pan.style.setProperty('--mu-bg', c.bg);
+      pan.style.setProperty('--mu-p', c.p);
+      pan.style.setProperty('--mu-s', c.s);
+      pan.style.setProperty('--mu-d', c.d);
+    }
+
+    // Canon measures rather than computes: the notch has to land on the
+    // tile's centre whatever the column widths round to.
+    function placeNotch(i) {
+      const t = tiles[i].getBoundingClientRect(), p = pan.getBoundingClientRect();
+      el('mu-notch').style.left = (t.left + t.width / 2 - p.left) + 'px';
+    }
+
+    function openAlbum(i) {
+      const al = CATALOG[i];
+      // The panel belongs after the last tile of the row the album sits in,
+      // so the row stays whole and the drawer opens beneath it.
+      const end = Math.min(Math.floor(i / COLS) * COLS + COLS - 1, CATALOG.length - 1);
+      tiles[end].after(pan);
+
+      paint(al);
       el('mu-art').src = al.cover;
       el('mu-art').alt = al.title + ' cover';
-      el('mu-album').textContent = al.title;
+      el('mu-title').textContent = al.title;
+      el('mu-sub').textContent = ARTIST + ' · ' + al.year;
+      el('mu-foot').textContent =
+        al.tracks.length + ' songs, ' + mins(al) + ' minutes · ' + al.genre;
 
       const list = el('mu-tracks');
       list.innerHTML = '';
-      al.tracks.forEach(function (name, i) {
+      al.tracks.forEach(function (t, n) {
         const li = document.createElement('li');
         const b = document.createElement('button');
         b.type = 'button';
-        b.textContent = name;
-        b.addEventListener('click', function () { select(i, true); });
+        b.innerHTML = '<span class="n"></span><span class="t"></span><span class="du"></span>';
+        b.querySelector('.n').textContent = n + 1;
+        b.querySelector('.t').textContent = t[0];
+        b.querySelector('.du').textContent = t[1];
+        b.addEventListener('click', function () { pick(i, n); });
         li.appendChild(b);
         list.appendChild(li);
       });
 
-      browse.hidden = true;
-      play.hidden = false;
-      select(0, false);
+      pan.hidden = false;
+      open = i;
+      tiles.forEach(function (t, n) { t.setAttribute('aria-expanded', n === i ? 'true' : 'false'); });
+      mark();
+      placeNotch(i);
     }
-    el('mu-pick').addEventListener('click', openAlbum);
-    el('mu-back').addEventListener('click', showBrowse);
+
+    function close() {
+      pan.hidden = true;
+      open = -1;
+      tiles.forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    function toggle(i) { i === open ? close() : openAlbum(i); }
 
     function mark() {
+      if (open < 0) return;
       const bs = el('mu-tracks').querySelectorAll('button');
-      bs.forEach(function (b, i) { b.setAttribute('aria-current', i === track ? 'true' : 'false'); });
+      bs.forEach(function (b, n) {
+        b.setAttribute('aria-current',
+          open === playingAlbum && n === track && !audio.paused ? 'true' : 'false');
+      });
     }
 
-    // Not touching audio.src until something is actually played, so a
+    // audio.src is left alone until something is actually played, so a
     // catalogue whose files do not exist yet does not boot into an error.
-    function attach() {
-      const key = album + ':' + track;
-      if (loaded === key) return;
-      audio.src = srcFor(CATALOG[album], track);
-      loaded = key;
-    }
-    function start() {
-      attach();
-      const pr = audio.play();
-      if (pr) pr.catch(function () { setPP(false); });
-    }
-    function select(i, go) {
-      const al = CATALOG[album];
-      track = (i + al.tracks.length) % al.tracks.length;
-      mark();
-      if (loaded !== album + ':' + track) { audio.pause(); loaded = -1; setPP(false); }
-      if (go) start();
+    function pick(i, n) {
+      if (i === playingAlbum && n === track) {
+        audio.paused ? audio.play().catch(function () {}) : audio.pause();
+        return;
+      }
+      playingAlbum = i; track = n;
+      const key = i + ':' + n;
+      if (loaded !== key) { audio.src = srcFor(CATALOG[i], n); loaded = key; }
+      audio.play().catch(function () { mark(); });
     }
 
-    function setPP(playing) {
-      const b = el('mu-pp');
-      b.textContent = playing ? 'pause' : 'play';
-      b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    }
-    el('mu-pp').addEventListener('click', function () {
-      if (audio.paused) start(); else audio.pause();
+    audio.addEventListener('play', mark);
+    audio.addEventListener('pause', mark);
+    audio.addEventListener('ended', function () {
+      const al = CATALOG[playingAlbum];
+      if (al && track + 1 < al.tracks.length) pick(playingAlbum, track + 1);
+      else mark();
     });
-
-    audio.addEventListener('play', function () { setPP(true); });
-    audio.addEventListener('pause', function () { setPP(false); });
-    audio.addEventListener('ended', function () { select(track + 1, true); });
     audio.addEventListener('error', function () {
-      // Say so rather than sitting on a dead control.
-      el('mu-album').textContent = CATALOG[album].title + ' \u2014 unavailable';
-      setPP(false);
+      // Say so rather than sitting on a dead row.
+      if (open === playingAlbum) el('mu-foot').textContent = 'track unavailable';
+      mark();
     });
 
-    setPP(false);
-    showBrowse();
+    // The columns are fluid, so the notch has to be put back after a resize.
+    let rt = null;
+    new ResizeObserver(function () {
+      clearTimeout(rt);
+      rt = setTimeout(function () { if (open >= 0) placeNotch(open); }, 80);
+    }).observe(grid);
+
+    openAlbum(0);   // newest, open on arrival
   })();
   </script>
 
