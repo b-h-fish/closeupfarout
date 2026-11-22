@@ -106,8 +106,10 @@
       left: var(--logo-w);
       right: 0;
       display: grid;
-      /* Split Stack now sits beside the logo strip and Cento takes the outside.
-         Each keeps the width it had before the swap — Split 60%, Cento 40%. */
+      /* Split Stack beside the logo strip, the record library on the outside.
+         The columns are unchanged — 60/40 — only what sits in them: Cento has
+         moved into the quarter the library used to hold, and the library has
+         taken Cento's column. */
       grid-template-columns: 3fr 2fr;
       background: var(--page);
     }
@@ -170,8 +172,17 @@
       grid-row: 1;
       position: relative;
       z-index: 1;
-      /* Full margin against the page edge, half of it facing Split. */
-      padding: 0 2rem 0 1rem;
+      /* A quarter now, not a column: it clips, and the margins are even
+         because neither side is the page edge any more.
+
+         The weave's own type, rule and rhythm are deliberately untouched at
+         this width. The one thing that does not survive the narrower cell is
+         the attributions: `.sources` is two columns of nowrap text, so a
+         Gutenberg-length title ellipses at about half its length. Kept at the
+         user's choice — the 2x2 arrangement was worth more than the full
+         titles. One column fits them whole if that trade is ever revisited. */
+      overflow: hidden;
+      padding: 0 1rem;
 
       /* Cento's own dark colourway, kept to this block so the rest of the page
          stays on paper. The voice hues need no adjustment — they were chosen
@@ -360,6 +371,7 @@
       grid-column: 2;
       grid-row: 1;
       min-height: 0;
+      height: 100%;
       overflow: hidden;
       background: #090909;
       font: 13px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
@@ -570,13 +582,17 @@
     @media (max-width: 768px) {
       /* The strip stays, just narrower — it is the only wordmark now. */
       :root { --logo-w: 38px; }
-      main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-      /* Too little room to quarter: the two teasers stack instead. */
+      main { grid-template-columns: 1fr; grid-template-rows: 2fr 1fr; }
+      /* Too little room to quarter: everything stacks in one column. Each of
+         these needs an explicit row — a grid item asking for column 2 of a
+         one-column grid gets an implicit column instead of an error, which is
+         how the library spent a while sitting off the side of the phone. */
       #hilo-pane  { grid-column: 1; grid-row: 1; padding: 0 1.4rem;
-                    grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+                    grid-template-columns: 1fr; grid-template-rows: 1fr 1fr 1fr; }
       #hilo-link  { grid-column: 1; grid-row: 1; }
-      #waver-link { grid-column: 1; grid-row: 2; }
-      #weave-pane { grid-column: 1; grid-row: 2; }
+      #weave-pane { grid-column: 1; grid-row: 2; padding: 0; }
+      #waver-link { grid-column: 1; grid-row: 3; }
+      #music      { grid-column: 1; grid-row: 2; }
     }
   </style>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -607,14 +623,15 @@
   </header>
 
   <main>
-    <div id="weave-pane">
-      <a id="weave-link" href="/cento/" aria-label="Open Cento">
-        <div id="weave" class="weave"></div>
-        <div id="sources" class="sources"></div>
-        <div id="cento-overlay" aria-hidden="true">
-          <div id="cento-logo"><span>C</span><span>E</span><span>N</span><span>T</span><span>O</span></div>
+    <div id="music">
+      <div id="mu-lib">
+        <div id="mu-grid">
+          <!-- Tiles and the panel are built by the script: the panel has to
+               be moved between rows as a different album is opened, which
+               is the one thing this layout cannot express in markup. -->
         </div>
-      </a>
+      </div>
+      <audio id="mu-audio" preload="none"></audio>
     </div>
 
     <div id="hilo-pane">
@@ -622,15 +639,14 @@
         <div id="hilo-stage"><canvas id="hilo-canvas" aria-hidden="true"></canvas></div>
       </a>
 
-      <div id="music">
-        <div id="mu-lib">
-          <div id="mu-grid">
-            <!-- Tiles and the panel are built by the script: the panel has to
-                 be moved between rows as a different album is opened, which
-                 is the one thing this layout cannot express in markup. -->
+      <div id="weave-pane">
+        <a id="weave-link" href="/cento/" aria-label="Open Cento">
+          <div id="weave" class="weave"></div>
+          <div id="sources" class="sources"></div>
+          <div id="cento-overlay" aria-hidden="true">
+            <div id="cento-logo"><span>C</span><span>E</span><span>N</span><span>T</span><span>O</span></div>
           </div>
-        </div>
-        <audio id="mu-audio" preload="none"></audio>
+        </a>
       </div>
 
       <a id="waver-link" href="/waver/" aria-label="Open Waver">
