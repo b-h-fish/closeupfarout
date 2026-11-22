@@ -6,3 +6,8 @@ images/*
 !images/audio/
 scripts/pg_catalog.csv
 .DS_Store
+
+# macOS Finder custom-icon file. The name ends in a carriage return,
+# and git strips one trailing CR from a pattern, so this needs two.
+# Straight from GitHub Global/macOS.gitignore.
+Icon
