@@ -562,14 +562,11 @@
       aspect-ratio: 2 / 3;
       max-height: 100%;
       scroll-snap-align: start;
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-      padding: 1.3rem 1.1rem 1.1rem;
+      display: block;
+      padding: 0;
       border: 0;
       cursor: pointer;
-      background: var(--eink-bg);
-      color: var(--eink-ink);
+      background: var(--eink-page);
       font: inherit;
       transition: transform 0.25s ease, box-shadow 0.25s ease;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.4);
@@ -578,29 +575,20 @@
       .work:hover { transform: translateY(-3px); box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 10px 22px rgba(0,0,0,.45); }
     }
 
-    .work .wt {
-      font-family: 'EB Garamond', serif;
-      font-size: 1.22rem;
-      line-height: 1.15;
-    }
-    .work .wr { height: 1px; background: var(--eink-rule); margin: 0.6rem 0 0.55rem; }
-    .work .wd {
-      font-family: 'EB Garamond', serif;
-      font-size: 0.82rem;
-      line-height: 1.42;
-      color: var(--eink-dim);
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-    }
-    .work .wm {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.55rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--eink-dim);
-      padding-top: 0.6rem;
-    }
+    /* The cover is one drawing, type included, rather than art with a caption
+       bolted under it — which is the whole difference between a book cover
+       and a thumbnail. One viewBox at the card's own 2:3, so it fits exactly
+       and the composition scales rather than reflows. */
+    .work svg { display: block; width: 100%; height: 100%; }
+    .work .ink { fill: var(--eink-ink); }
+    .work .dim { fill: var(--eink-dim); }
+    .work .pap { fill: var(--eink-page); }
+    /* Colour only. A stroke-width here would beat every cover's own
+       stroke-width attribute, since CSS always wins over a presentation
+       attribute — which is how the hill spent a while as a hairline. */
+    .work .out { fill: none; stroke: var(--eink-ink); }
+    .work .ttl { font-family: 'Josefin Sans', sans-serif; font-weight: 400; }
+    .work .aut { font-family: 'Space Mono', monospace; font-size: 7.4px; letter-spacing: 1.9px; }
 
     /* ── The expansion ────────────────────────────────────────
        Deliberately general. Literature is its first tenant, but Cento, Split
@@ -1605,24 +1593,30 @@
        judged — a three-paragraph stub fits two columns and never flips.
        Replace `text` as the pieces are written; nothing else reads anything
        about a work. */
+    /* Dust: rules whose spacing closes as they fall, so the field reads as
+       something coming to rest rather than as a gradient. Generated because
+       thirty-four hand-typed <rect>s is not a drawing, it is a transcription. */
+    const DUST = (function () {
+      let out = '', y = 120;
+      // 25 rules, the gap closing from 13 to 1, which lands the last one at
+      // 295 — just short of the edge. Evenly spaced it read as a texture
+      // rather than as anything coming to rest.
+      for (let i = 0; i < 25; i++) {
+        out += '<rect class="dim" x="0" y="' + y.toFixed(1) + '" width="200" height="1"/>';
+        y += 13 - i * 0.5;
+      }
+      return out;
+    })();
+
     const WORKS = [
-      { title: 'Rhiannon', kind: 'Story', year: 2026, text: [
-        'The road out of town ran straight for eleven miles and then gave up, the way roads do when the land stops agreeing with them.',
-        'She had been driving since four. The radio had quit somewhere around the county line and she had not bothered to fix it, because the quiet turned out to be the thing she had come for.',
-        'There is a particular hour before dawn when the sky is not dark and not light, and everything in it is the colour of a photograph that has been left in a window.',
-        'By seven she was through the pass and the light had come up properly, and the whole valley lay out below her the way a hand lies open.',
-        'There had been a town here. The map still said so. What was left was a grain elevator, a church with the windows boarded, and a line of cottonwoods marking where a creek had been.',
-        'She pulled over because there was nowhere she had to be, which was new, and because the elevator had her grandfather’s name painted on it in letters eight feet high, which was not.',
-        'The paint had gone the colour of a bruise. You could read it anyway. You could read it from the road, which had been the point.',
-        'Her mother had never once driven out here. In thirty years she had found a reason every summer, and the reasons had all been good, and not one of them had been true.',
-        'The door of the church was not locked. It had not been locked in some time, judging by the drift of leaves inside the vestibule, and the birds, and the smell.',
-        'She stood in the aisle for a while without deciding anything. The pews were still bolted down. Somebody had taken the hymn boards and left the numbers.',
-        'Forty-two. One hundred and eight. The last Sunday anyone had sung here, and the numbers still up, the way a clock stops at the hour of the accident.',
-        'Outside, the wind came down the valley and went through the cottonwoods and made the sound that water makes, which is why people plant them where the water used to be.',
-        'She got back in the car. She did not take a photograph. That felt important at the time and she could not afterwards explain why.',
-        'The road ran out eleven miles further on, as advertised, in a turnaround of packed gravel with a county sign and a cattle gate and nothing beyond it but grass going silver in the wind.',
-        'She sat with the engine off until the heat came up through the floor. Then she turned the car around and drove back the way she had come, past the church and the elevator and the name.'] },
-      { title: '2fer', kind: 'Essay', year: 2026, text: [
+      { title: '2fer', author: 'N. Auerbach',
+        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
+          '<circle class="ink" cx="74" cy="168" r="54"/>' +
+          '<circle class="out" cx="126" cy="168" r="54" stroke-width="2"/>' +
+          '<text class="ttl ink" x="18" y="58" font-size="34" letter-spacing="1.5">2FER</text>' +
+          '<text class="aut dim" x="18" y="278">N. AUERBACH</text>' +
+        '</svg>',
+        text: [
         'Two things can be true, which is the sort of sentence that sounds like wisdom and functions like an escape hatch.',
         'I have been thinking about the places where the two things are not merely both true but are true because of one another, which is harder, and rarer, and worth the trouble of saying slowly.',
         'The phrase arrives in arguments as a kind of truce, and like most truces it is mostly about ending the fighting rather than settling anything.',
@@ -1631,7 +1625,18 @@
         'We do not have good grammar for this. The grammar we have is concessive: although, despite, nevertheless. Every one of those words quietly ranks the two halves.',
         'The honest construction would be flatter. And. Simply and. But “and” reads as a list, and a list implies the items are independent, which is the thing I am trying not to say.',
         'So the sentence gets longer. It has to. Anything shorter has already taken a side.'] },
-      { title: 'Flips', kind: 'Story', year: 2025, text: [
+      { title: 'Flips', author: 'R. Okonkwo',
+        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
+          '<rect class="ink" x="0" y="0" width="100" height="150"/>' +
+          '<rect class="ink" x="100" y="150" width="100" height="150"/>' +
+          '<text class="ttl pap" x="14" y="46" font-size="25" letter-spacing="1">FLIPS</text>' +
+          // Rotated about the bottom-right quadrant's own centre, not the
+          // card's — about the card's it lands back on top of the first one.
+          '<text class="ttl pap" x="186" y="196" font-size="25" letter-spacing="1" ' +
+            'text-anchor="end" transform="rotate(180 150 225)">FLIPS</text>' +
+          '<text class="aut ink" x="14" y="190">R. OKONKWO</text>' +
+        '</svg>',
+        text: [
         'The board came up and over and landed wrong, and he rode it out anyway, which was the whole of his talent as far as anyone could tell.',
         'He had been at it since the lot was poured. The security guard had stopped coming out around the second summer.',
         'The lot had been a Caldor and before that a drive-in, and the concrete was poured in one continuous slab that had cracked exactly twice in forty years.',
@@ -1640,13 +1645,27 @@
         'The trick he was working on did not have a name yet, or it had four names depending on who you asked, which amounts to the same thing.',
         'It went up and over and came down wrong, and he rode it out, and the board shot away across the slab and hit the fence with a sound like a dropped plate.',
         'He went and got it. He came back. That was the whole afternoon, and the one before it, and the one after.'] },
-      { title: 'Over the Hill', kind: 'Essay', year: 2025, text: [
+      { title: 'Over the Hill', author: 'M. Delacroix',
+        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
+          '<path class="out" d="M-4 236 Q 68 236 108 168 T 204 86" stroke-width="20"/>' +
+          '<text class="ttl ink" x="16" y="282" font-size="21" letter-spacing="0.5">OVER THE</text>' +
+          '<text class="ttl ink" x="16" y="38" font-size="21" letter-spacing="0.5">HILL</text>' +
+          '<text class="aut dim" x="184" y="38" text-anchor="end">M. DELACROIX</text>' +
+        '</svg>',
+        text: [
         'Nobody tells you that the hill is not a hill. It is a long shallow rise, and you are most of the way up it before the word occurs to you at all.',
         'The metaphor fails in a specific and interesting way, which is that hills have a summit and you know when you are on it.',
         'What actually happens is that the grade eases. You notice you are not working as hard. You take this for a sign of fitness for about a year.',
         'Then one morning you find yourself describing something as the way it used to be done, in a tone of voice you have heard before, from someone you did not entirely respect at the time.',
         'There is no summit. There is a long shallow rise, and a point somewhere on it where you turn around to check the view and discover it is behind you.'] },
-      { title: 'Dust Settled', kind: 'Story', year: 2024, text: [
+      { title: 'Dust Settled', author: 'J. Varga',
+        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
+          DUST +
+          '<text class="ttl ink" x="16" y="48" font-size="23" letter-spacing="1">DUST</text>' +
+          '<text class="ttl ink" x="16" y="74" font-size="23" letter-spacing="1">SETTLED</text>' +
+          '<text class="aut ink" x="16" y="98">J. VARGA</text>' +
+        '</svg>',
+        text: [
         'Afterward the house was very clean, which was the part no one had warned her about.',
         'She found the receipts in a drawer he had never used, held with a clip, in order, going back years.',
         'The cleaners had come on the Tuesday and done the whole house in six hours, which was less time than it had taken him to die.',
@@ -1686,7 +1705,7 @@
 
       const h = document.createElement('h1'); h.textContent = w.title;
       const m = document.createElement('div'); m.className = 'meta';
-      m.textContent = w.kind + ' \u00b7 ' + w.year + ' \u00b7 closeupfarout';
+      m.textContent = w.author + ' \u00b7 closeupfarout';
       flow.append(h, m);
       w.text.forEach(function (para) {
         const pEl = document.createElement('p'); pEl.textContent = para; flow.appendChild(pEl);
@@ -1762,11 +1781,10 @@
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'work';
-      b.innerHTML = '<span class="wt"></span><span class="wr"></span>' +
-                    '<span class="wd"></span><span class="wm"></span>';
-      b.querySelector('.wt').textContent = w.title;
-      b.querySelector('.wd').textContent = w.text[0];
-      b.querySelector('.wm').textContent = w.kind + ' \u00b7 ' + w.year;
+      // The cover carries its own type, so the button has no text of its
+      // own — the label is what a screen reader gets instead of the drawing.
+      b.innerHTML = w.art;
+      b.setAttribute('aria-label', w.title + ', ' + w.author);
       b.addEventListener('click', function () {
         window.CUFO.expand.open(book(w), w.title, b);
       });
