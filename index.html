@@ -207,21 +207,14 @@
       color: var(--teaser-dim);
     }
 
-    /* The cento idea, made visible: the weave settles from four borrowed
-       voices into one poem in a single hand, then separates again. Colour
-       comes from a class rather than an inline style so `.mono` can win.
-       The class is toggled on the pane so the text and its attributions
-       cross together — one toggle, no chance of the two drifting apart. */
-    .weave span,
-    .sources span { transition: color 1.6s ease-in-out; }
-
+    /* One colour per borrowed voice, held. The pane used to settle the four
+       into a single hand every nine seconds and separate again; the four
+       voices are the point, so they stay. Colour comes from a class rather
+       than an inline style because the weave is built as a string. */
     #weave-pane .v0 { color: #c07a2b; }
     #weave-pane .v1 { color: #8b3d6b; }
     #weave-pane .v2 { color: #2b6e8b; }
     #weave-pane .v3 { color: #4a7a46; }
-
-    #weave-pane.mono .weave span,
-    #weave-pane.mono .sources span { color: var(--teaser-fg); }
 
     /* Melting into a new set of books. The outgoing text is cloned into #ghost,
        stacked over the live pane, and the two cross in opposite directions at
@@ -694,8 +687,7 @@
     // A small, read-only Cento: one fresh weave per page load. No corners, no
     // controls — just the aggregate text and who it came from. The full
     // instrument lives at /cento/.
-    // Voice colours live in the CSS (`#weave-pane .v0`–`.v3`), not here — the
-    // colour cycle needs them in classes so `.mono` can override them.
+    // Voice colours live in the CSS (`#weave-pane .v0`–`.v3`), not here.
     // Deliberately more than any screen shows. The pane clips rather than
     // scrolls, so this just has to guarantee the text runs past the bottom
     // edge on a tall display instead of stopping short with dead space.
@@ -704,10 +696,6 @@
     // Only a few dozen sentences are needed here, so ask the API for a small
     // slice of each book rather than the whole text.
     const PARAGRAPH_WINDOW = 12;
-
-    // How long the weave holds each state before crossing to the other. The
-    // fade itself lives on the `#weave span` transition in the CSS.
-    const MONO_INTERVAL = 9000;
 
     // How long a set of four books stays up before being replaced.
     const SWAP_INTERVAL = 48000;
@@ -865,10 +853,6 @@
     // Draw four new books and cross into them. The fetch happens before the
     // fade, so a failed request costs nothing visible — the pane never empties
     // to reveal an error, it simply keeps the voices it already has.
-    //
-    // Nothing here touches `.mono`, so the colour cycle carries on across the
-    // swap uninterrupted; text arriving mid-cycle inherits whichever state the
-    // pane is in and is already black or coloured on arrival.
     let swapping = false;
     async function swapWeave() {
       if (swapping) return;
@@ -938,19 +922,10 @@
         return;
       }
 
-      // Alternate between the four voices and one black hand. Toggled on the
-      // pane so the weave and its attributions cross together. Started only
-      // after a successful render so it never runs against the error state.
-      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        const pane = document.getElementById('weave-pane');
-        setInterval(() => pane.classList.toggle('mono'), MONO_INTERVAL);
-      }
-
       // Only draw new books while someone can actually see them. A backgrounded
       // tab left open would otherwise fetch four books a minute forever, and
       // every one of those reaches R2 — nothing between here and the bucket
-      // caches. Swapping resumes on return, and the colour cycle above is left
-      // running either way since it is pure CSS and costs no requests.
+      // caches. Swapping resumes on return.
       let swapTimer = null;
       const startSwapping = () => {
         if (!swapTimer) swapTimer = setInterval(swapWeave, SWAP_INTERVAL);
