@@ -1227,7 +1227,8 @@
       rt = setTimeout(function () { if (open >= 0) placeNotch(open); }, 80);
     }).observe(grid);
 
-    openAlbum(0);   // newest, open on arrival
+    // Nothing open to begin with: the page is first of all a grid of
+    // covers, newest first, and opening one is the visitor's move.
   })();
   </script>
 
