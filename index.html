@@ -375,43 +375,91 @@
     }
 
 
-    /* ── Music, upper right: a mini Canon ────────────────────
-       The display out of the Canon mockup (~/Desktop/BHF/music-player),
-       reduced to the part that shows a record: the cover grid, the notch,
-       and the panel that opens in place wearing colours pulled out of the
-       cover itself. None of Canon's chrome — no toolbar, LCD, transport,
-       search or Get Info.
+    /* ── Music: a contained window with a screen in it ────────
+       A box rather than covers loose on the page. Light, but not Apple's
+       light — no gradients, no inset LCD, no pill tabs, no view bar. A flat
+       bar, three controls, and a screen.
 
-       Canon is a white macOS app; this wears the page's black instead, so
-       the quarter meets Split Stack and Waver without a seam. The panel is
-       the same either way: ColorArt chooses its own background per album,
-       and never matched the surround in Canon either.
-
-       Canon's own typeface, though. The system sans is most of what makes
-       it read as that app rather than as the rest of this page. */
+       The screen is the part that matters later: each song gets a video, and
+       it expands through the same CUFO.expand the reader uses. It is sized
+       16:9 off the bar's height, so it stays a small screen rather than
+       growing into a player. */
     #music {
       grid-column: 2;
       grid-row: 1;
       min-height: 0;
-      height: 100%;
+      /* No height: 100% — a stretched grid item already fills its track, and
+         forcing the height makes the margins add on top of it, so the window
+         hung 27px past the row and over Cento's rule. */
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
       overflow: hidden;
-      background: #090909;
-      font: 13px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
-      color: #f5f2ec;
+      margin: 0.85rem;
+      border: 1px solid #8e8e8e;
+      background: #f1f1ef;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+      font: 12px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif;
+      color: #222;
     }
 
+    #mu-bar {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.5rem 0.6rem; height: 68px;
+      border-bottom: 1px solid #c9c9c9;
+    }
+    /* Excludes the screen: `#mu-bar button` outranks `#mu-tv` on
+       specificity, so a blanket reset here paints the screen light grey. */
+    #mu-bar button:not(#mu-tv) {
+      flex: none; border: 0; background: none; padding: 3px; cursor: pointer;
+      color: #2a2a2a; display: grid; place-items: center;
+    }
+    #mu-bar button:not(#mu-tv):hover { color: #000; }
+    #mu-bar button:not(#mu-tv):disabled { opacity: 0.25; cursor: default; }
+    #mu-bar svg { display: block; }
+
+    #mu-vol {
+      flex: none; width: 58px; height: 2px; appearance: none;
+      background: #bcbcba; border-radius: 1px; cursor: pointer;
+    }
+    #mu-vol::-webkit-slider-thumb {
+      appearance: none; width: 9px; height: 9px; border-radius: 50%;
+      background: #2a2a2a; border: 0;
+    }
+    #mu-vol::-moz-range-thumb { width: 9px; height: 9px; border-radius: 50%; background: #2a2a2a; border: 0; }
+
+    #mu-now {
+      flex: 1; min-width: 0; line-height: 1.25;
+    }
+    #mu-now .t { font-size: 10.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #mu-now .a { font-size: 9.5px; color: #6f6f6d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* The screen. Dark and slightly curved in tone, with scan lines — off,
+       but recognisably a thing that shows pictures. */
+    #mu-tv {
+      flex: none; height: 100%; aspect-ratio: 16 / 9; padding: 0; cursor: pointer;
+      position: relative; overflow: hidden;
+      background: #15171a;
+      border: 1px solid #0c0d0f;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+    }
+    #mu-tv::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+    }
+    #mu-tv .dot {
+      position: absolute; left: 50%; top: 50%; width: 4px; height: 4px;
+      margin: -2px 0 0 -2px; border-radius: 50%;
+      background: #4b5a4e; box-shadow: 0 0 6px #4b5a4e;
+    }
+    #mu-tv[data-live="true"] .dot { background: #7ad18c; box-shadow: 0 0 8px #7ad18c; }
+
     #mu-lib {
-      height: 100%;
+      min-height: 0;
       overflow-y: auto;
-      /* The quarter is a small scroller inside a fixed page — without this a
-         flick that reaches the end keeps going and scrolls whatever is
-         behind it. */
       overscroll-behavior: contain;
       scrollbar-width: none;
-      /* The column ends at the shelf, and a row of covers lands wherever it
-         lands — without this the clip cuts straight through an album's name,
-         which reads as a bug rather than as more to scroll. */
-      mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+      background: #fff;
     }
     #mu-lib::-webkit-scrollbar { width: 0; }
 
@@ -419,7 +467,7 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 1.05rem 0.9rem;
-      padding: 0.9rem 0.85rem 1.2rem;
+      padding: 0.85rem 0.8rem 1rem;
     }
 
     .mu-tile {
@@ -429,25 +477,43 @@
     }
     .mu-tile img {
       width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 3px 8px rgba(0, 0, 0, 0.18);
       outline: 2px solid transparent; outline-offset: 2px;
       transition: outline-color 0.2s;
     }
     .mu-tile[aria-expanded="true"] img { outline-color: #4a8af4; }
     .mu-tile b {
-      display: block; font-size: 0.625rem; font-weight: 600; margin-top: 0.45rem;
+      display: block; font-size: 0.64rem; font-weight: 600; margin-top: 0.4rem;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .mu-tile i {
-      display: block; font-size: 0.625rem; font-style: normal; color: #7d7d7d;
+      display: block; font-size: 0.64rem; font-style: normal; color: #808080;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
+    /* The screen again, filling the stage. Same object, bigger. */
+    .tv-big {
+      width: min(92%, 1100px); aspect-ratio: 16 / 9;
+      position: relative; overflow: hidden;
+      background: #15171a; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+    .tv-big::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, rgba(255,255,255,.03) 0 1px, transparent 1px 4px);
+    }
+    .tv-big .cap {
+      position: absolute; left: 0; right: 0; bottom: 8%;
+      text-align: center; color: #cfd6d0;
+      font-family: 'Space Mono', monospace; font-size: 0.68rem;
+      letter-spacing: 0.2em; text-transform: uppercase;
+    }
+
     /* The panel breaks out of the grid's padding to the full width of the
-       quarter, the way Canon's spans the window. */
+       window, the way Canon's spans its own. */
     #mu-pan {
       grid-column: 1 / -1;
-      margin: -0.45rem -0.85rem 0;
+      margin: -0.45rem -0.8rem 0;
       position: relative;
     }
     #mu-pan[hidden] { display: none; }
@@ -463,17 +529,12 @@
       background: var(--mu-bg);
       transition: background-color 0.3s;
     }
-    /* Canon draws this over the cover too, so the panel reads as a drawer
-       pulled open rather than a block laid on top. */
     #mu-body::after {
       content: ''; position: absolute; inset: 0; pointer-events: none;
       box-shadow: inset 0 6px 8px -6px rgba(0, 0, 0, 0.45),
                   inset 0 -6px 8px -6px rgba(0, 0, 0, 0.45);
     }
 
-    /* Fixing the art's width rather than squaring it off the panel's height
-       keeps the text column predictable — the panel's height moves with the
-       track count, and a square would take the words with it. */
     #mu-art {
       position: absolute; top: 0; right: 0; height: 100%; width: 48%;
       object-fit: cover; display: block;
@@ -484,15 +545,15 @@
       transition: background 0.3s;
     }
 
-    #mu-tx { position: relative; padding: 1.05rem 1rem 1.1rem 1.1rem; }
+    #mu-tx { position: relative; padding: 1rem 1rem 1rem 1.05rem; }
     #mu-title {
       font-size: 1rem; font-weight: 600; letter-spacing: -0.2px; color: var(--mu-p);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       transition: color 0.3s;
     }
-    #mu-sub { font-size: 0.625rem; color: var(--mu-s); margin-top: 0.12rem; transition: color 0.3s; }
+    #mu-sub { font-size: 0.64rem; color: var(--mu-s); margin-top: 0.12rem; transition: color 0.3s; }
 
-    #mu-tracks { list-style: none; margin-top: 0.8rem; max-width: 56%; }
+    #mu-tracks { list-style: none; margin-top: 0.75rem; max-width: 56%; }
     #mu-tracks button {
       display: flex; gap: 0.55rem; width: 100%;
       padding: 0.13rem 0.3rem; margin: 0 -0.3rem; border: 0; border-radius: 3px;
@@ -507,69 +568,9 @@
     }
     #mu-tracks .t { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #mu-tracks .du { flex: none; color: var(--mu-d); font-variant-numeric: tabular-nums; transition: color 0.3s; }
-    #mu-foot { font-size: 0.59rem; color: var(--mu-s); margin-top: 0.75rem; transition: color 0.3s; }
+    #mu-foot { font-size: 0.59rem; color: var(--mu-s); margin-top: 0.7rem; transition: color 0.3s; }
 
     #music :focus-visible { outline: 2px solid #4a8af4; outline-offset: 2px; }
-
-    /* ── Literature, under the library ────────────────────────
-       A shelf rather than a grid: two works stand in view and the rest are a
-       scroll to the right, so the section announces that there are more
-       without spending the height to prove it.
-
-       The cards are paper-toned while everything around them is black, which
-       is the whole trick — a card is a small piece of the page it opens into,
-       so the expansion reads as the same object getting bigger. */
-    #lit {
-      grid-column: 2;
-      grid-row: 2;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: #090909;
-      overflow: hidden;
-    }
-
-    #lit-rail {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      gap: 0.85rem;
-      padding: 0 0.85rem;
-      align-items: stretch;
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-    }
-    #lit-rail::-webkit-scrollbar { height: 0; }
-
-    /* Two in view: the flex basis is half the rail less half the gap, so the
-       second card lands exactly on the right edge and the third is visibly
-       cut — the cut is the thing that says "scroll". */
-    .work {
-      /* Width is set, height fills the shelf. Three things cannot all hold
-         at once here: exactly two covers in view, a true 2:3, and reaching
-         both the rule above and the floor below. The ratio is the one that
-         gives — a cover runs from Cento's line to the bottom of the window
-         and comes out around 1:2, taller than a book and the better for it
-         at this size. */
-      flex: 0 0 calc(50% - 0.425rem);
-      height: 100%;
-      scroll-snap-align: start;
-      display: block;
-      padding: 0;
-      border: 0;
-      cursor: pointer;
-      background: var(--eink-page);
-      font: inherit;
-      transition: box-shadow 0.25s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.4);
-    }
-    /* No lift: the cover meets the rule above and the floor below, so there
-       is nowhere to lift to that would not be clipped. The shadow does it. */
-    @media (hover: hover) {
-      .work:hover { box-shadow: 0 0 0 1px rgba(43,43,43,.25), 0 6px 20px rgba(0,0,0,.55); }
-    }
 
     /* The cover is one drawing with its type set into it rather than art
        with a caption bolted under it — which is most of the difference
@@ -639,6 +640,9 @@
       z-index: 200;
       background: var(--eink-bg);
       color: var(--eink-ink);
+      /* The surround is the tenant's call: paper behind a book, near-black
+         behind a screen. One attribute rather than a second stage. */
+      transition: background-color 0.32s ease;
       /* A stage, not a scroller: what goes in sizes itself to the window and
          handles its own paging. Cento, Split Stack and Waver will all want a
          stage rather than a page that scrolls. */
@@ -658,6 +662,7 @@
       transition: opacity 0.32s ease;
     }
     #expand[data-open="true"] { opacity: 1; pointer-events: auto; }
+    #expand[data-tone="dark"] { background: #0b0c0d; }
     /* Focused by script to move the reading order, never by tab, so the ring
        on the container itself says nothing. Anything inside it keeps its own. */
     #expand:focus { outline: none; }
@@ -936,6 +941,16 @@
 
   <main>
     <div id="music">
+      <div id="mu-bar">
+        <button type="button" id="mu-pp" aria-label="Play"></button>
+        <button type="button" id="mu-skip" aria-label="Skip"></button>
+        <input type="range" id="mu-vol" min="0" max="1" step="0.01" value="0.8" aria-label="Volume">
+        <div id="mu-now"><div class="t"></div><div class="a"></div></div>
+        <button type="button" id="mu-tv" aria-label="Expand the screen" data-live="false">
+          <span class="dot"></span>
+        </button>
+      </div>
+
       <div id="mu-lib">
         <div id="mu-grid">
           <!-- Tiles and the panel are built by the script: the panel has to
@@ -943,6 +958,7 @@
                is the one thing this layout cannot express in markup. -->
         </div>
       </div>
+
       <audio id="mu-audio" preload="none"></audio>
     </div>
 
@@ -1394,12 +1410,81 @@
     const grid = el('mu-grid'), audio = el('mu-audio');
     if (!grid || !audio) return;
 
-    const secs = d => { const [m, s] = d.split(':').map(Number); return m * 60 + s; };
+    const secs = d => { const [m, x] = d.split(':').map(Number); return m * 60 + x; };
     const mins = al => Math.round(al.tracks.reduce((n, t) => n + secs(t[1]), 0) / 60);
 
-    let open = -1;      // album whose panel is showing, -1 for none
-    let track = -1, playingAlbum = -1, loaded = '';
+    // One flat running order behind both views, so next and previous carry on
+    // past the end of a record the way a library does.
+    const FLAT = [];
+    CATALOG.forEach(function (al, ai) {
+      al.tracks.forEach(function (t, ti) {
+        FLAT.push({ ai: ai, ti: ti, title: t[0], dur: t[1], album: al.title });
+      });
+    });
 
+    let open = -1;      // album whose panel is showing, -1 for none
+    let cur = -1;       // index into FLAT, -1 for nothing loaded
+    let loaded = -1;
+
+    // ── the bar: play, skip, volume, screen ──
+    const ICON = {
+      play: '<path d="M5.5 3l8 5-8 5z"/>',
+      pause: '<path d="M5 3h3v10H5zM10 3h3v10h-3z"/>',
+      skip: '<path d="M11 3h2v10h-2z"/><path d="M4 3l6 5-6 5z"/>',
+    };
+    const svg = d => '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' + d + '</svg>';
+    el('mu-skip').innerHTML = svg(ICON.skip);
+
+    function setPP() {
+      const b = el('mu-pp'), playing = cur >= 0 && !audio.paused;
+      b.innerHTML = svg(playing ? ICON.pause : ICON.play);
+      b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+      el('mu-tv').dataset.live = playing ? 'true' : 'false';
+    }
+
+    function now() {
+      const box = el('mu-now');
+      box.querySelector('.t').textContent = cur < 0 ? '' : FLAT[cur].title;
+      box.querySelector('.a').textContent = cur < 0 ? '' : ARTIST + ' \u2014 ' + FLAT[cur].album;
+    }
+
+    audio.volume = 0.8;
+    el('mu-vol').addEventListener('input', function (e) { audio.volume = +e.target.value; });
+
+    /* The screen opens onto the stage. There is nothing to show in it yet —
+       each song gets a video eventually — so for now it expands as itself,
+       which is enough to settle the route those videos will take. */
+    el('mu-tv').addEventListener('click', function () {
+      const big = document.createElement('div');
+      big.className = 'tv-big';
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = cur < 0 ? 'no signal' : FLAT[cur].title;
+      big.appendChild(cap);
+      if (window.CUFO && window.CUFO.expand) {
+        window.CUFO.expand.open(big, cur < 0 ? 'Screen' : FLAT[cur].title, el('mu-tv'), 'dark');
+      }
+    });
+
+    // audio.src is left alone until something is actually played, so a
+    // catalogue whose files do not exist yet does not boot into an error.
+    function play(i) {
+      if (i < 0 || i >= FLAT.length) return;
+      if (i === cur) { audio.paused ? audio.play().catch(function () {}) : audio.pause(); return; }
+      cur = i;
+      if (loaded !== i) { audio.src = srcFor(CATALOG[FLAT[i].ai], FLAT[i].ti); loaded = i; }
+      audio.play().catch(function () { paintPlaying(); });
+      paintPlaying();
+    }
+    el('mu-pp').addEventListener('click', function () { play(cur < 0 ? 0 : cur); });
+    // Skip wraps rather than stopping dead at the end of the catalogue.
+    el('mu-skip').addEventListener('click', function () {
+      play(cur < 0 ? 0 : (cur + 1) % FLAT.length);
+    });
+
+    function paintPlaying() { setPP(); now(); mark(); }
+
+    // ── the album grid ──
     const tiles = CATALOG.map(function (al, i) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -1427,7 +1512,6 @@
       return b;
     });
 
-    // The panel, built once and moved between rows.
     const pan = document.createElement('div');
     pan.id = 'mu-pan';
     pan.hidden = true;
@@ -1471,21 +1555,23 @@
       el('mu-art').src = al.cover;
       el('mu-art').alt = al.title + ' cover';
       el('mu-title').textContent = al.title;
-      el('mu-sub').textContent = ARTIST + ' · ' + al.year;
+      el('mu-sub').textContent = ARTIST + ' \u00b7 ' + al.year;
       el('mu-foot').textContent =
-        al.tracks.length + ' songs, ' + mins(al) + ' minutes · ' + al.genre;
+        al.tracks.length + ' songs, ' + mins(al) + ' minutes \u00b7 ' + al.genre;
 
       const list = el('mu-tracks');
       list.innerHTML = '';
       al.tracks.forEach(function (t, n) {
-        const li = document.createElement('li');
         const b = document.createElement('button');
         b.type = 'button';
         b.innerHTML = '<span class="n"></span><span class="t"></span><span class="du"></span>';
         b.querySelector('.n').textContent = n + 1;
         b.querySelector('.t').textContent = t[0];
         b.querySelector('.du').textContent = t[1];
-        b.addEventListener('click', function () { pick(i, n); });
+        b.addEventListener('click', function () {
+          play(FLAT.findIndex(function (f) { return f.ai === i && f.ti === n; }));
+        });
+        const li = document.createElement('li');
         li.appendChild(b);
         list.appendChild(li);
       });
@@ -1497,46 +1583,32 @@
       placeNotch(i);
     }
 
-    function close() {
+    function closeAlbum() {
       pan.hidden = true;
       open = -1;
       tiles.forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
     }
-    function toggle(i) { i === open ? close() : openAlbum(i); }
+    function toggle(i) { i === open ? closeAlbum() : openAlbum(i); }
 
     function mark() {
       if (open < 0) return;
-      const bs = el('mu-tracks').querySelectorAll('button');
-      bs.forEach(function (b, n) {
-        b.setAttribute('aria-current',
-          open === playingAlbum && n === track && !audio.paused ? 'true' : 'false');
+      const playing = cur >= 0 && !audio.paused && FLAT[cur].ai === open ? FLAT[cur].ti : -1;
+      el('mu-tracks').querySelectorAll('button').forEach(function (b, n) {
+        b.setAttribute('aria-current', n === playing ? 'true' : 'false');
       });
     }
 
-    // audio.src is left alone until something is actually played, so a
-    // catalogue whose files do not exist yet does not boot into an error.
-    function pick(i, n) {
-      if (i === playingAlbum && n === track) {
-        audio.paused ? audio.play().catch(function () {}) : audio.pause();
-        return;
-      }
-      playingAlbum = i; track = n;
-      const key = i + ':' + n;
-      if (loaded !== key) { audio.src = srcFor(CATALOG[i], n); loaded = key; }
-      audio.play().catch(function () { mark(); });
-    }
-
-    audio.addEventListener('play', mark);
-    audio.addEventListener('pause', mark);
+    audio.addEventListener('play', paintPlaying);
+    audio.addEventListener('pause', paintPlaying);
     audio.addEventListener('ended', function () {
-      const al = CATALOG[playingAlbum];
-      if (al && track + 1 < al.tracks.length) pick(playingAlbum, track + 1);
-      else mark();
+      if (cur + 1 < FLAT.length) play(cur + 1); else { cur = -1; paintPlaying(); }
     });
     audio.addEventListener('error', function () {
-      // Say so rather than sitting on a dead row.
-      if (open === playingAlbum) el('mu-foot').textContent = 'track unavailable';
-      mark();
+      // Say so rather than sitting on a dead control. This fires exactly when
+      // a track is missing, which is every track until the audio lands — so
+      // it has to point at something that exists.
+      if (cur >= 0) el('mu-now').querySelector('.a').textContent = 'unavailable';
+      setPP();
     });
 
     // The columns are fluid, so the notch has to be put back after a resize.
@@ -1546,7 +1618,8 @@
       rt = setTimeout(function () { if (open >= 0) placeNotch(open); }, 80);
     }).observe(grid);
 
-    // Nothing open to begin with: the page is first of all a grid of
+    paintPlaying();
+    // Nothing open to begin with: the window is first of all a grid of
     // covers, newest first, and opening one is the visitor's move.
   })();
   </script>
@@ -1567,7 +1640,8 @@
 
     let opener = null;   // what to hand focus back to on the way out
 
-    function open(node, label) {
+    function open(node, label, tone) {
+      host.dataset.tone = tone || 'paper';
       host.replaceChildren(node);
       host.scrollTop = 0;
       if (label) host.setAttribute('aria-label', label);
@@ -1614,7 +1688,7 @@
 
     window.CUFO = window.CUFO || {};
     window.CUFO.expand = {
-      open: function (node, label, from) { opener = from || null; open(node, label); },
+      open: function (node, label, from, tone) { opener = from || null; open(node, label, tone); },
       close: close,
       get isOpen() { return host.dataset.open === 'true'; },
     };
