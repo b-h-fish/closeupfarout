@@ -122,13 +122,17 @@
          moved into the quarter the library used to hold, and the library has
          taken Cento's column. */
       grid-template-columns: 3fr 2fr;
-      /* The right column carries two things now: the record library, and a
-         shelf of writing under it. The split is the same track definition
-         Split Stack's pane uses for its own two rows, so the shelf begins on
-         exactly the line where Cento ends and Waver starts — at any window
-         height, with nothing measured and nothing to keep in step by hand.
-         Split Stack's pane spans both rows, so it is unaffected. */
-      grid-template-rows: minmax(444px, 1fr) 1fr;
+      /* The right column carries two things: the record library, and a shelf
+         of writing under it. The shelf starts on Cento's rule — the line
+         above its attributions, not the bottom of its pane — so the two
+         columns share a horizontal.
+
+         That line cannot be expressed as a track, because where it falls
+         depends on how tall the attribution block is, which depends on how
+         many lines the titles take. So it is measured and fed back as
+         --lit-top. The fallback is what the layout does before the script
+         runs, and on mobile, where the rule is overridden outright. */
+      grid-template-rows: var(--lit-top, minmax(444px, 1fr)) 1fr;
       background: var(--page);
     }
 
@@ -525,24 +529,13 @@
       overflow: hidden;
     }
 
-    #lit h2 {
-      flex: none;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
-      font-weight: 400;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(245, 242, 236, 0.4);
-      padding: 0.75rem 0.85rem 0.6rem;
-    }
-
     #lit-rail {
       flex: 1;
       min-height: 0;
       display: flex;
       gap: 0.85rem;
-      padding: 0 0.85rem 0.85rem;
-      align-items: flex-start;
+      padding: 0 0.85rem;
+      align-items: stretch;
       overflow-x: auto;
       overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
@@ -554,13 +547,14 @@
        second card lands exactly on the right edge and the third is visibly
        cut — the cut is the thing that says "scroll". */
     .work {
-      /* Width first, height from the ratio — a cover is a rectangle, and two
-         of them have to stand in view whatever the window height. Sizing off
-         the height instead would make the covers wider on a tall screen and
-         quietly drop the second one off the edge. */
+      /* Width is set, height fills the shelf. Three things cannot all hold
+         at once here: exactly two covers in view, a true 2:3, and reaching
+         both the rule above and the floor below. The ratio is the one that
+         gives — a cover runs from Cento's line to the bottom of the window
+         and comes out around 1:2, taller than a book and the better for it
+         at this size. */
       flex: 0 0 calc(50% - 0.425rem);
-      aspect-ratio: 2 / 3;
-      max-height: 100%;
+      height: 100%;
       scroll-snap-align: start;
       display: block;
       padding: 0;
@@ -568,27 +562,66 @@
       cursor: pointer;
       background: var(--eink-page);
       font: inherit;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      transition: box-shadow 0.25s ease;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.4);
     }
+    /* No lift: the cover meets the rule above and the floor below, so there
+       is nowhere to lift to that would not be clipped. The shadow does it. */
     @media (hover: hover) {
-      .work:hover { transform: translateY(-3px); box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 10px 22px rgba(0,0,0,.45); }
+      .work:hover { box-shadow: 0 0 0 1px rgba(43,43,43,.25), 0 6px 20px rgba(0,0,0,.55); }
     }
 
-    /* The cover is one drawing, type included, rather than art with a caption
-       bolted under it — which is the whole difference between a book cover
-       and a thumbnail. One viewBox at the card's own 2:3, so it fits exactly
-       and the composition scales rather than reflows. */
-    .work svg { display: block; width: 100%; height: 100%; }
+    /* The cover is one drawing with its type set into it rather than art
+       with a caption bolted under it — which is most of the difference
+       between a book cover and a thumbnail.
+
+       Built from CSS and HTML rather than as one SVG, because the card's
+       shape moves a long way with the window: measured between 0.37 and 0.56
+       wide-to-tall. A single viewBox cannot survive that. `slice` crops the
+       long edge, and on a tall window that is the left and right margins —
+       at 1440x1200 it took 22 units off each side and cut the title off every
+       cover. `meet` letterboxes instead, which breaks the full-bleed shapes.
+       `none` stretches, which turns the discs into eggs.
+
+       So: type is HTML, which cannot be cropped or distorted and scales with
+       the card through container units. Shapes that care about their
+       proportions are CSS boxes. SVG is left to do only what stretches
+       harmlessly — a curve, and a field of horizontal rules. */
+    .work { position: relative; overflow: hidden; container-type: size; }
+    .work > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     .work .ink { fill: var(--eink-ink); }
     .work .dim { fill: var(--eink-dim); }
-    .work .pap { fill: var(--eink-page); }
-    /* Colour only. A stroke-width here would beat every cover's own
-       stroke-width attribute, since CSS always wins over a presentation
-       attribute — which is how the hill spent a while as a hairline. */
     .work .out { fill: none; stroke: var(--eink-ink); }
-    .work .ttl { font-family: 'Josefin Sans', sans-serif; font-weight: 400; }
-    .work .aut { font-family: 'Space Mono', monospace; font-size: 7.4px; letter-spacing: 1.9px; }
+
+    .cv-t, .cv-a { position: absolute; display: block; white-space: nowrap; }
+    .cv-t {
+      font-family: 'Josefin Sans', sans-serif;
+      font-weight: 400;
+      font-size: 13cqw;
+      line-height: 1.08;
+      letter-spacing: 0.03em;
+      color: var(--eink-ink);
+    }
+    .cv-a {
+      font-family: 'Space Mono', monospace;
+      font-size: 3.1cqw;
+      letter-spacing: 0.17em;
+      text-transform: uppercase;
+      color: var(--eink-dim);
+    }
+
+    /* 2fer — a solid disc and an outlined one, overlapping. Boxes rather
+       than circles in the SVG so they stay round whatever the card does. */
+    .cv-disc { position: absolute; width: 45%; aspect-ratio: 1; border-radius: 50%; }
+    .cv-disc.solid { background: var(--eink-ink); left: 13%; }
+    .cv-disc.ring { border: 1.5px solid var(--eink-ink); left: 42%; }
+
+    /* Flips — opposite quadrants, and the title mirrored into the second. */
+    .cv-q { position: absolute; width: 50%; height: 50%; background: var(--eink-ink); }
+    .cv-q.tl { left: 0; top: 0; }
+    .cv-q.br { left: 50%; top: 50%; }
+    .cv-t.knock { color: var(--eink-page); }
+    .cv-t.flip { transform: rotate(180deg); transform-origin: 50% 50%; }
 
     /* ── The expansion ────────────────────────────────────────
        Deliberately general. Literature is its first tenant, but Cento, Split
@@ -913,8 +946,7 @@
       <audio id="mu-audio" preload="none"></audio>
     </div>
 
-    <section id="lit" aria-labelledby="lit-h">
-      <h2 id="lit-h">Writing</h2>
+    <section id="lit" aria-label="Writing">
       <div id="lit-rail"><!-- cards built by the script --></div>
     </section>
 
@@ -1597,25 +1629,23 @@
        something coming to rest rather than as a gradient. Generated because
        thirty-four hand-typed <rect>s is not a drawing, it is a transcription. */
     const DUST = (function () {
-      let out = '', y = 120;
-      // 25 rules, the gap closing from 13 to 1, which lands the last one at
-      // 295 — just short of the edge. Evenly spaced it read as a texture
-      // rather than as anything coming to rest.
-      for (let i = 0; i < 25; i++) {
+      let out = '', y = 170;
+      // 33 rules, the gap closing from 13 to 1, landing the last at ~401 so
+      // the field runs off the bottom edge. Evenly spaced it read as a
+      // texture rather than as anything coming to rest.
+      for (let i = 0; i < 33; i++) {
         out += '<rect class="dim" x="0" y="' + y.toFixed(1) + '" width="200" height="1"/>';
-        y += 13 - i * 0.5;
+        y += 13 - i * 0.375;
       }
       return out;
     })();
 
     const WORKS = [
       { title: '2fer', author: 'N. Auerbach',
-        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
-          '<circle class="ink" cx="74" cy="168" r="54"/>' +
-          '<circle class="out" cx="126" cy="168" r="54" stroke-width="2"/>' +
-          '<text class="ttl ink" x="18" y="58" font-size="34" letter-spacing="1.5">2FER</text>' +
-          '<text class="aut dim" x="18" y="278">N. AUERBACH</text>' +
-        '</svg>',
+        art: '<span class="cv-disc solid" style="top:40%"></span>' +
+          '<span class="cv-disc ring" style="top:40%"></span>' +
+          '<span class="cv-t" style="left:7%;top:4.5%">2FER</span>' +
+          '<span class="cv-a" style="left:7%;bottom:5%">N. Auerbach</span>',
         text: [
         'Two things can be true, which is the sort of sentence that sounds like wisdom and functions like an escape hatch.',
         'I have been thinking about the places where the two things are not merely both true but are true because of one another, which is harder, and rarer, and worth the trouble of saying slowly.',
@@ -1626,16 +1656,10 @@
         'The honest construction would be flatter. And. Simply and. But “and” reads as a list, and a list implies the items are independent, which is the thing I am trying not to say.',
         'So the sentence gets longer. It has to. Anything shorter has already taken a side.'] },
       { title: 'Flips', author: 'R. Okonkwo',
-        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
-          '<rect class="ink" x="0" y="0" width="100" height="150"/>' +
-          '<rect class="ink" x="100" y="150" width="100" height="150"/>' +
-          '<text class="ttl pap" x="14" y="46" font-size="25" letter-spacing="1">FLIPS</text>' +
-          // Rotated about the bottom-right quadrant's own centre, not the
-          // card's — about the card's it lands back on top of the first one.
-          '<text class="ttl pap" x="186" y="196" font-size="25" letter-spacing="1" ' +
-            'text-anchor="end" transform="rotate(180 150 225)">FLIPS</text>' +
-          '<text class="aut ink" x="14" y="190">R. OKONKWO</text>' +
-        '</svg>',
+        art: '<span class="cv-q tl"></span><span class="cv-q br"></span>' +
+          '<span class="cv-t knock" style="left:6%;top:3.5%;font-size:11cqw">FLIPS</span>' +
+          '<span class="cv-t knock flip" style="right:6%;bottom:3.5%;font-size:11cqw">FLIPS</span>' +
+          '<span class="cv-a" style="left:6%;top:52%;color:var(--eink-ink)">R. Okonkwo</span>',
         text: [
         'The board came up and over and landed wrong, and he rode it out anyway, which was the whole of his talent as far as anyone could tell.',
         'He had been at it since the lot was poured. The security guard had stopped coming out around the second summer.',
@@ -1646,12 +1670,12 @@
         'It went up and over and came down wrong, and he rode it out, and the board shot away across the slab and hit the fence with a sound like a dropped plate.',
         'He went and got it. He came back. That was the whole afternoon, and the one before it, and the one after.'] },
       { title: 'Over the Hill', author: 'M. Delacroix',
-        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
-          '<path class="out" d="M-4 236 Q 68 236 108 168 T 204 86" stroke-width="20"/>' +
-          '<text class="ttl ink" x="16" y="282" font-size="21" letter-spacing="0.5">OVER THE</text>' +
-          '<text class="ttl ink" x="16" y="38" font-size="21" letter-spacing="0.5">HILL</text>' +
-          '<text class="aut dim" x="184" y="38" text-anchor="end">M. DELACROIX</text>' +
-        '</svg>',
+        art: '<svg viewBox="0 0 200 420" preserveAspectRatio="none" aria-hidden="true">' +
+            '<path class="out" d="M-6 330 Q 70 330 110 238 T 206 128" stroke-width="22"/>' +
+          '</svg>' +
+          '<span class="cv-t" style="left:6%;top:3.5%;font-size:9cqw">HILL</span>' +
+          '<span class="cv-a" style="right:6%;top:5%">M. Delacroix</span>' +
+          '<span class="cv-t" style="left:6%;bottom:4%;font-size:9cqw">OVER THE</span>',
         text: [
         'Nobody tells you that the hill is not a hill. It is a long shallow rise, and you are most of the way up it before the word occurs to you at all.',
         'The metaphor fails in a specific and interesting way, which is that hills have a summit and you know when you are on it.',
@@ -1659,12 +1683,11 @@
         'Then one morning you find yourself describing something as the way it used to be done, in a tone of voice you have heard before, from someone you did not entirely respect at the time.',
         'There is no summit. There is a long shallow rise, and a point somewhere on it where you turn around to check the view and discover it is behind you.'] },
       { title: 'Dust Settled', author: 'J. Varga',
-        art: '<svg viewBox="0 0 200 300" aria-hidden="true">' +
-          DUST +
-          '<text class="ttl ink" x="16" y="48" font-size="23" letter-spacing="1">DUST</text>' +
-          '<text class="ttl ink" x="16" y="74" font-size="23" letter-spacing="1">SETTLED</text>' +
-          '<text class="aut ink" x="16" y="98">J. VARGA</text>' +
-        '</svg>',
+        art: '<svg viewBox="0 0 200 420" preserveAspectRatio="none" aria-hidden="true">' +
+            DUST +
+          '</svg>' +
+          '<span class="cv-t" style="left:6%;top:4%;font-size:10cqw">DUST<br>SETTLED</span>' +
+          '<span class="cv-a" style="left:6%;top:30%;color:var(--eink-ink)">J. Varga</span>',
         text: [
         'Afterward the house was very clean, which was the part no one had warned her about.',
         'She found the receipts in a drawer he had never used, held with a clip, in order, going back years.',
@@ -1678,6 +1701,32 @@
 
     const rail = document.getElementById('lit-rail');
     if (!rail) return;
+
+    /* Put the shelf's top edge on Cento's rule. The attributions are pinned
+       to the bottom of their pane, so the rule sits a block's height above
+       it — a height that moves with the titles and the window, which is why
+       this is measured rather than written as a track. */
+    const mainEl = document.querySelector('main');
+    const sources = document.getElementById('sources');
+    if (mainEl && sources) {
+      const align = function () {
+        // Only at the width where the two actually sit side by side; the
+        // mobile stylesheet owns the rows below that and must not be fought.
+        if (!window.matchMedia('(min-width: 769px)').matches) {
+          mainEl.style.removeProperty('--lit-top');
+          return;
+        }
+        const y = sources.getBoundingClientRect().top - mainEl.getBoundingClientRect().top;
+        if (y > 0) mainEl.style.setProperty('--lit-top', Math.round(y) + 'px');
+      };
+      // The block moves when its own height changes, when the pane resizes,
+      // and when the webfont lands and the weave re-trims under it.
+      const ro = new ResizeObserver(align);
+      ro.observe(sources);
+      ro.observe(mainEl);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(align);
+      align();
+    }
 
     /* Builds the spread. The columns do the pagination; this only has to
        count how many of them there are and slide the flow by one spread at a
