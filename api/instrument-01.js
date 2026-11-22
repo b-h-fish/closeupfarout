@@ -19,12 +19,6 @@ const BOOKS_BY_ID = new Map(BOOKS.map(b => [b.id, b]));
 const VOICE_COLORS = ['#c07a2b', '#8b3d6b', '#2b6e8b', '#4a7a46'];
 
 const WIKI_UA = 'closeupfarout.com/instrument-01 (hello@closeupfarout.com)';
-const GUT_UA  = 'closeupfarout.com/instrument-01 (hello@closeupfarout.com)';
-
-// Cap absurdly large files (dictionaries, complete-works compilations) so a
-// single draw can't blow the function's time/memory budget. Normal novels are
-// 0.5–2 MB, so this preserves full-text access for essentially every real book.
-const MAX_BYTES = 4000000;
 
 // How many contiguous paragraphs one voice contributes. Wikipedia's window is
 // small so its random start engages on most articles (which are short), letting
@@ -99,116 +93,33 @@ async function fetchWikiVoice(attempt) {
 
 // ── Project Gutenberg ──────────────────────────────────────────────────────
 
-function isToc(p) {
-  const hits = (p.match(/\b(chapter|letter|act|scene|book|part|canto)\s+([ivxlcdmIVXLCDM]+|\d+)/gi) || []).length;
-  return hits >= 3;
-}
 
-// Project Gutenberg's own apparatus — retranscription notes, cross-references
-// to other ebooks, copyright headers. Measured across 1.64M cleaned paragraphs,
-// the phrase "Project Gutenberg" and the word "etext" appear in 0.011% of them,
-// and sampled deep inside books they are boilerplate every time: this corpus is
-// public-domain prose that predates both terms.
-const PG_APPARATUS = /\bproject\s+gutenberg\b|\be-?texts?\b/i;
+// Books come from our own R2 corpus rather than gutenberg.org. Each object is
+// the cleaned paragraph array for one book, stored gzipped with a matching
+// Content-Encoding so fetch() inflates it for us — the cleaning that used to
+// run on every request now happens once, at build time, in scripts/.
+//
+// Nothing here falls back to gutenberg.org. That dependency is what took Cento
+// down when the archive went offline, and the corpus is a frozen snapshot, so
+// a miss means the object is genuinely absent rather than temporarily
+// unreachable. See scripts/build-corpus.js to rebuild.
+//
+// This is the r2.dev development URL — rate-limited, and with no Cloudflare
+// cache, WAF or Access in front of it. Moving the zone to Cloudflare would
+// allow a custom domain and caching; CORPUS_BASE is the only thing to change.
+const CORPUS_BASE = (process.env.CORPUS_BASE ||
+  'https://pub-d1324c09cd0143a29e18b22877716331.r2.dev')
+  .replace(/\/+$/, '');
 
-// Digitiser credits that don't name Gutenberg outright. Anchored at the start
-// so a passing mention mid-paragraph can't strip real prose.
-const CREDIT_OPENING = new RegExp(
-  '^(?:produced|transcribed|scanned|prepared|proofread|digiti[sz]ed)\\s+by\\b' +
-  '|^(?:transcriber|editorial|translator)(?:\'s|s\')?\\s+note\\b' +
-  '|^credits?\\b' +
-  '|^we\\s+are\\s+releasing\\b' +
-  '|^many\\s+thanks\\s+to\\b' +
-  '|^updated\\s+editions\\b' +
-  '|^distributed\\s+proofread',
-  'i'
-);
-
-function isFrontMatter(p) {
-  if (/^(chapter|book|part|volume|section|act|scene|contents?|preface|introduction|appendix|prologue|epilogue|notes?|translator|illustrations?)\b/i.test(p)) return true;
-  if (/^[MDCLXVI]+\.?\s*$/.test(p)) return true;
-  if (/^\[/.test(p)) return true;
-  if (/^[_*]{3,}/.test(p)) return true;
-  if (PG_APPARATUS.test(p)) return true;
-  if (CREDIT_OPENING.test(p)) return true;
-  const caps = (p.match(/[A-Z]/g) || []).length;
-  if (caps / p.length > 0.35) return true;
-  if (isToc(p)) return true;
-  return false;
-}
-
-// Hard citation signals used to identify (and trim) an attribution/reference
-// tail. Deliberately conservative — bare years and "No." are excluded as too
-// ambiguous, so we only trim when a page/volume/edition/op.cit./ibid. marker
-// is present.
-const CITE_SIGNAL = /\bpp?\.\s*\d|\bvols?\.|\bop\.\s*cit|\bibid\b|\bedition\b/i;
-
-function cleanGutenberg(raw) {
-  // Normalize Windows CRLF — Gutenberg files always use CRLF; without this
-  // the paragraph splitter (/\n{2,}/) never fires.
-  let text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-  const startIdx = text.search(/\*{3}\s*START OF (THE |THIS )?PROJECT/i);
-  if (startIdx !== -1) text = text.slice(text.indexOf('\n', startIdx) + 1);
-
-  const endIdx = text.search(/\*{3}\s*END OF (THE |THIS )?PROJECT/i);
-  if (endIdx !== -1) text = text.slice(0, endIdx);
-
-  // Strip repeated header block (Title:/Author: metadata after START marker in some files)
-  const headerBlock = text.search(/^Title:/im);
-  if (headerBlock !== -1 && headerBlock < 4000) {
-    const gap = text.indexOf('\n\n', headerBlock);
-    if (gap !== -1) text = text.slice(gap);
+async function fetchCorpusParagraphs(id) {
+  try {
+    const res = await fetch(CORPUS_BASE + '/books/' + id + '.json.gz');
+    if (!res.ok) return null;
+    const paragraphs = await res.json();
+    return Array.isArray(paragraphs) && paragraphs.length ? paragraphs : null;
+  } catch (_) {
+    return null;
   }
-
-  return text
-    .split(/\n{2,}/)
-    .map(p => p.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(p => p.length >= 120 && !isFrontMatter(p))
-    .map(p => {
-      // Gutenberg plain-text conventions: _underscores_ mark italics, =equals=
-      // mark bold, and runs of two-or-more hyphens are an ASCII em dash
-      // (night--and day). Strip the emphasis markers, convert the dashes, and
-      // remove footnote/reference markers [1] and editorial [sic] (bracketed
-      // words like [Slavery] are kept as texture). Single hyphens (well-known)
-      // are left alone.
-      p = p
-        .replace(/[_=]/g, '')
-        .replace(/-{2,}/g, '—')
-        .replace(/\[\d+\]/g, '')
-        .replace(/\[sic\.?\]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      // Conservative attribution trim: drop a trailing em-dash citation tail,
-      // but only when the em dash follows a terminator/closing-quote AND the
-      // tail carries a hard citation signal — so narrative asides survive.
-      p = p.replace(/([.!?…"”'’])\s*—\s*[^—]*$/, (m, punct) =>
-        CITE_SIGNAL.test(m) ? punct : m
-      );
-      return p.trim();
-    });
-}
-
-// Gutenberg serves text at a few different URL shapes depending on the book's
-// age. Try the modern cache path first, then the older /files/ variants.
-function gutenbergUrls(id) {
-  return [
-    'https://www.gutenberg.org/cache/epub/' + id + '/pg' + id + '.txt',
-    'https://www.gutenberg.org/files/' + id + '/' + id + '-0.txt',
-    'https://www.gutenberg.org/files/' + id + '/' + id + '.txt',
-  ];
-}
-
-async function fetchGutenbergText(id) {
-  for (const url of gutenbergUrls(id)) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': GUT_UA } });
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (text && text.length > 2000) return text.slice(0, MAX_BYTES);
-    } catch (_) { /* try next URL shape */ }
-  }
-  return null;
 }
 
 // Reference works are lists, not prose — one drawn into a corner fills the
@@ -240,11 +151,10 @@ async function fetchGutenbergVoice(usedIds, attempt) {
   const book = pickRandomBook(usedIds);
   usedIds.add(book.id); // reserve immediately so retries/other voice skip it
 
-  const raw = await fetchGutenbergText(book.id);
-  if (!raw) return fetchGutenbergVoice(usedIds, attempt + 1);
-
-  const all = cleanGutenberg(raw);
-  if (all.length < 12) return fetchGutenbergVoice(usedIds, attempt + 1);
+  // Already cleaned and already past the paragraph floor at build time, so a
+  // null here means the object is missing, not that the book was unusable.
+  const all = await fetchCorpusParagraphs(book.id);
+  if (!all) return fetchGutenbergVoice(usedIds, attempt + 1);
 
   return {
     id: book.id, title: book.title, author: book.author, source: 'Project Gutenberg',
@@ -257,11 +167,8 @@ async function fetchGutenbergVoice(usedIds, attempt) {
 // the caller surfaces an error.
 async function fetchGutenbergVoiceById(id) {
   const book = BOOKS_BY_ID.get(id) || { id, title: null, author: null };
-  const raw = await fetchGutenbergText(id);
-  if (!raw) throw new Error('Gutenberg ' + id + ': text unavailable');
-
-  const all = cleanGutenberg(raw);
-  if (all.length < 12) throw new Error('Gutenberg ' + id + ': too little usable prose');
+  const all = await fetchCorpusParagraphs(id);
+  if (!all) throw new Error('Gutenberg ' + id + ': not in the corpus');
 
   return {
     id: book.id, title: book.title, author: book.author, source: 'Project Gutenberg',
