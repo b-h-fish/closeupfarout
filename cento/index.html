@@ -1267,7 +1267,18 @@
       }
 
       try {
-        const res  = await fetch('/api/instrument-01');
+        // ?v=id,id,id,id arrives from the front-page teaser, so clicking it
+        // opens on the same four voices rather than drawing new ones. Anything
+        // else — a direct visit, Random, a reload without the param — still
+        // gets a fresh pairing.
+        const wanted = (new URLSearchParams(location.search).get('v') || '')
+          .split(',')
+          .map(s => parseInt(s, 10))
+          .filter(Number.isFinite)
+          .slice(0, 4);
+
+        const res  = await fetch('/api/instrument-01' +
+          (wanted.length ? '?books=' + wanted.join(',') : ''));
         if (!res.ok) throw new Error(`API ${res.status}`);
         const data = await res.json();
 

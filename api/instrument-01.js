@@ -255,6 +255,31 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ voice });
     }
 
+    // ── Exact set: ?books=id,id,id,id ────────────────────────────────────
+    // Lets the front-page teaser hand its four books to Cento, so clicking
+    // through opens on the weave you were just reading rather than a fresh
+    // draw. Order is preserved, so each book keeps the corner — and the
+    // colour — it had in the teaser.
+    if (typeof q.books === 'string' && q.books.trim()) {
+      const ids = q.books.split(',')
+        .map(s => parseInt(s, 10))
+        .filter(Number.isFinite)
+        .slice(0, 4);
+      if (!ids.length) return res.status(400).json({ error: 'bad books list' });
+
+      const settled = await Promise.allSettled(ids.map(id => fetchGutenbergVoiceById(id)));
+      const voices = settled.map((s, i) => {
+        const color = VOICE_COLORS[i];
+        return s.status === 'fulfilled' ? { ...s.value, color } : fallbackVoice(color);
+      });
+
+      const w = parseInt(q.window, 10);
+      if (Number.isFinite(w) && w > 0) {
+        voices.forEach(v => { v.paragraphs = randomWindow(v.paragraphs, w); });
+      }
+      return res.status(200).json({ voices });
+    }
+
     // ── Full pairing: one voice per corner, source list from ?sources= ───
     let sources = DEFAULT_SOURCES;
     if (typeof q.sources === 'string' && q.sources.trim()) {

@@ -833,6 +833,7 @@
       const data = await res.json();
 
       const voices = (data.voices || []).map((v, i) => ({
+        id: v.id,
         title: v.title,
         author: v.author,
         vi: i,
@@ -848,6 +849,13 @@
       document.getElementById('weave').innerHTML = next.html;
       renderSources(next.voices);
       snapToWholeLines();
+
+      // Carry the four books through to Cento, so clicking the teaser opens on
+      // the weave you were reading rather than a fresh draw. Re-pointed on each
+      // swap, so the link always matches what is on screen.
+      const ids = next.voices.map(v => v.id).filter(Number.isFinite);
+      const link = document.getElementById('weave-link');
+      if (link) link.href = ids.length ? '/cento/?v=' + ids.join(',') : '/cento/';
     }
 
     // Draw four new books and cross into them. The fetch happens before the
