@@ -572,6 +572,66 @@
 
     #music :focus-visible { outline: 2px solid #4a8af4; outline-offset: 2px; }
 
+    /* ── Literature, under the library ────────────────────────
+       A shelf rather than a grid: two works stand in view and the rest are a
+       scroll to the right, so the section announces that there are more
+       without spending the height to prove it.
+
+       The cards are paper-toned while everything around them is black, which
+       is the whole trick — a card is a small piece of the page it opens into,
+       so the expansion reads as the same object getting bigger. */
+    #lit {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #090909;
+      overflow: hidden;
+    }
+
+    #lit-rail {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      gap: 0.85rem;
+      padding: 0 0.85rem;
+      align-items: stretch;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    #lit-rail::-webkit-scrollbar { height: 0; }
+
+    /* Two in view: the flex basis is half the rail less half the gap, so the
+       second card lands exactly on the right edge and the third is visibly
+       cut — the cut is the thing that says "scroll". */
+    .work {
+      /* Width is set, height fills the shelf. Three things cannot all hold
+         at once here: exactly two covers in view, a true 2:3, and reaching
+         both the rule above and the floor below. The ratio is the one that
+         gives — a cover runs from Cento's line to the bottom of the window
+         and comes out around 1:2, taller than a book and the better for it
+         at this size. */
+      flex: 0 0 calc(50% - 0.425rem);
+      height: 100%;
+      scroll-snap-align: start;
+      display: block;
+      padding: 0;
+      border: 0;
+      cursor: pointer;
+      background: var(--eink-page);
+      font: inherit;
+      transition: box-shadow 0.25s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+    /* No lift: the cover meets the rule above and the floor below, so there
+       is nowhere to lift to that would not be clipped. The shadow does it. */
+    @media (hover: hover) {
+      .work:hover { box-shadow: 0 0 0 1px rgba(43,43,43,.25), 0 6px 20px rgba(0,0,0,.55); }
+    }
+
     /* The cover is one drawing with its type set into it rather than art
        with a caption bolted under it — which is most of the difference
        between a book cover and a thumbnail.
