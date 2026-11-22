@@ -26,14 +26,17 @@
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
-      /* E-ink: a warm grey paper and a soft black, not white on black and not
-         pure #000 on #fff. Both are the reading surface, so they live here
-         rather than in either place that uses them — the cards on the front
-         page are literally small pieces of the page they open into. */
-      --eink-bg: #e8e4da;
-      --eink-ink: #26231e;
-      --eink-dim: #6f6a60;
-      --eink-rule: rgba(38, 35, 30, 0.2);
+      /* E-ink: a Kindle screen, which is a flat light grey with no warmth in
+         it at all — not paper, not cream, and nowhere near #fff. The ink is a
+         soft near-black, because the particles never reach true black either.
+         Both live here rather than in either place that uses them: the covers
+         on the front page are literally small pieces of the screen they open
+         into, so they must not be allowed to drift apart. */
+      --eink-bg: #d9d9d7;
+      --eink-ink: #2b2b2b;
+      --eink-dim: #6e6e6c;
+      --eink-rule: rgba(43, 43, 43, 0.26);
+      --eink-page: #dedede;
     }
 
     html, body {
@@ -615,8 +618,20 @@
       z-index: 200;
       background: var(--eink-bg);
       color: var(--eink-ink);
-      overflow-y: auto;
-      overscroll-behavior: contain;
+      /* A stage, not a scroller: what goes in sizes itself to the window and
+         handles its own paging. Cento, Split Stack and Waver will all want a
+         stage rather than a page that scrolls. */
+      display: grid;
+      /* The row must be pinned to the stage, and `1fr` is not enough: it means
+         `minmax(auto, 1fr)`, and that automatic minimum is the item's
+         min-content height. The reader's columns report ~1605px, so the row
+         refuses to shrink below it, the book's `height: min(88%, …)` resolves
+         against 1605 rather than the window, and it centres in a row twice
+         the height of the screen and hangs off the bottom. `minmax(0, 1fr)`
+         drops the minimum and the row is the stage. */
+      grid-template-rows: minmax(0, 1fr);
+      place-items: center;
+      overflow: hidden;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.32s ease;
@@ -631,40 +646,134 @@
     body[data-expanded="true"] > header { cursor: pointer; }
     body[data-expanded="true"] #brand .ltr { color: rgba(245, 242, 236, 1); }
 
-    .read { max-width: 34rem; margin: 0 auto; padding: 4.5rem 2rem 6rem; }
-    .read h1 {
-      font-family: 'EB Garamond', serif;
-      font-size: 2.1rem;
-      font-weight: 400;
-      line-height: 1.1;
+    /* ── The reader: two pages, then a flip ───────────────────
+       CSS columns do the pagination. The flow is given exactly two columns
+       and a fixed height with `column-fill: auto`, so text that does not fit
+       keeps making columns off to the right instead of being balanced into
+       the two. Those extra columns are clipped by .leaves, and turning a page
+       is translating the flow left by one spread. No measuring of words, no
+       splitting of paragraphs, and it re-paginates for free when the window
+       changes. */
+    .book {
+      width: min(92%, 1040px);
+      height: min(88%, 780px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: var(--eink-page);
+      padding: 3.2rem 3.4rem 1rem;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset,
+                  0 18px 40px rgba(0, 0, 0, 0.18);
     }
-    .read .meta {
+
+    /* The page's own grain. The site's .grain sits at z-index 50 and the
+       stage is at 200, so the reader would otherwise be the only perfectly
+       smooth surface on the site — which is the opposite of what an e-ink
+       screen looks like up close. Very low: it should register as texture,
+       never as noise. Delete this rule for a clean page. */
+    .book::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.055;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+    }
+
+    .leaves { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+
+    .flow {
+      height: 100%;
+      column-count: 2;
+      column-gap: 4.6rem;
+      /* Sequential, not balanced — a balanced last spread would re-flow the
+         whole book every time a page is turned. */
+      column-fill: auto;
+      transition: transform 0.26s cubic-bezier(0.3, 0.7, 0.3, 1);
+    }
+
+    /* The fold. Not a drawn line — a book's gutter is a loss of light, so it
+       is a narrow shadow either side of the centre and nothing at all in the
+       middle of it. */
+    .spine {
+      position: absolute;
+      top: 0; bottom: 0; left: 50%;
+      width: 4.6rem;
+      transform: translateX(-50%);
+      pointer-events: none;
+      background: linear-gradient(90deg,
+        transparent 0%, rgba(43, 43, 43, 0.09) 34%,
+        rgba(43, 43, 43, 0.02) 50%,
+        rgba(43, 43, 43, 0.09) 66%, transparent 100%);
+    }
+
+    .flow h1 {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.85rem;
+      font-weight: 400;
+      line-height: 1.12;
+    }
+    .flow .meta {
       font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
+      font-size: 0.56rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--eink-dim);
-      margin-top: 0.8rem;
-      padding-bottom: 1.6rem;
+      margin-top: 0.7rem;
+      padding-bottom: 1.3rem;
       border-bottom: 1px solid var(--eink-rule);
     }
-    .read p {
+    .flow p {
       font-family: 'EB Garamond', serif;
-      font-size: 1.06rem;
-      line-height: 1.68;
-      margin-top: 1.15rem;
+      font-size: 1.02rem;
+      line-height: 1.62;
+      margin-top: 1rem;
+      /* A line stranded alone at a column break is the one thing that gives
+         away that this is not a book. */
+      orphans: 2;
+      widows: 2;
     }
-    .read p:first-of-type { margin-top: 1.9rem; }
-    .read .end {
+    .flow p:first-of-type { margin-top: 1.5rem; }
+    .flow .end {
       font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
+      font-size: 0.56rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--eink-dim);
-      margin-top: 3rem;
-      padding-top: 1.4rem;
+      margin-top: 2rem;
+      padding-top: 1.1rem;
       border-top: 1px solid var(--eink-rule);
     }
+
+    .folio {
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.6rem;
+      padding-top: 1rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.56rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--eink-dim);
+    }
+    .folio button {
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 0.95rem;
+      line-height: 1;
+      color: var(--eink-ink);
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    .folio button:hover:not(:disabled) { opacity: 1; }
+    .folio button:disabled { opacity: 0.16; cursor: default; }
+    .folio .n { min-width: 7ch; text-align: center; }
 
     /* ── Waver teaser ── */
     /* The real page in an iframe rather than a copy of its field. waver's test
@@ -1472,7 +1581,16 @@
     header.addEventListener('keydown', function (e) {
       if (document.body.dataset.expanded && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); close(); }
     });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+      // The stage holds focus, so arrows have to be forwarded to whatever is
+      // standing on it rather than handled here — this knows nothing about
+      // books, only that its tenant may care about keys.
+      else if (host.dataset.open === 'true' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        const kid = host.firstElementChild;
+        if (kid) kid.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, bubbles: false }));
+      }
+    });
 
     window.CUFO = window.CUFO || {};
     window.CUFO.expand = {
@@ -1482,30 +1600,163 @@
     };
 
     /* ── Literature ────────────────────────────────────────────
-       Titles are the Issue 01 list. The prose is placeholder — public-domain
-       openings, here so the reading measure and rhythm can be judged against
-       real sentences. Replace `text` as the pieces are written; nothing else
-       reads anything about a work. */
+       Titles are the Issue 01 list. The prose is invented placeholder, long
+       enough that the spread actually paginates and the page turns can be
+       judged — a three-paragraph stub fits two columns and never flips.
+       Replace `text` as the pieces are written; nothing else reads anything
+       about a work. */
     const WORKS = [
       { title: 'Rhiannon', kind: 'Story', year: 2026, text: [
         'The road out of town ran straight for eleven miles and then gave up, the way roads do when the land stops agreeing with them.',
         'She had been driving since four. The radio had quit somewhere around the county line and she had not bothered to fix it, because the quiet turned out to be the thing she had come for.',
-        'There is a particular hour before dawn when the sky is not dark and not light, and everything in it is the colour of a photograph that has been left in a window.'] },
+        'There is a particular hour before dawn when the sky is not dark and not light, and everything in it is the colour of a photograph that has been left in a window.',
+        'By seven she was through the pass and the light had come up properly, and the whole valley lay out below her the way a hand lies open.',
+        'There had been a town here. The map still said so. What was left was a grain elevator, a church with the windows boarded, and a line of cottonwoods marking where a creek had been.',
+        'She pulled over because there was nowhere she had to be, which was new, and because the elevator had her grandfather’s name painted on it in letters eight feet high, which was not.',
+        'The paint had gone the colour of a bruise. You could read it anyway. You could read it from the road, which had been the point.',
+        'Her mother had never once driven out here. In thirty years she had found a reason every summer, and the reasons had all been good, and not one of them had been true.',
+        'The door of the church was not locked. It had not been locked in some time, judging by the drift of leaves inside the vestibule, and the birds, and the smell.',
+        'She stood in the aisle for a while without deciding anything. The pews were still bolted down. Somebody had taken the hymn boards and left the numbers.',
+        'Forty-two. One hundred and eight. The last Sunday anyone had sung here, and the numbers still up, the way a clock stops at the hour of the accident.',
+        'Outside, the wind came down the valley and went through the cottonwoods and made the sound that water makes, which is why people plant them where the water used to be.',
+        'She got back in the car. She did not take a photograph. That felt important at the time and she could not afterwards explain why.',
+        'The road ran out eleven miles further on, as advertised, in a turnaround of packed gravel with a county sign and a cattle gate and nothing beyond it but grass going silver in the wind.',
+        'She sat with the engine off until the heat came up through the floor. Then she turned the car around and drove back the way she had come, past the church and the elevator and the name.'] },
       { title: '2fer', kind: 'Essay', year: 2026, text: [
         'Two things can be true, which is the sort of sentence that sounds like wisdom and functions like an escape hatch.',
-        'I have been thinking about the places where the two things are not merely both true but are true because of one another, which is harder, and rarer, and worth the trouble of saying slowly.'] },
+        'I have been thinking about the places where the two things are not merely both true but are true because of one another, which is harder, and rarer, and worth the trouble of saying slowly.',
+        'The phrase arrives in arguments as a kind of truce, and like most truces it is mostly about ending the fighting rather than settling anything.',
+        'What I mean is narrower and more demanding. I mean the cases where the second thing is true because the first one is, and where saying only one of them is not a simplification but an error.',
+        'A person can be generous and also keeping score. Not generous despite the scorekeeping, and not secretly ungenerous — generous, and keeping score, and the one running on the other.',
+        'We do not have good grammar for this. The grammar we have is concessive: although, despite, nevertheless. Every one of those words quietly ranks the two halves.',
+        'The honest construction would be flatter. And. Simply and. But “and” reads as a list, and a list implies the items are independent, which is the thing I am trying not to say.',
+        'So the sentence gets longer. It has to. Anything shorter has already taken a side.'] },
       { title: 'Flips', kind: 'Story', year: 2025, text: [
         'The board came up and over and landed wrong, and he rode it out anyway, which was the whole of his talent as far as anyone could tell.',
-        'He had been at it since the lot was poured. The security guard had stopped coming out around the second summer.'] },
+        'He had been at it since the lot was poured. The security guard had stopped coming out around the second summer.',
+        'The lot had been a Caldor and before that a drive-in, and the concrete was poured in one continuous slab that had cracked exactly twice in forty years.',
+        'Those two cracks were the whole topography of the place. Everyone who skated there knew them the way you know the stairs in a house you grew up in.',
+        'He had been at it since the lot was poured, which was not true, but it was the kind of thing people said about him and he had stopped correcting it.',
+        'The trick he was working on did not have a name yet, or it had four names depending on who you asked, which amounts to the same thing.',
+        'It went up and over and came down wrong, and he rode it out, and the board shot away across the slab and hit the fence with a sound like a dropped plate.',
+        'He went and got it. He came back. That was the whole afternoon, and the one before it, and the one after.'] },
       { title: 'Over the Hill', kind: 'Essay', year: 2025, text: [
-        'Nobody tells you that the hill is not a hill. It is a long shallow rise, and you are most of the way up it before the word occurs to you at all.'] },
+        'Nobody tells you that the hill is not a hill. It is a long shallow rise, and you are most of the way up it before the word occurs to you at all.',
+        'The metaphor fails in a specific and interesting way, which is that hills have a summit and you know when you are on it.',
+        'What actually happens is that the grade eases. You notice you are not working as hard. You take this for a sign of fitness for about a year.',
+        'Then one morning you find yourself describing something as the way it used to be done, in a tone of voice you have heard before, from someone you did not entirely respect at the time.',
+        'There is no summit. There is a long shallow rise, and a point somewhere on it where you turn around to check the view and discover it is behind you.'] },
       { title: 'Dust Settled', kind: 'Story', year: 2024, text: [
         'Afterward the house was very clean, which was the part no one had warned her about.',
-        'She found the receipts in a drawer he had never used, held with a clip, in order, going back years.'] },
+        'She found the receipts in a drawer he had never used, held with a clip, in order, going back years.',
+        'The cleaners had come on the Tuesday and done the whole house in six hours, which was less time than it had taken him to die.',
+        'She had not asked them to do the study. They had done the study. Everything was in boxes, labelled in a hand she did not know, and the labels were all correct.',
+        'The receipts were in a drawer he had never used, held with a clip, in order, going back years. Hardware store, hardware store, hardware store, florist.',
+        'The florist was the one that stopped her. Not because of what it might mean — she knew what it meant, it meant her birthday, every year, the same shop.',
+        'It stopped her because he had kept the receipt. Because somewhere in him was a man who thought that one day somebody might need to check.',
+        'She put the clip back in the drawer and closed it, and the house was very quiet, and very clean, and that was the part no one had warned her about.'] },
     ];
 
     const rail = document.getElementById('lit-rail');
     if (!rail) return;
+
+    /* Builds the spread. The columns do the pagination; this only has to
+       count how many of them there are and slide the flow by one spread at a
+       time. Everything is measured rather than assumed, so the same code
+       holds at any window size and re-paginates on resize. */
+    function book(w) {
+      const el = document.createElement('div');
+      el.className = 'book';
+      el.innerHTML =
+        '<div class="leaves">' +
+          '<div class="flow"></div>' +
+          '<div class="spine"></div>' +
+        '</div>' +
+        '<div class="folio">' +
+          '<button type="button" class="prev" aria-label="Previous page">\u2039</button>' +
+          '<span class="n"></span>' +
+          '<button type="button" class="next" aria-label="Next page">\u203a</button>' +
+        '</div>';
+
+      const leaves = el.querySelector('.leaves');
+      const flow = el.querySelector('.flow');
+      const prev = el.querySelector('.prev');
+      const next = el.querySelector('.next');
+      const num  = el.querySelector('.n');
+
+      const h = document.createElement('h1'); h.textContent = w.title;
+      const m = document.createElement('div'); m.className = 'meta';
+      m.textContent = w.kind + ' \u00b7 ' + w.year + ' \u00b7 closeupfarout';
+      flow.append(h, m);
+      w.text.forEach(function (para) {
+        const pEl = document.createElement('p'); pEl.textContent = para; flow.appendChild(pEl);
+      });
+      const end = document.createElement('div'); end.className = 'end';
+      end.textContent = 'closeupfarout';
+      flow.appendChild(end);
+
+      let spread = 0, spreads = 1, step = 0;
+
+      function measure() {
+        const W = leaves.clientWidth;
+        const gap = parseFloat(getComputedStyle(flow).columnGap) || 0;
+        step = W + gap;
+        // Measured with the flow back at zero: scrollWidth is relative to the
+        // scroll box, so reading it mid-slide reports the wrong extent.
+        const t = flow.style.transform;
+        flow.style.transition = 'none';
+        flow.style.transform = 'translateX(0)';
+        const extent = leaves.scrollWidth;
+        spreads = Math.max(1, Math.round((extent + gap) / step));
+        flow.style.transform = t;
+        // One frame of no transition, so restoring it does not animate.
+        requestAnimationFrame(function () { flow.style.transition = ''; });
+        if (spread >= spreads) spread = spreads - 1;
+        paint();
+      }
+
+      function paint() {
+        flow.style.transform = 'translateX(' + (-spread * step) + 'px)';
+        prev.disabled = spread === 0;
+        next.disabled = spread >= spreads - 1;
+        num.textContent = spreads === 1 ? '1 of 1'
+          : (spread * 2 + 1) + '\u2013' + (spread * 2 + 2) + ' of ' + (spreads * 2);
+      }
+
+      function go(d) {
+        const n = spread + d;
+        if (n < 0 || n >= spreads) return;
+        spread = n; paint();
+      }
+
+      prev.addEventListener('click', function () { go(-1); });
+      next.addEventListener('click', function () { go(1); });
+
+      // A book turns when you click a page. Only when nothing is selected,
+      // or finishing a drag over a sentence would flip it away.
+      leaves.addEventListener('click', function (e) {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) return;
+        const r = leaves.getBoundingClientRect();
+        go(e.clientX - r.left < r.width / 2 ? -1 : 1);
+      });
+
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+      });
+
+      // Fonts land after the first layout and change where every column
+      // breaks, so the count has to be taken again once they have.
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+      const ro = new ResizeObserver(function () {
+        if (!el.isConnected) { ro.disconnect(); return; }
+        measure();
+      });
+      ro.observe(leaves);
+
+      return el;
+    }
 
     WORKS.forEach(function (w) {
       const b = document.createElement('button');
@@ -1517,19 +1768,7 @@
       b.querySelector('.wd').textContent = w.text[0];
       b.querySelector('.wm').textContent = w.kind + ' \u00b7 ' + w.year;
       b.addEventListener('click', function () {
-        const art = document.createElement('article');
-        art.className = 'read';
-        const h = document.createElement('h1'); h.textContent = w.title;
-        const m = document.createElement('div'); m.className = 'meta';
-        m.textContent = w.kind + ' \u00b7 ' + w.year + ' \u00b7 closeupfarout';
-        art.append(h, m);
-        w.text.forEach(function (para) {
-          const el = document.createElement('p'); el.textContent = para; art.appendChild(el);
-        });
-        const end = document.createElement('div'); end.className = 'end';
-        end.textContent = 'closeupfarout';
-        art.appendChild(end);
-        window.CUFO.expand.open(art, w.title, b);
+        window.CUFO.expand.open(book(w), w.title, b);
       });
       rail.appendChild(b);
     });
