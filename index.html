@@ -386,8 +386,8 @@
 
     #mu-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.05rem 0.85rem;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.05rem 0.9rem;
       padding: 0.9rem 0.85rem 1.2rem;
     }
 
@@ -1000,7 +1000,7 @@
         tracks: [['Deep Field','6:55'], ['Cold Open','3:12'], ['Vantage','5:41'], ['Nightwatch','7:28']] },
     ];
     const ARTIST = 'closeupfarout';
-    const COLS = 3;
+    const COLS = 2;
 
     const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const srcFor = (al, i) => '/audio/tracks/' + slug(al.title) + '-' + String(i + 1).padStart(2, '0') + '.mp3';
