@@ -26,6 +26,14 @@
       /* How long one set of books takes to melt into the next. The script reads
          this back, so the timing is defined only here. */
       --melt: 1.6s;
+      /* E-ink: a warm grey paper and a soft black, not white on black and not
+         pure #000 on #fff. Both are the reading surface, so they live here
+         rather than in either place that uses them — the cards on the front
+         page are literally small pieces of the page they open into. */
+      --eink-bg: #e8e4da;
+      --eink-ink: #26231e;
+      --eink-dim: #6f6a60;
+      --eink-rule: rgba(38, 35, 30, 0.2);
     }
 
     html, body {
@@ -111,6 +119,13 @@
          moved into the quarter the library used to hold, and the library has
          taken Cento's column. */
       grid-template-columns: 3fr 2fr;
+      /* The right column carries two things now: the record library, and a
+         shelf of writing under it. The split is the same track definition
+         Split Stack's pane uses for its own two rows, so the shelf begins on
+         exactly the line where Cento ends and Waver starts — at any window
+         height, with nothing measured and nothing to keep in step by hand.
+         Split Stack's pane spans both rows, so it is unaffected. */
+      grid-template-rows: minmax(444px, 1fr) 1fr;
       background: var(--page);
     }
 
@@ -320,7 +335,7 @@
       position: relative;
       z-index: 1;
       grid-column: 1;
-      grid-row: 1;
+      grid-row: 1 / -1;
       background: #090909;
       color: #f5f2ec;
       /* Mirror of the weave's margins: half facing Cento, full against the
@@ -386,6 +401,10 @@
          behind it. */
       overscroll-behavior: contain;
       scrollbar-width: none;
+      /* The column ends at the shelf, and a row of covers lands wherever it
+         lands — without this the clip cuts straight through an album's name,
+         which reads as a bug rather than as more to scroll. */
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
     }
     #mu-lib::-webkit-scrollbar { width: 0; }
 
@@ -485,6 +504,168 @@
 
     #music :focus-visible { outline: 2px solid #4a8af4; outline-offset: 2px; }
 
+    /* ── Literature, under the library ────────────────────────
+       A shelf rather than a grid: two works stand in view and the rest are a
+       scroll to the right, so the section announces that there are more
+       without spending the height to prove it.
+
+       The cards are paper-toned while everything around them is black, which
+       is the whole trick — a card is a small piece of the page it opens into,
+       so the expansion reads as the same object getting bigger. */
+    #lit {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #090909;
+      overflow: hidden;
+    }
+
+    #lit h2 {
+      flex: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(245, 242, 236, 0.4);
+      padding: 0.75rem 0.85rem 0.6rem;
+    }
+
+    #lit-rail {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      gap: 0.85rem;
+      padding: 0 0.85rem 0.85rem;
+      align-items: flex-start;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    #lit-rail::-webkit-scrollbar { height: 0; }
+
+    /* Two in view: the flex basis is half the rail less half the gap, so the
+       second card lands exactly on the right edge and the third is visibly
+       cut — the cut is the thing that says "scroll". */
+    .work {
+      /* Width first, height from the ratio — a cover is a rectangle, and two
+         of them have to stand in view whatever the window height. Sizing off
+         the height instead would make the covers wider on a tall screen and
+         quietly drop the second one off the edge. */
+      flex: 0 0 calc(50% - 0.425rem);
+      aspect-ratio: 2 / 3;
+      max-height: 100%;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      padding: 1.3rem 1.1rem 1.1rem;
+      border: 0;
+      cursor: pointer;
+      background: var(--eink-bg);
+      color: var(--eink-ink);
+      font: inherit;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+    @media (hover: hover) {
+      .work:hover { transform: translateY(-3px); box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 10px 22px rgba(0,0,0,.45); }
+    }
+
+    .work .wt {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.22rem;
+      line-height: 1.15;
+    }
+    .work .wr { height: 1px; background: var(--eink-rule); margin: 0.6rem 0 0.55rem; }
+    .work .wd {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.82rem;
+      line-height: 1.42;
+      color: var(--eink-dim);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .work .wm {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--eink-dim);
+      padding-top: 0.6rem;
+    }
+
+    /* ── The expansion ────────────────────────────────────────
+       Deliberately general. Literature is its first tenant, but Cento, Split
+       Stack and Waver are all meant to open this way eventually, so nothing
+       here knows what it is showing — `CUFO.expand.open(node)` takes any
+       element and this frames it.
+
+       It stops at the logo strip rather than covering the window, because the
+       strip is the way back. That is the whole navigation model: one thing is
+       always on screen and it always means "out". */
+    #expand {
+      position: fixed;
+      top: 0; bottom: 0; right: 0;
+      left: var(--logo-w);
+      z-index: 200;
+      background: var(--eink-bg);
+      color: var(--eink-ink);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.32s ease;
+    }
+    #expand[data-open="true"] { opacity: 1; pointer-events: auto; }
+    /* Focused by script to move the reading order, never by tab, so the ring
+       on the container itself says nothing. Anything inside it keeps its own. */
+    #expand:focus { outline: none; }
+
+    /* While it is open the strip is a control, so it says so: full strength
+       instead of the 85% it rests at, and a pointer. */
+    body[data-expanded="true"] > header { cursor: pointer; }
+    body[data-expanded="true"] #brand .ltr { color: rgba(245, 242, 236, 1); }
+
+    .read { max-width: 34rem; margin: 0 auto; padding: 4.5rem 2rem 6rem; }
+    .read h1 {
+      font-family: 'EB Garamond', serif;
+      font-size: 2.1rem;
+      font-weight: 400;
+      line-height: 1.1;
+    }
+    .read .meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--eink-dim);
+      margin-top: 0.8rem;
+      padding-bottom: 1.6rem;
+      border-bottom: 1px solid var(--eink-rule);
+    }
+    .read p {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.06rem;
+      line-height: 1.68;
+      margin-top: 1.15rem;
+    }
+    .read p:first-of-type { margin-top: 1.9rem; }
+    .read .end {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--eink-dim);
+      margin-top: 3rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid var(--eink-rule);
+    }
+
     /* ── Waver teaser ── */
     /* The real page in an iframe rather than a copy of its field. waver's test
        pulls the script straight out of waver/index.html so it tests the page
@@ -582,7 +763,7 @@
     @media (max-width: 768px) {
       /* The strip stays, just narrower — it is the only wordmark now. */
       :root { --logo-w: 38px; }
-      main { grid-template-columns: 1fr; grid-template-rows: 2fr 1fr; }
+      main { grid-template-columns: 1fr; grid-template-rows: 2fr 1fr 230px; }
       /* Too little room to quarter: everything stacks in one column. Each of
          these needs an explicit row — a grid item asking for column 2 of a
          one-column grid gets an implicit column instead of an error, which is
@@ -593,6 +774,7 @@
       #weave-pane { grid-column: 1; grid-row: 2; padding: 0; }
       #waver-link { grid-column: 1; grid-row: 3; }
       #music      { grid-column: 1; grid-row: 2; }
+      #lit        { grid-column: 1; grid-row: 3; }
     }
   </style>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -634,6 +816,11 @@
       <audio id="mu-audio" preload="none"></audio>
     </div>
 
+    <section id="lit" aria-labelledby="lit-h">
+      <h2 id="lit-h">Writing</h2>
+      <div id="lit-rail"><!-- cards built by the script --></div>
+    </section>
+
     <div id="hilo-pane">
       <a id="hilo-link" href="/split-stack/" aria-label="Open Split Stack">
         <div id="hilo-stage"><canvas id="hilo-canvas" aria-hidden="true"></canvas></div>
@@ -661,6 +848,10 @@
     </div>
 
   </main>
+
+  <!-- The expansion. Empty until something asks to be shown in it. -->
+  <div id="expand" role="dialog" aria-modal="true" aria-label="Reading view"
+       data-open="false" aria-hidden="true"></div>
 
 
   <div class="grain"></div>
@@ -1228,6 +1419,120 @@
 
     // Nothing open to begin with: the page is first of all a grid of
     // covers, newest first, and opening one is the visitor's move.
+  })();
+  </script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── The expansion ─────────────────────────────────────────
+       A general mechanism, not a literature feature. It takes any element and
+       shows it full-bleed from the logo strip to the right edge of the window,
+       and the strip — the one thing it never covers — is how you get out.
+       Cento, Split Stack and Waver are meant to open this way too, so nothing
+       below knows or asks what it is framing. */
+    const host = document.getElementById('expand');
+    const header = document.querySelector('body > header');
+    if (!host || !header) return;
+
+    let opener = null;   // what to hand focus back to on the way out
+
+    function open(node, label) {
+      host.replaceChildren(node);
+      host.scrollTop = 0;
+      if (label) host.setAttribute('aria-label', label);
+      host.dataset.open = 'true';
+      host.removeAttribute('aria-hidden');
+      document.body.dataset.expanded = 'true';
+      // The strip stops being decoration and becomes the way back, so it has
+      // to say that to a screen reader as well as to a mouse.
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      header.setAttribute('aria-label', 'Back to the front page');
+      host.focus({ preventScroll: true });
+    }
+
+    function close() {
+      if (host.dataset.open !== 'true') return;
+      host.dataset.open = 'false';
+      host.setAttribute('aria-hidden', 'true');
+      delete document.body.dataset.expanded;
+      header.removeAttribute('role');
+      header.removeAttribute('tabindex');
+      header.setAttribute('aria-label', 'closeupfarout');
+      if (opener) { opener.focus(); opener = null; }
+      // Let the fade finish before emptying it, or the content vanishes
+      // instantly and only the paper fades.
+      setTimeout(function () { if (host.dataset.open !== 'true') host.replaceChildren(); }, 360);
+    }
+
+    host.tabIndex = -1;
+    header.addEventListener('click', function () { close(); });
+    header.addEventListener('keydown', function (e) {
+      if (document.body.dataset.expanded && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); close(); }
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+    window.CUFO = window.CUFO || {};
+    window.CUFO.expand = {
+      open: function (node, label, from) { opener = from || null; open(node, label); },
+      close: close,
+      get isOpen() { return host.dataset.open === 'true'; },
+    };
+
+    /* ── Literature ────────────────────────────────────────────
+       Titles are the Issue 01 list. The prose is placeholder — public-domain
+       openings, here so the reading measure and rhythm can be judged against
+       real sentences. Replace `text` as the pieces are written; nothing else
+       reads anything about a work. */
+    const WORKS = [
+      { title: 'Rhiannon', kind: 'Story', year: 2026, text: [
+        'The road out of town ran straight for eleven miles and then gave up, the way roads do when the land stops agreeing with them.',
+        'She had been driving since four. The radio had quit somewhere around the county line and she had not bothered to fix it, because the quiet turned out to be the thing she had come for.',
+        'There is a particular hour before dawn when the sky is not dark and not light, and everything in it is the colour of a photograph that has been left in a window.'] },
+      { title: '2fer', kind: 'Essay', year: 2026, text: [
+        'Two things can be true, which is the sort of sentence that sounds like wisdom and functions like an escape hatch.',
+        'I have been thinking about the places where the two things are not merely both true but are true because of one another, which is harder, and rarer, and worth the trouble of saying slowly.'] },
+      { title: 'Flips', kind: 'Story', year: 2025, text: [
+        'The board came up and over and landed wrong, and he rode it out anyway, which was the whole of his talent as far as anyone could tell.',
+        'He had been at it since the lot was poured. The security guard had stopped coming out around the second summer.'] },
+      { title: 'Over the Hill', kind: 'Essay', year: 2025, text: [
+        'Nobody tells you that the hill is not a hill. It is a long shallow rise, and you are most of the way up it before the word occurs to you at all.'] },
+      { title: 'Dust Settled', kind: 'Story', year: 2024, text: [
+        'Afterward the house was very clean, which was the part no one had warned her about.',
+        'She found the receipts in a drawer he had never used, held with a clip, in order, going back years.'] },
+    ];
+
+    const rail = document.getElementById('lit-rail');
+    if (!rail) return;
+
+    WORKS.forEach(function (w) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'work';
+      b.innerHTML = '<span class="wt"></span><span class="wr"></span>' +
+                    '<span class="wd"></span><span class="wm"></span>';
+      b.querySelector('.wt').textContent = w.title;
+      b.querySelector('.wd').textContent = w.text[0];
+      b.querySelector('.wm').textContent = w.kind + ' \u00b7 ' + w.year;
+      b.addEventListener('click', function () {
+        const art = document.createElement('article');
+        art.className = 'read';
+        const h = document.createElement('h1'); h.textContent = w.title;
+        const m = document.createElement('div'); m.className = 'meta';
+        m.textContent = w.kind + ' \u00b7 ' + w.year + ' \u00b7 closeupfarout';
+        art.append(h, m);
+        w.text.forEach(function (para) {
+          const el = document.createElement('p'); el.textContent = para; art.appendChild(el);
+        });
+        const end = document.createElement('div'); end.className = 'end';
+        end.textContent = 'closeupfarout';
+        art.appendChild(end);
+        window.CUFO.expand.open(art, w.title, b);
+      });
+      rail.appendChild(b);
+    });
   })();
   </script>
 
