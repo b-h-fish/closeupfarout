@@ -524,7 +524,7 @@
        row2         (DEAL, or MULTIPLAYER)
      The way back is a corner arrow rather than a row of its own — a whole
      row for one word made the panel taller than it had any need to be. */
-  function menuGeom() {
+  function menuGeom(rows) {
     var markH = splitMarkH(3);
     var g = { PAD: 16, markH: markH };
     /* The band is padded equally above and below. Below has to carry the label
@@ -536,7 +536,11 @@
     g.labelY = g.bandY + GWID + 4;
     g.row1Y  = g.labelY + 7 + 5;
     g.row2Y  = g.row1Y + 20 + 14;
-    g.blockH = g.row2Y + 20;
+    /* The front page has one button where every other screen on this skeleton
+       has two, and a panel still sized for a row that is not there reads as a
+       mistake. Asking for one row shortens the block and re-centres it in the
+       same breath, since `top` is figured from the height a line below. */
+    g.blockH = (rows === 1 ? g.row1Y : g.row2Y) + 20;
     /* Wide enough for the widest thing in it and no wider: the buttons and
        the fan both stop at 160, so 16 either side matches the 16 above and
        below and the panel comes out evenly padded. Anything more than this
@@ -613,7 +617,7 @@
   }
 
   function drawMenu() {
-    var m = menuGeom(), cx = W >> 1;
+    var m = menuGeom(1), cx = W >> 1;
     panelFrame(m);
 
     // the fan holds the grid picker's band, centred in it, and concludes
@@ -621,8 +625,11 @@
     var btnW = Math.min(160, m.pw - 32);
     drawMenuCards(cx, m.top + m.bandY + ((GWID - menuCh) >> 1), btnW);
 
-    menuButton(m.top + m.row1Y, btnW, 'SOLO', { t: 'solo' });
-    menuButton(m.top + m.row2Y, btnW, 'MULTIPLAYER', { t: 'multiplayer' });
+    /* One way in while multiplayer is held back: PLAY goes straight to the
+       grid picker. The multiplayer screens are untouched and still reachable
+       with 'm', so the work on them keeps running and putting the button back
+       is one line. */
+    menuButton(m.top + m.row1Y, btnW, 'PLAY', { t: 'solo' });
   }
 
   /* ═══ MULTIPLAYER ═════════════════════════════════════════════════════
