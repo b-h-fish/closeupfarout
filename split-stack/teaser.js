@@ -334,6 +334,13 @@
       if (pile.alive || dealing || holding) {
         cardFace(fb, b.x, b.y, CARD_W, CARD_H,
                  HiLo.rankChar(top), HiLo.suitChar(top), P2);
+        /* The teaser plays the real engine, so piles really do buy each other
+           back in it. Without the meter those revives arrive from nowhere and
+           the preview stops being the game it claims to be. */
+        if (g.size > 1 && pile.alive && typeof stackMeter === 'function' && HiLo.STACK_N) {
+          stackMeter(fb, b.x, b.y, CARD_W, CARD_H,
+                     Math.min(pile.streak || 0, HiLo.STACK_N), HiLo.STACK_N, P2);
+        }
       } else {
         cardBack(fb, b.x, b.y, CARD_W, CARD_H, P2);
         fb.dim(b.x, b.y, CARD_W, CARD_H, 0.62);

@@ -1224,6 +1224,13 @@
     var shown = dealing ? cards[cards.length-2] : cards[cards.length-1];
     if (pile.alive || dealing || holding) {
       cardFace(fb, b.x, ly, CARD_W, CARD_H, HiLo.rankChar(shown), HiLo.suitChar(shown), p);
+      /* Not on a one-pile board: with nothing else to revive the counter can
+         never pay, and a meter that cannot fill is a promise the game does not
+         keep. A pile owed more than one revive still shows full. */
+      if (g.size > 1 && pile.alive) {
+        stackMeter(fb, b.x, ly, CARD_W, CARD_H,
+                   Math.min(pile.streak, HiLo.STACK_N), HiLo.STACK_N, p);
+      }
     } else {
       cardBack(fb, b.x, ly, CARD_W, CARD_H, p);
       fb.dim(b.x, ly, CARD_W, CARD_H, 0.62);

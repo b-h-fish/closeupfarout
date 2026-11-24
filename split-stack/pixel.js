@@ -364,6 +364,26 @@ function cardFace(fb, x, y, w, h, rank, suit, P) {
   }
 }
 
+/* How close a pile is to buying a dead one back. Seven marks in the card's
+   lower margin, filling left to right.
+
+   A bar rather than a number: a numeral on a playing card reads as part of the
+   card, and a pile showing two figures is a card you have to stop and parse.
+   It is centred on 27 of the card's 54 so it stays clear of the rotated corner
+   index, and it sits inside the border rather than under the card, because a
+   deep pile already leans eight pixels down-right into a five pixel gap and
+   there is no room below.
+
+   The empty marks are drawn, not hidden. A board of untouched piles showing
+   seven slots apiece is how the rule explains itself without a legend. */
+function stackMeter(fb, x, y, w, h, n, max, p) {
+  var pw = 3, gp = 1, tot = max * pw + (max - 1) * gp;
+  var sx = x + ((w - tot) >> 1), sy = y + h - 5;
+  for (var k = 0; k < max; k++) {
+    fb.rect(sx + k * (pw + gp), sy, pw, 2, k < n ? p.pick : p.trim);
+  }
+}
+
 /* ── extras the game needs beyond the mock ─────────────────────────────── */
 
 /* The bitmap font at whole-number multiples, for titles and results. */
