@@ -16,6 +16,17 @@ var HiLo = (function () {
      defined; flip it to put the ace at the bottom instead. */
   var ACE_LOW = false;
 
+  /* A pile that grows this tall buys a dead one back. The counter is per pile
+     and needs no consecutive play — a pile dies the instant a call on it
+     fails, so every card on a living pile is a success and the counter is
+     simply how tall it has grown since it last paid out or came back.
+
+     Seven was chosen from simulation, not taste, and it is a far sharper dial
+     than it looks: at counting play a four-pile board wins 0.1% without the
+     rule, 1.0% at seven and 20.1% at three. One card either way roughly halves
+     or doubles the small boards. Don't nudge it without re-running the sim. */
+  var STACK_N = 7;
+
   var RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
   var SUITS = ['S','H','D','C'];
 
@@ -68,7 +79,8 @@ var HiLo = (function () {
     var deck = shuffled(seed);
     var piles = [], i;
     var n = Math.max(1, players | 0 || 1);
-    for (i = 0; i < size; i++) piles.push({ cards: [deck[i]], alive: true });
+    /* The dealt card was never called, so a pile starts owed nothing. */
+    for (i = 0; i < size; i++) piles.push({ cards: [deck[i]], alive: true, streak: 0 });
     return autoPick({
       seed: seed, cols: cols, rows: rows, size: size,
       deck: deck,
@@ -170,6 +182,7 @@ var HiLo = (function () {
       // Comes back exactly as it died — the card that killed it still on top,
       // so a pile lost to a King is a liability you have chosen to take on.
       state.piles[action.pile].alive = true;
+      state.piles[action.pile].streak = 0;    // a new life counts from nothing
       state.phase = 'PLAY';
       state.selected = -1;
       advanceTurn(state);
@@ -190,18 +203,40 @@ var HiLo = (function () {
     state.next++;
     pile.cards.push(card);           // the card is placed either way — a losing
     if (!won) pile.alive = false;    // card is still a card off the stock
+    else pile.streak++;
 
     scoreCall(state, action.by, action.call, won);
+
+    /* Two ways to buy a pile back, and a third when they land together. Both
+       need something actually down: with the board whole there is nothing to
+       buy, so a full counter simply waits, and a tall pile can be owed more
+       than one. */
+    var canPay  = won && deadCount(state) > 0;
+    var stacked = canPay && pile.streak >= STACK_N;
+    var split   = canPay && action.call === 'SPLIT';
 
     state.last = {
       pile: i, call: action.call, card: card,
       survived: won, wasSplit: action.call === 'SPLIT' && won,
+      stacked: stacked, cleared: stacked && split,
       by: state.players > 1 ? action.by : undefined
     };
     state.selected = -1;
 
-    // A made Split buys back a pile — but only if one is actually down.
-    if (won && action.call === 'SPLIT' && deadCount(state) > 0) {
+    /* A Split that completes a Stack on the same call brings the whole board
+       back, so there is nothing left to choose and the game does not stop. */
+    if (stacked && split) {
+      pile.streak -= STACK_N;
+      for (var k = 0; k < state.size; k++) {
+        if (!state.piles[k].alive) { state.piles[k].alive = true; state.piles[k].streak = 0; }
+      }
+      advanceTurn(state);
+      return settle(state);
+    }
+
+    // Either one alone buys a single pile, and the player says which.
+    if (stacked || split) {
+      if (stacked) pile.streak -= STACK_N;   // spent now; only the choice is left
       state.phase = 'RESURRECT';
       return state;                  // hold here; the player must choose
     }
@@ -276,7 +311,7 @@ var HiLo = (function () {
     top: top, value: value, rankChar: rankChar, suitChar: suitChar,
     aliveCount: aliveCount, deadCount: deadCount, stockLeft: stockLeft,
     succeeds: succeeds, standings: standings,
-    PAYS: PAYS, ACE_LOW: ACE_LOW
+    PAYS: PAYS, ACE_LOW: ACE_LOW, STACK_N: STACK_N
   };
 })();
 

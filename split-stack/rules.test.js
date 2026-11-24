@@ -208,6 +208,101 @@ for (let seed = 1; seed < 400 && !a4; seed++) {
 }
 ok('a Split hold still waits for a pile to revive', !a4 || a4.selected === -1);
 
+// ── Stack: a pile that grows tall buys a dead one back ───────────────────
+/* The deck is the only randomness in the engine, so writing the next slot
+   makes any outcome reproducible without reaching into the rules themselves. */
+function cardOf(v, suit) { return suit * 13 + (v === 14 ? 0 : v - 1); }
+function feed(g, v) { g.deck[g.next] = cardOf(v, 0); }
+function callOn(g, pile, call) {
+  if (g.selected !== pile) H.apply(g, { t: 'SELECT', pile: pile });
+  H.apply(g, { t: 'CALL', call: call });
+}
+/* Grow a pile by n successful calls, each a sure thing. */
+function grow(g, pile, n) {
+  for (let k = 0; k < n; k++) {
+    const v = H.value(H.top(g, pile));
+    if (v < 14) { feed(g, v + 1); callOn(g, pile, 'HI'); }
+    else        { feed(g, v - 1); callOn(g, pile, 'LO'); }
+  }
+}
+/* Kill a pile with a tie, which takes a Hi — and is never a Split. */
+function kill(g, pile) { feed(g, H.value(H.top(g, pile))); callOn(g, pile, 'HI'); }
+
+{
+  const g = H.create(777, 3, 3, 1);
+  ok('a pile starts owed nothing', g.piles.every(p => p.streak === 0));
+  ok('STACK_N is 7', H.STACK_N === 7);
+  grow(g, 0, 3);
+  ok('the counter follows successful calls', g.piles[0].streak === 3, 'streak=' + g.piles[0].streak);
+  ok('the dealt card is not one of them', g.piles[0].cards.length === 4);
+  ok('other piles are untouched', g.piles[1].streak === 0);
+}
+{
+  // a full counter with the board whole has nothing to buy, so it waits
+  const g = H.create(778, 3, 3, 1);
+  grow(g, 0, 7);
+  ok('a full counter with nothing dead does not halt', g.phase === 'PLAY', 'phase=' + g.phase);
+  ok('and the credit is kept', g.piles[0].streak === 7, 'streak=' + g.piles[0].streak);
+}
+{
+  const g = H.create(779, 3, 3, 1);
+  grow(g, 0, 6);
+  kill(g, 1);
+  ok('the tie killed it', g.piles[1].alive === false);
+  grow(g, 0, 1);
+  ok('a completed Stack halts for a choice', g.phase === 'RESURRECT', 'phase=' + g.phase);
+  ok('and the counter was spent', g.piles[0].streak === 0, 'streak=' + g.piles[0].streak);
+  ok('last reports the Stack', g.last.stacked === true && g.last.cleared === false);
+  H.apply(g, { t: 'REVIVE', pile: 1 });
+  ok('the pile comes back', g.piles[1].alive === true);
+  ok('a revived pile counts from nothing', g.piles[1].streak === 0);
+  ok('play resumes', g.phase === 'PLAY');
+}
+{
+  // Split and Stack on the same call: the whole board, and no choice to make
+  const g = H.create(780, 3, 3, 1);
+  grow(g, 0, 6);
+  kill(g, 1); kill(g, 2);
+  ok('two down', H.deadCount(g) === 2);
+  feed(g, H.value(H.top(g, 0)));           // a card that matches is a Split
+  callOn(g, 0, 'SPLIT');
+  ok('Split and Stack together clear the board', H.deadCount(g) === 0, 'dead=' + H.deadCount(g));
+  ok('and it does not halt', g.phase === 'PLAY', 'phase=' + g.phase);
+  ok('the counter was spent once', g.piles[0].streak === 0, 'streak=' + g.piles[0].streak);
+  ok('every revived pile counts from nothing',
+     g.piles[1].streak === 0 && g.piles[2].streak === 0);
+  ok('last reports the clear', g.last.cleared === true);
+}
+{
+  // a Split without a Stack still buys exactly one, as it always did
+  const g = H.create(781, 3, 3, 1);
+  kill(g, 1); kill(g, 2);
+  feed(g, H.value(H.top(g, 0)));
+  callOn(g, 0, 'SPLIT');
+  ok('a Split alone still halts for one choice', g.phase === 'RESURRECT');
+  ok('and nothing is back yet', H.deadCount(g) === 2);
+}
+{
+  /* The counter is reconstructible, which is the whole point of the pure
+     engine. Played straight rather than fed: `replay` rebuilds the deck from
+     the seed, so a test that writes into the deck is testing nothing. */
+  const g = H.create(782, 3, 3, 1);
+  for (let k = 0; k < 20 && g.phase === 'PLAY'; k++) {
+    const pile = g.piles.findIndex(x => x.alive);
+    if (pile < 0) break;
+    const v = H.value(H.top(g, pile));
+    if (g.selected !== pile) H.apply(g, { t: 'SELECT', pile: pile });
+    H.apply(g, { t: 'CALL', call: v > 7 ? 'LO' : 'HI' });
+    if (g.phase === 'RESURRECT') H.apply(g, { t: 'REVIVE', pile: g.piles.findIndex(x => !x.alive) });
+  }
+  const r = H.replay(782, 3, 3, 1, g.log);
+  ok('replay rebuilds the counters',
+     JSON.stringify(r.piles.map(x => x.streak)) === JSON.stringify(g.piles.map(x => x.streak)),
+     JSON.stringify(r.piles.map(x => x.streak)) + ' vs ' + JSON.stringify(g.piles.map(x => x.streak)));
+  ok('replay rebuilds the board', r.phase === g.phase && H.stockLeft(r) === H.stockLeft(g));
+}
+
 console.log('\n  '+pass+' passed, '+fail+' failed');
+
 console.log('  (3x3, naive strategy: '+wins+' wins / '+losses+' losses of 600)');
 process.exit(fail?1:0);
