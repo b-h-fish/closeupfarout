@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Split Stack — all 16 grids</title>
+<title>Split Stack — all 9 grids</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0b0812; color: #e8dcc0; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 14px; }
@@ -20,7 +20,7 @@
   }
   .row button:hover { color: #f4edda; border-color: #4a3a58; }
   .row button[aria-pressed="true"] { color: #0b0812; background: #b9ae94; border-color: #b9ae94; }
-  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  .sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
   .cap { display: flex; justify-content: space-between; gap: 8px; color: #b9ae94; padding: 0 2px 3px; }
   .cap b { color: #f4edda; font-weight: 600; }
   .cap .got { text-align: right; }
@@ -33,7 +33,7 @@
 </head>
 <body>
 <header>
-  <h1>HI | LO — all sixteen grids</h1>
+  <h1>SPLIT STACK — all nine grids</h1>
   <div class="row" id="rowWin"><i>this</i></div>
   <div class="row" id="rowPhone"><i>phone</i></div>
   <div class="row" id="rowDesk"><i>desktop</i></div>
@@ -120,7 +120,7 @@
   function unfaithful(dev) {
     var bad = {};
     if (!L || (dev.dpr >= 2) === (DPR >= 2)) return bad;
-    for (var c = 1; c <= 4; c++) for (var r = 1; r <= 4; r++) {
+    for (var c = 1; c <= 3; c++) for (var r = 1; r <= 3; r++) {
       var co = !!dev.coarse;
       var a = L.game(c, r, dev.w, dev.h, dev.dpr, co);
       var b = L.game(c, r, dev.w, dev.h, DPR, co);
@@ -155,7 +155,7 @@
       : (!L ? 'layout.js did not load, so density differences cannot be checked.' : '');
 
     var pointer = (dev.coarse === undefined) ? null : dev.coarse;
-    for (var r = 1; r <= 4; r++) for (var c = 1; c <= 4; c++)
+    for (var r = 1; r <= 3; r++) for (var c = 1; c <= 3; c++)
       add(c, r, VW, VH, k, bad[c + 'x' + r], pointer);
   }
 

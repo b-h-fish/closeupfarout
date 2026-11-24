@@ -130,8 +130,16 @@
      scenes.js rather than copied: this file had its own 0.42 alongside a
      comment asking that the two be kept in step by hand, which is a drift
      waiting to happen. scenes.js loads first, so the global is already here. */
-  var CELL = 24, CGAP = 5;               // grid picker: a cell wants a fingertip
-  var GWID = 4*CELL + 3*CGAP;
+  /* The grid picker, and the content band every screen on this skeleton is
+     built around. Three cells now rather than four: 4x4 is won 97% of the time
+     by someone who has never counted a card, and 3x4 59%, so neither was
+     asking anything. GWID is deliberately unchanged at 111 — the menu's card
+     fan is centred in this band and was tuned against it, so the cells grew
+     from 24 to 33 instead and the gap from 5 to 6, which is what keeps
+     3*33 + 2*6 exactly 111. The picker gets a bigger target out of it. */
+  var GRID_MAX = 3;
+  var CELL = 33, CGAP = 6;               // grid picker: a cell wants a fingertip
+  var GWID = GRID_MAX*CELL + (GRID_MAX-1)*CGAP;
   /* One row of settings whatever the width, now that they cycle rather than
      all showing at once — so there is a single shape to fit. Asking for more
      height than the panel needs is what leaves the setting visible around it. */
@@ -1161,7 +1169,7 @@
     if (!(mouse.x >= gx && mouse.x < gx + GWID && mouse.y >= gy && mouse.y < gy + GWID)) {
       hovC = 0; hovR = 0;
     }
-    for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
+    for (r = 0; r < GRID_MAX; r++) for (c = 0; c < GRID_MAX; c++) {
       var bx = gx + c*(CELL+CGAP), by = gy + r*(CELL+CGAP);
       if (mouse.x >= bx && mouse.x < bx+CELL && mouse.y >= by && mouse.y < by+CELL) {
         hovC = c+1; hovR = r+1;
@@ -1169,7 +1177,7 @@
     }
     var shC = hovC || pickC, shR = hovR || pickR;
     var previewing = hovC && (hovC !== pickC || hovR !== pickR);
-    for (r = 0; r < 4; r++) for (c = 0; c < 4; c++) {
+    for (r = 0; r < GRID_MAX; r++) for (c = 0; c < GRID_MAX; c++) {
       var bx2 = gx + c*(CELL+CGAP), by2 = gy + r*(CELL+CGAP);
       var lit = (c < shC && r < shR);
       fb.rect(bx2, by2, CELL, CELL, lit ? (previewing ? p.hudDim : p.hudInk) : p.hudShadow);
@@ -2065,9 +2073,9 @@
     if (screen === 'SETUP') {
       if (k === 'Enter' || k === ' ') { dispatch({ t:'deal' }); e.preventDefault(); }
       else if (k === 'Escape') { dispatch({ t:'back' }); e.preventDefault(); }
-      else if (k === 'ArrowRight') pickC = Math.min(4, pickC+1);
+      else if (k === 'ArrowRight') pickC = Math.min(GRID_MAX, pickC+1);
       else if (k === 'ArrowLeft')  pickC = Math.max(1, pickC-1);
-      else if (k === 'ArrowDown')  pickR = Math.min(4, pickR+1);
+      else if (k === 'ArrowDown')  pickR = Math.min(GRID_MAX, pickR+1);
       else if (k === 'ArrowUp')    pickR = Math.max(1, pickR-1);
       else if (k === 's' || k === 'S') pickScene = (pickScene+1) % SCENES.length;
       else return;
@@ -2147,7 +2155,9 @@
     // A deal can be named in the URL: ?seed=123&grid=3x3&scene=1
     try {
       var q = new URLSearchParams(location.search);
-      var mg = /^([1-4])x([1-4])$/i.exec(q.get('grid') || '');
+      /* A link to a grid that is no longer offered falls through to the
+         default rather than dealing one the picker cannot show. */
+      var mg = /^([1-3])x([1-3])$/i.exec(q.get('grid') || '');
       if (mg) { pickC = +mg[1]; pickR = +mg[2]; }
       var sc = parseInt(q.get('scene'), 10);
       if (sc >= 0 && sc < SCENES.length) pickScene = sc;
